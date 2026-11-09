@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Pruebas de la API Python contra soluciones analíticas (unidades kN, m)."""
 
 import doctest

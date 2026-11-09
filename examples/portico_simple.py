@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Pórtico de una crujía con carga gravitatoria y viento (unidades kN, m).
 
 Ejecutar con: python examples/portico_simple.py

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 //! Análisis lineal elástico de pórticos planos.
 //!
 //! Procedimiento:

@@ -24,6 +24,8 @@ Este archivo es para cualquier IA que trabaje en Nervi (Claude, Gemini, ChatGPT/
   ```
 - No cambies la convención de signos ni el contrato de datos sin subir `VERSION_CONTRATO` y documentarlo.
 - Idioma del proyecto: español (código, comentarios, documentación).
+- Todo archivo nuevo de código empieza con `// SPDX-License-Identifier: GPL-3.0-or-later` (Rust) o `# SPDX-License-Identifier: GPL-3.0-or-later` (Python).
+- Las reglas para personas están en [`CONTRIBUTING.md`](CONTRIBUTING.md) y también valen para vos.
 
 ## 3. Al terminar un aporte (obligatorio)
 
@@ -32,6 +34,7 @@ Este archivo es para cualquier IA que trabaje en Nervi (Claude, Gemini, ChatGPT/
    - Una entrada por aporte. **No edites entradas anteriores**: si algo cambió, lo decís en la nueva.
 2. **Actualizá [`docs/ESTADO.md`](docs/ESTADO.md)**: es la foto actual, se reescribe; la bitácora es la historia, solo se agrega.
 3. Incluí ambos archivos en el mismo commit o PR que el código.
+4. **Certificado de origen (DCO).** El CI exige `Signed-off-by` en cada commit. Una IA no puede hacer esa declaración: no agregues la firma de nadie. Antes de subir, la persona que pidió el trabajo revisa los commits y los firma con `git rebase --signoff origin/main`. Avisale en tu respuesta.
 
 El control **"Bitácora de aportes"** del CI (`scripts/verificar_bitacora.py`) deja el PR en rojo si cambia código sin agregar una entrada nueva y sin actualizar `docs/ESTADO.md`, si se edita o borra una entrada existente, si el nombre no sigue el formato o si a la entrada le faltan secciones de la plantilla.
 
@@ -40,4 +43,7 @@ El control **"Bitácora de aportes"** del CI (`scripts/verificar_bitacora.py`) d
 - No borrar ni desactivar pruebas para que algo pase.
 - No subir credenciales, datos de clientes ni modelos de proyectos reales.
 - No copiar código de programas comerciales ni de proyectos con licencias incompatibles con GPL-3.0.
+- No transcribir textos, tablas ni figuras de normas: implementar el método y citar el artículo. No subir PDFs de normas.
+- No leer formatos propietarios por ingeniería inversa ni copiar íconos o capturas de otros programas.
+- No agregar dependencias con licencias fuera de la lista de [`deny.toml`](deny.toml).
 - Un módulo de diseño según norma no se da por terminado sin revisión de un ingeniero estructural (anotalo como pendiente en la bitácora).

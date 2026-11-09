@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "Si usás Nervi en un trabajo académico, citalo con estos datos."
+title: "Nervi: software libre de análisis y dimensionamiento estructural"
+type: software
+authors:
+  - family-names: Bareiro
+    given-names: Jerónimo
+  - name: "Colaboradores de Nervi"
+version: 0.1.0
+license: GPL-3.0-or-later
+keywords:
+  - análisis estructural
+  - método de los elementos finitos
+  - ingeniería civil
+  - software libre
+abstract: >-
+  Software libre para análisis estructural por el método de los elementos
+  finitos y dimensionamiento según normas, con un núcleo numérico en Rust y
+  una capa de aplicación en Python.

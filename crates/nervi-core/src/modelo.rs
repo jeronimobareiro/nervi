@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 //! Definición del modelo de pórtico plano.
 //!
 //! Convenciones (ver `docs/convenciones.md`):

@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Nervi: análisis y dimensionamiento estructural de código abierto.
 
 Fase 1: pórtico plano lineal elástico.

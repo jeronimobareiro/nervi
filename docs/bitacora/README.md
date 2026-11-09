@@ -15,3 +15,4 @@ Historia cronológica del proyecto, escrita por cada agente (o persona) al termi
 | [2026-11-09-04](2026-11-09-04-control-bitacora-ci.md) | Control automático de la bitácora en el CI |
 | [2026-11-09-05](2026-11-09-05-renombre-nervi.md) | Cambio de nombre a Nervi |
 | [2026-11-09-06](2026-11-09-06-marca-nervi.md) | Logo final y archivos de marca |
+| [2026-11-09-07](2026-11-09-07-apertura-comunidad.md) | Archivos de comunidad, DCO y control de licencias |

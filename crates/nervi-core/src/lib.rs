@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 //! # nervi-core
 //!
 //! Núcleo de análisis estructural de Nervi. Fase 1: pórtico plano lineal

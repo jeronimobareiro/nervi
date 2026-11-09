@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 //! Barra de pórtico plano Euler-Bernoulli: rigidez, transformación, cargas
 //! nodales equivalentes, liberaciones y soluciones de empotramiento perfecto.
 

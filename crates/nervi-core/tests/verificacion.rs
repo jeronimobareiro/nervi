@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 //! Verificación del motor contra soluciones analíticas cerradas.
 //!
 //! Cada prueba cita la fórmula de referencia. Unidades: kN y m.

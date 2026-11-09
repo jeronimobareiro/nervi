@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 //! Puente PyO3 entre el núcleo `nervi-core` y el paquete Python `nervi`.
 //!
 //! Contrato de datos v1: ver `docs/contrato-datos.md`. Todos los arreglos son

@@ -18,10 +18,17 @@ Principios:
 
 Identidad visual: el isotipo es una **N isométrica** en tres tonos de azul: `#3B82F6` al frente, `#93C5FD` / `#00E5FF` arriba y `#1E3A8A` al costado. El logotipo usa **Archivo 600**. Fondos oscuros en azul noche `#0B132B` / `#0F172A`. Hay versiones monocromas (blanco y negro) para usos de alto contraste. Archivos en `docs/marca/`.
 
-### 1.1 Licencia (decisión pendiente)
+### 1.1 Licencia (decidida)
 
-| Opción | Ventaja | Costo |
-|---|---|---|
+**GPL-3.0-or-later para todo el proyecto**, incluido `nervi-core` (decisión del 2026-11-09, entrada 07 de la bitácora). Motivos:
+
+- Impide que el motor se integre en software cerrado, que es lo que se busca en un proyecto que compite con programas comerciales.
+- No limita a universidades: pueden usarlo, enseñar con él, modificarlo y publicar investigación.
+- Es compatible con las dependencias previstas (PyQt6, PySide6, IfcOpenShell, VTK, ezdxf).
+
+Se descartó MPL-2.0 o LGPL-3.0 para `nervi-core`, que solo convendría si se quisiera que empresas lo integren en productos cerrados. Cambiar la licencia más adelante requiere el permiso de todos los contribuyentes. Los aportes se aceptan con certificado de origen (DCO), sin cesión de derechos; ver `CONTRIBUTING.md` y `GOVERNANCE.md`.
+
+---|---|---|
 | GPL-3.0 para todo | Simple; compatible con PyQt6 e IfcOpenShell | Nadie puede integrar el motor en software cerrado |
 | MPL-2.0 o LGPL-3.0 para `nervi-core`, GPL-3.0 para la app | El motor puede adoptarse como biblioteca, lo que atrae contribuyentes | Dos licencias que gestionar |
 

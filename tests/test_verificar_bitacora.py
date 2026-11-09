@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Pruebas del control de bitácora (scripts/verificar_bitacora.py)."""
 
 import importlib.util

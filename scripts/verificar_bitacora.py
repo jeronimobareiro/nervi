@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Verifica que un cambio registre su aporte en la bitácora (ver AGENTS.md).
 
 Reglas, comparando la rama actual contra una base (por ejemplo origin/main):

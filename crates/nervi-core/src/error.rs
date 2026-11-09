@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
 //! Errores del núcleo de análisis.
 
 use std::fmt;

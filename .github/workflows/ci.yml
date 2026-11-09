@@ -22,6 +22,29 @@ jobs:
           python-version: "3.13"
       - run: python scripts/verificar_bitacora.py "origin/${{ github.base_ref }}"
 
+  dco:
+    name: Certificado de origen (DCO)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python scripts/verificar_dco.py "origin/${{ github.base_ref }}"
+
+  licencias:
+    name: Licencias de dependencias
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check licenses bans sources
+
   rust:
     name: Rust (fmt, clippy, pruebas)
     runs-on: ubuntu-latest
