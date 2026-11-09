@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-09 · entrada [2026-11-09-08](bitacora/2026-11-09-08-repositorio-nuevo.md)_
+_Última actualización: 2026-11-09 · entrada [2026-11-09-09](bitacora/2026-11-09-09-firma-autorizada.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
@@ -23,8 +23,8 @@ El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py
 
 ## En curso o bloqueado
 
-- **Mudanza al repositorio nuevo** `jeronimobareiro/nervi` (el repositorio `bareirojero/Apex-BIM` y su PR #1 se borraron). Todo el historial está en el bundle de la carpeta del proyecto; falta que el usuario lo suba a `main` del repositorio nuevo y verifique el primer CI.
-- Los commits posteriores a la entrada 07 necesitan `Signed-off-by` de una persona: el usuario los firma antes de subir con `git rebase --signoff origin/main`.
+- **Mudanza al repositorio nuevo** `jeronimobareiro/nervi` (el repositorio `bareirojero/Apex-BIM` y su PR #1 se borraron). El historial está en el PR #1 de ese repositorio (rama `importar-nervi`); falta que pase el CI y hacer el merge.
+- Firma DCO: la firma el usuario o, con su autorización explícita, el agente en su nombre (AGENTS.md §3.4).
 - Confirmar el correo de contacto de `CODE_OF_CONDUCT.md` y `SECURITY.md`.
 - Para que el control de bitácora **bloquee** el merge, el dueño del repo tiene que marcar "Bitácora de aportes" como check obligatorio en Settings → Branches (o Rules) para `main`.
 

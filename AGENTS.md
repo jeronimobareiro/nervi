@@ -34,7 +34,7 @@ Este archivo es para cualquier IA que trabaje en Nervi (Claude, Gemini, ChatGPT/
    - Una entrada por aporte. **No edites entradas anteriores**: si algo cambió, lo decís en la nueva.
 2. **Actualizá [`docs/ESTADO.md`](docs/ESTADO.md)**: es la foto actual, se reescribe; la bitácora es la historia, solo se agrega.
 3. Incluí ambos archivos en el mismo commit o PR que el código.
-4. **Certificado de origen (DCO).** El CI exige `Signed-off-by` en cada commit. Una IA no puede hacer esa declaración: no agregues la firma de nadie. Antes de subir, la persona que pidió el trabajo revisa los commits y los firma con `git rebase --signoff origin/main`. Avisale en tu respuesta.
+4. **Certificado de origen (DCO).** El CI exige `Signed-off-by` en cada commit. La firma es una declaración de una persona, no de la IA. Por defecto, la persona que pidió el trabajo revisa los commits y los firma con `git rebase --signoff origin/main`; avisale en tu respuesta. **Excepción:** podés agregar la firma de esa persona solo si ella te lo autoriza explícitamente y por escrito para ese trabajo. En ese caso usá exactamente el nombre y correo que indique (o su correo `noreply` de GitHub) y anotá la autorización en la entrada de la bitácora. Nunca firmes en nombre de otra persona ni sin autorización.
 
 El control **"Bitácora de aportes"** del CI (`scripts/verificar_bitacora.py`) deja el PR en rojo si cambia código sin agregar una entrada nueva y sin actualizar `docs/ESTADO.md`, si se edita o borra una entrada existente, si el nombre no sigue el formato o si a la entrada le faltan secciones de la plantilla.
 
