@@ -1,0 +1,11 @@
+[package]
+name = "apex-core"
+description = "Núcleo de análisis estructural por elementos finitos de Apex BIM"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+faer = "0.24"
