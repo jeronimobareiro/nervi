@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-09 · entrada [2026-11-09-09](bitacora/2026-11-09-09-firma-autorizada.md)_
+_Última actualización: 2026-11-09 · entrada [2026-11-09-10](bitacora/2026-11-09-10-hoja-de-ruta.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
@@ -10,7 +10,7 @@ El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py
 
 ## Fase actual
 
-**Fase 1: pórtico plano lineal elástico**, casi completa. Hoja de ruta en [`especificacion-tecnica.md`](especificacion-tecnica.md) §7.
+**Fase 1: pórtico plano lineal elástico**, casi completa. Fases en [`especificacion-tecnica.md`](especificacion-tecnica.md) §7; plan con hitos e issues (#2 a #32) en [`hoja-de-ruta.md`](hoja-de-ruta.md).
 
 ## Qué funciona
 
@@ -20,21 +20,23 @@ El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py
 - Registro de aportes: `AGENTS.md`, esta foto y `bitacora/`, con control automático en el CI.
 - Apertura a la comunidad: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `SECURITY.md`, `CITATION.cff`, plantillas de issues y PR, encabezados SPDX.
 - Controles en el CI: certificado de origen (DCO, `Signed-off-by` obligatorio desde la entrada 07) y licencias de dependencias (`cargo-deny`, `deny.toml`).
+- Hoja de ruta para colaborar: 31 issues en GitHub con etiquetas de fase, tamaño (`buen-primer-aporte`, `proyecto-academico`, `tesis-posible`) y área; el flujo "Organizar hoja de ruta" crea los hitos y asigna los issues.
 
 ## En curso o bloqueado
 
-- **Mudanza al repositorio nuevo** `jeronimobareiro/nervi` (el repositorio `bareirojero/Apex-BIM` y su PR #1 se borraron). El historial está en el PR #1 de ese repositorio (rama `importar-nervi`); falta que pase el CI y hacer el merge.
-- Firma DCO: la firma el usuario o, con su autorización explícita, el agente en su nombre (AGENTS.md §3.4).
+- **Hitos de GitHub**: se crean al integrar el PR de la hoja de ruta (flujo `.github/workflows/hoja-de-ruta.yml`). Hay que confirmar en Actions que corrió bien.
+- Firma DCO: la firma el usuario o, con su autorización explícita para cada trabajo, el agente en su nombre (AGENTS.md §3.4).
 - Confirmar el correo de contacto de `CODE_OF_CONDUCT.md` y `SECURITY.md`.
-- Para que el control de bitácora **bloquee** el merge, el dueño del repo tiene que marcar "Bitácora de aportes" como check obligatorio en Settings → Branches (o Rules) para `main`.
+- Para que los controles **bloqueen** el merge, el dueño del repo tiene que marcarlos como obligatorios en Settings → Branches (o Rules) para `main`.
 
 ## Próximos pasos sugeridos
 
-1. Completar la Fase 1: cargas trapezoidales y parciales, momentos puntuales en el tramo, cargas térmicas.
-2. Fase 2: barra 3D (12×12) con ejes locales y vector de referencia.
-3. Registrar la marca Nervi en Paraguay (DINAPI, clases 9 y 42), con abogado.
-4. Elegir la norma de hormigón a implementar primero (ACI 318-19 y la que se use en Paraguay) para la Fase 3.
+1. Cerrar la Fase 1: cargas trapezoidales (#2), momentos en el tramo (#3), cargas térmicas (#4) y la biblioteca `verification/` (#5).
+2. Difundir los issues `buen-primer-aporte` y `proyecto-academico` entre cátedras (ver `hoja-de-ruta.md` §Colaboración con universidades).
+3. Fase 2a: barra 3D 12×12 (#11), que destraba casi todo lo demás.
+4. Decidir la norma regional (#20) para ordenar la Fase 3 y el espectro sísmico.
+5. Registrar la marca Nervi en Paraguay (DINAPI, clases 9 y 42), con abogado.
 
 ## Decisiones abiertas (las toma el usuario)
 
-- Norma regional prioritaria.
+- Norma regional prioritaria ([#20](https://github.com/jeronimobareiro/nervi/issues/20)).
