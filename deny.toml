@@ -1,0 +1,41 @@
+# Control de dependencias con cargo-deny (https://github.com/EmbarkStudios/cargo-deny).
+# Garantiza que toda dependencia de Rust tenga una licencia compatible con GPL-3.0-or-later.
+# Si una dependencia nueva usa otra licencia, consultalo en un issue antes de agregarla aquí.
+
+[graph]
+all-features = true
+
+[licenses]
+confidence-threshold = 0.9
+# La lista incluye licencias previstas para dependencias futuras; no avisar si alguna no se usa todavía.
+unused-allowed-license = "allow"
+allow = [
+    "MIT",
+    "MIT-0",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unicode-3.0",
+    "Unicode-DFS-2016",
+    "BSL-1.0",
+    "CC0-1.0",
+    "MPL-2.0",
+    "LGPL-3.0-or-later",
+    "GPL-3.0-or-later",
+]
+
+[licenses.private]
+ignore = true
+
+[bans]
+multiple-versions = "allow"
+wildcards = "deny"
+allow-wildcard-paths = true
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
