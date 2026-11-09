@@ -23,7 +23,7 @@ El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py
 
 ## En curso o bloqueado
 
-- **Formato de archivo `.nrv`**: borrador de la especificación en [`formato-nrv.md`](formato-nrv.md) (ZIP + JSON versionado; IFC solo para importar y exportar). Falta la aprobación del usuario y el módulo `nervi.formato`. Se congela con la primera versión de la GUI.
+- **Formato de archivo `.nrv`**: borrador de la especificación en [`formato-nrv.md`](formato-nrv.md) (ZIP + JSON versionado; IFC solo para importar y exportar). Aprobada por el usuario el 2026-11-09; falta el módulo `nervi.formato`. Se congela con la primera versión de la GUI.
 - **Mudanza al repositorio nuevo** `jeronimobareiro/nervi` (el repositorio `bareirojero/Apex-BIM` y su PR #1 se borraron). El historial está en el PR #1 de ese repositorio (rama `importar-nervi`); falta que pase el CI y hacer el merge.
 - Firma DCO: la firma el usuario o, con su autorización explícita, el agente en su nombre (AGENTS.md §3.4).
 - Confirmar el correo de contacto de `CODE_OF_CONDUCT.md` y `SECURITY.md`.
@@ -39,4 +39,3 @@ El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py
 ## Decisiones abiertas (las toma el usuario)
 
 - Norma regional prioritaria.
-- Aprobar la especificación del formato `.nrv`.
