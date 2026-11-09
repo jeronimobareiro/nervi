@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-09 · entrada [2026-11-09-10](bitacora/2026-11-09-10-hoja-de-ruta.md)_
+_Última actualización: 2026-11-09 · entrada [2026-11-09-11](bitacora/2026-11-09-11-formato-nrv.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
@@ -24,6 +24,7 @@ El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py
 
 ## En curso o bloqueado
 
+- **Formato de archivo `.nrv`**: especificación en [`formato-nrv.md`](formato-nrv.md) (ZIP + JSON versionado; IFC solo para importar y exportar). Aprobada por el usuario el 2026-11-09; falta el módulo `nervi.formato`. Se congela con la primera versión de la GUI.
 - **Hitos de GitHub**: se crean al integrar el PR de la hoja de ruta (flujo `.github/workflows/hoja-de-ruta.yml`). Hay que confirmar en Actions que corrió bien.
 - Firma DCO: la firma el usuario o, con su autorización explícita para cada trabajo, el agente en su nombre (AGENTS.md §3.4).
 - Confirmar el correo de contacto de `CODE_OF_CONDUCT.md` y `SECURITY.md`.
