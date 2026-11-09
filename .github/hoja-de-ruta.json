@@ -1,0 +1,33 @@
+{
+  "etiquetas": [
+    {"nombre": "fase-1", "color": "1E3A8A", "descripcion": "Hito Fase 1: cierre del pórtico plano"},
+    {"nombre": "fase-2a", "color": "1E40AF", "descripcion": "Hito Fase 2a: pórtico espacial"},
+    {"nombre": "fase-2b", "color": "1D4ED8", "descripcion": "Hito Fase 2b: dinámica y sismo"},
+    {"nombre": "fase-3", "color": "2563EB", "descripcion": "Hito Fase 3: diseño de hormigón armado"},
+    {"nombre": "fase-4", "color": "3B82F6", "descripcion": "Hito Fase 4: IFC y documentos"},
+    {"nombre": "fase-5", "color": "60A5FA", "descripcion": "Hito Fase 5: interfaz gráfica"},
+    {"nombre": "fase-6", "color": "93C5FD", "descripcion": "Hito Fase 6: láminas"},
+    {"nombre": "buen-primer-aporte", "color": "7057FF", "descripcion": "Tarea acotada para un primer aporte"},
+    {"nombre": "proyecto-academico", "color": "0E8A16", "descripcion": "Del tamaño de un trabajo práctico, final o práctica profesional"},
+    {"nombre": "tesis-posible", "color": "006B75", "descripcion": "Tema para una tesis de grado o posgrado"},
+    {"nombre": "motor", "color": "0B132B", "descripcion": "Motor de cálculo (nervi-core, nervi-py)"},
+    {"nombre": "normas", "color": "B60205", "descripcion": "Diseño según normas"},
+    {"nombre": "ifc", "color": "5319E7", "descripcion": "Interoperabilidad IFC y BIM"},
+    {"nombre": "interfaz", "color": "00E5FF", "descripcion": "Interfaz gráfica (nervi.gui)"},
+    {"nombre": "verificacion", "color": "FBCA04", "descripcion": "Casos de verificación y pruebas"},
+    {"nombre": "documentacion", "color": "C5DEF5", "descripcion": "Documentación y material didáctico"},
+    {"nombre": "revision-ingenieria", "color": "D93F0B", "descripcion": "Necesita la revisión de un ingeniero estructural antes de dejar de ser experimental"},
+    {"nombre": "decision", "color": "E99695", "descripcion": "Decisión abierta del responsable del proyecto"},
+    {"nombre": "propuesta", "color": "BFD4F2", "descripcion": "Propuesta de funcionalidad"},
+    {"nombre": "error", "color": "D73A4A", "descripcion": "Resultado incorrecto o fallo"}
+  ],
+  "hitos": [
+    {"titulo": "Fase 1 · Cierre del pórtico plano", "etiqueta": "fase-1", "descripcion": "Cargas que faltan, biblioteca de verificación y material didáctico. Ver docs/hoja-de-ruta.md."},
+    {"titulo": "Fase 2a · Pórtico espacial", "etiqueta": "fase-2a", "descripcion": "Barra 3D, contrato v2, brazos rígidos y diafragma rígido. Ver docs/hoja-de-ruta.md."},
+    {"titulo": "Fase 2b · Dinámica y sismo", "etiqueta": "fase-2b", "descripcion": "Masa, análisis modal, espectro de respuesta y P-Δ. Ver docs/hoja-de-ruta.md."},
+    {"titulo": "Fase 3 · Diseño de hormigón armado", "etiqueta": "fase-3", "descripcion": "Combinaciones, vigas y columnas según ACI 318-19 y la norma regional. Ver docs/hoja-de-ruta.md."},
+    {"titulo": "Fase 4 · IFC y documentos", "etiqueta": "fase-4", "descripcion": "Importación y exportación IFC, memoria PDF y planos DXF. Ver docs/hoja-de-ruta.md."},
+    {"titulo": "Fase 5 · Interfaz gráfica", "etiqueta": "fase-5", "descripcion": "Visor 3D y edición de modelos sin escribir código. Ver docs/hoja-de-ruta.md."},
+    {"titulo": "Fase 6 · Láminas", "etiqueta": "fase-6", "descripcion": "Losas y muros por elementos finitos. Ver docs/hoja-de-ruta.md."}
+  ]
+}

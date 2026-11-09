@@ -8,7 +8,7 @@ Al participar aceptás el [Código de conducta](CODE_OF_CONDUCT.md). Las reglas 
 
 - **Reportar un error.** Si un resultado te parece incorrecto, abrí un issue con el modelo mínimo que lo reproduce y el valor que esperabas, con su fuente. Si el error puede afectar una estructura real, seguí [`SECURITY.md`](SECURITY.md).
 - **Agregar un caso de verificación.** Un ejemplo resuelto de un libro o una solución analítica es un aporte valioso aunque no toques el motor.
-- **Implementar una funcionalidad.** Mirá los issues marcados `buen-primer-aporte` (tareas acotadas) o `tesis-posible` (temas para un trabajo final o de posgrado), y la hoja de ruta en [`docs/especificacion-tecnica.md`](docs/especificacion-tecnica.md) §7.
+- **Implementar una funcionalidad.** Mirá los issues marcados `buen-primer-aporte` (tareas acotadas), `proyecto-academico` (del tamaño de un trabajo práctico, final o práctica profesional) o `tesis-posible` (temas para una tesis de grado o posgrado). El plan con hitos y tareas está en [`docs/hoja-de-ruta.md`](docs/hoja-de-ruta.md).
 - **Mejorar la documentación o el material didáctico.** Ejemplos, notebooks y traducciones son bienvenidos.
 - **Revisar un módulo normativo.** Si sos ingeniero estructural o docente, tu revisión es la condición para que un módulo de diseño deje de ser experimental.
 

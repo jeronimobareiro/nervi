@@ -1,0 +1,48 @@
+name: Organizar hoja de ruta
+
+# Crea o actualiza etiquetas e hitos (milestones) a partir de
+# .github/hoja-de-ruta.json y asigna los issues a su hito según la etiqueta de
+# fase. Corre al cambiar el plan en main, al abrir o etiquetar un issue, y a mano
+# desde la pestaña Actions.
+on:
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      simular:
+        description: "Solo mostrar lo que haría, sin cambiar nada"
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths:
+      - .github/hoja-de-ruta.json
+
+permissions:
+  issues: write
+  contents: read
+
+concurrency:
+  group: hoja-de-ruta
+  cancel-in-progress: false
+
+jobs:
+  organizar:
+    name: Etiquetas e hitos
+    # En issues, solo si tiene una etiqueta de fase.
+    if: github.event_name != 'issues' || contains(join(github.event.issue.labels.*.name, ','), 'fase-')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Organizar
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "${{ inputs.simular }}" = "true" ]; then
+            python scripts/organizar_hoja_de_ruta.py "${{ github.repository }}" --simular
+          else
+            python scripts/organizar_hoja_de_ruta.py "${{ github.repository }}"
+          fi
