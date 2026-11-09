@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jeronimobareiro/nervi/docs/esquemas/nrv-modelo-v1.schema.json",
+  "title": "Nervi: modelo.json, esquema 1 (pórtico 2D)",
+  "description": "Ver docs/formato-nrv.md §4. Las referencias a id existentes y los rangos geométricos se validan además en código.",
+  "type": "object",
+  "required": ["tipo", "unidades", "nudos", "barras", "casos"],
+  "additionalProperties": false,
+  "properties": {
+    "tipo": {"const": "portico_2d"},
+    "unidades": {
+      "type": "object",
+      "required": ["fuerza", "longitud"],
+      "additionalProperties": false,
+      "properties": {
+        "fuerza": {"enum": ["N", "kN", "kgf", "tf"]},
+        "longitud": {"enum": ["mm", "cm", "m"]}
+      }
+    },
+    "nudos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "x", "y"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"$ref": "#/$defs/id"},
+          "x": {"type": "number"},
+          "y": {"type": "number"}
+        }
+      }
+    },
+    "barras": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "i", "j", "E", "A", "I"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"$ref": "#/$defs/id"},
+          "i": {"$ref": "#/$defs/id"},
+          "j": {"$ref": "#/$defs/id"},
+          "E": {"type": "number", "exclusiveMinimum": 0},
+          "A": {"type": "number", "exclusiveMinimum": 0},
+          "I": {"type": "number", "exclusiveMinimum": 0},
+          "liberaciones": {
+            "description": "(N_i, V_i, M_i, N_j, V_j, M_j); true = liberada",
+            "type": "array",
+            "items": {"type": "boolean"},
+            "minItems": 6,
+            "maxItems": 6
+          }
+        }
+      }
+    },
+    "apoyos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["nudo"],
+        "additionalProperties": false,
+        "properties": {
+          "nudo": {"$ref": "#/$defs/id"},
+          "ux": {"type": "boolean"},
+          "uy": {"type": "boolean"},
+          "rz": {"type": "boolean"}
+        }
+      }
+    },
+    "resortes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["nudo"],
+        "additionalProperties": false,
+        "properties": {
+          "nudo": {"$ref": "#/$defs/id"},
+          "kx": {"type": "number", "minimum": 0},
+          "ky": {"type": "number", "minimum": 0},
+          "krz": {"type": "number", "minimum": 0}
+        }
+      }
+    },
+    "casos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "nombre"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {"$ref": "#/$defs/id"},
+          "nombre": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "cargas_nodales": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["caso", "nudo"],
+        "additionalProperties": false,
+        "properties": {
+          "caso": {"$ref": "#/$defs/id"},
+          "nudo": {"$ref": "#/$defs/id"},
+          "fx": {"type": "number"},
+          "fy": {"type": "number"},
+          "mz": {"type": "number"}
+        }
+      }
+    },
+    "cargas_barra": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["caso", "barra", "tipo", "ejes"],
+        "additionalProperties": false,
+        "properties": {
+          "caso": {"$ref": "#/$defs/id"},
+          "barra": {"$ref": "#/$defs/id"},
+          "tipo": {"enum": ["uniforme", "puntual"]},
+          "ejes": {"enum": ["local", "global"]},
+          "a": {"type": "number", "minimum": 0},
+          "qx": {"type": "number"},
+          "qy": {"type": "number"},
+          "px": {"type": "number"},
+          "py": {"type": "number"}
+        },
+        "allOf": [
+          {
+            "if": {"properties": {"tipo": {"const": "puntual"}}},
+            "then": {"required": ["a"], "not": {"anyOf": [{"required": ["qx"]}, {"required": ["qy"]}]}}
+          },
+          {
+            "if": {"properties": {"tipo": {"const": "uniforme"}}},
+            "then": {"not": {"anyOf": [{"required": ["a"]}, {"required": ["px"]}, {"required": ["py"]}]}}
+          }
+        ]
+      }
+    },
+    "desplazamientos_impuestos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["caso", "nudo"],
+        "additionalProperties": false,
+        "properties": {
+          "caso": {"$ref": "#/$defs/id"},
+          "nudo": {"$ref": "#/$defs/id"},
+          "ux": {"type": "number"},
+          "uy": {"type": "number"},
+          "rz": {"type": "number"}
+        }
+      }
+    },
+    "combinaciones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["nombre", "factores"],
+        "additionalProperties": false,
+        "properties": {
+          "nombre": {"type": "string", "minLength": 1},
+          "factores": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": {"type": "number"}
+          }
+        }
+      }
+    },
+    "extensiones": {"type": "object"}
+  },
+  "$defs": {
+    "id": {"type": "integer", "minimum": 1}
+  }
+}
