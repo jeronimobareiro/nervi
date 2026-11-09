@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-09 · entrada [2026-11-09-03](bitacora/2026-11-09-03-bitacora-agentes.md)_
+_Última actualización: 2026-11-09 · entrada [2026-11-09-04](bitacora/2026-11-09-04-control-bitacora-ci.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
@@ -12,12 +12,15 @@ Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia est
 
 - Análisis de pórticos planos desde Python (`import apex`): cargas nodales, uniformes y puntuales; articulaciones y cerchas; apoyos rígidos y elásticos; asentamientos; varios casos y combinaciones.
 - Reacciones, fuerzas de extremo, diagramas N/V/M y deformada.
-- 19 casos de verificación analítica en Rust y 10 pruebas en Python, en verde.
+- 19 casos de verificación analítica en Rust y 16 pruebas en Python, en verde.
+- Registro de aportes: `AGENTS.md`, esta foto y `bitacora/`, con control automático en el CI.
 
 ## En curso o bloqueado
 
 - **La cuenta de GitHub del usuario está suspendida** (2026-11-09). El PR #1 (`fase-1-portico-2d`) está abierto pero no se puede actualizar. Hay copias del repositorio (zip y git bundle) en la carpeta del proyecto.
 - CI del PR #1: el trabajo de Python 3.10 falló por un 504 de GitHub al descargar Python; falta volver a correrlo.
+- Los commits de la bitácora y de su control automático están solo en la copia local (bundle y zip): falta subirlos a la rama `fase-1-portico-2d`.
+- Para que el control de bitácora **bloquee** el merge, el dueño del repo tiene que marcar "Bitácora de aportes" como check obligatorio en Settings → Branches (o Rules) para `main`.
 
 ## Próximos pasos sugeridos
 

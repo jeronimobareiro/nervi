@@ -21,6 +21,10 @@ Una sección del repositorio donde cada IA deje sus aportes en orden cronológic
 - Separar historia (bitácora, solo se agrega) de foto actual (`ESTADO.md`, se reescribe), para que quien llegue no tenga que leer toda la historia.
 - `AGENTS.md` porque es el nombre que buscan por defecto varias herramientas de IA para programar.
 
+## Pendiente y problemas conocidos
+
+- El registro depende de que cada IA cumpla `AGENTS.md`; se resuelve con el control automático de la entrada 04.
+
 ## Para quien siga
 
 Empezá por `docs/ESTADO.md`.

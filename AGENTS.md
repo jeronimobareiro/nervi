@@ -19,7 +19,8 @@ Este archivo es para cualquier IA que trabaje en Apex BIM (Claude, Gemini, ChatG
   cargo clippy --workspace --all-targets -- -D warnings
   cargo test -p apex-core
   maturin develop --release && pytest
-  ruff check python tests examples && ruff format --check python tests examples
+  ruff check python tests examples scripts && ruff format --check python tests examples scripts
+  python scripts/verificar_bitacora.py origin/main
   ```
 - No cambies la convención de signos ni el contrato de datos sin subir `VERSION_CONTRATO` y documentarlo.
 - Idioma del proyecto: español (código, comentarios, documentación).
@@ -31,6 +32,8 @@ Este archivo es para cualquier IA que trabaje en Apex BIM (Claude, Gemini, ChatG
    - Una entrada por aporte. **No edites entradas anteriores**: si algo cambió, lo decís en la nueva.
 2. **Actualizá [`docs/ESTADO.md`](docs/ESTADO.md)**: es la foto actual, se reescribe; la bitácora es la historia, solo se agrega.
 3. Incluí ambos archivos en el mismo commit o PR que el código.
+
+El control **"Bitácora de aportes"** del CI (`scripts/verificar_bitacora.py`) deja el PR en rojo si cambia código sin agregar una entrada nueva y sin actualizar `docs/ESTADO.md`, si se edita o borra una entrada existente, si el nombre no sigue el formato o si a la entrada le faltan secciones de la plantilla.
 
 ## 4. Lo que no se hace
 

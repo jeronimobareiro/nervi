@@ -29,6 +29,10 @@ Revisar la especificación técnica generada por Gemini y el prototipo de códig
 - Conservar solo la matriz de rigidez local del prototipo.
 - Descartar el código de normas del prototipo hasta la Fase 3.
 
+## Pendiente y problemas conocidos
+
+- Ninguno propio de esta revisión; lo pendiente del proyecto está en la entrada siguiente.
+
 ## Para quien siga
 
 Ver la entrada `2026-11-09-02`.

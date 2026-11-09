@@ -9,6 +9,19 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  bitacora:
+    name: Bitácora de aportes
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python scripts/verificar_bitacora.py "origin/${{ github.base_ref }}"
+
   rust:
     name: Rust (fmt, clippy, pruebas)
     runs-on: ubuntu-latest
@@ -39,8 +52,8 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: python -m venv .venv
       - run: .venv/bin/pip install maturin pytest ruff
-      - run: .venv/bin/ruff check python tests examples
-      - run: .venv/bin/ruff format --check python tests examples
+      - run: .venv/bin/ruff check python tests examples scripts
+      - run: .venv/bin/ruff format --check python tests examples scripts
       - run: .venv/bin/maturin develop --release
         env:
           VIRTUAL_ENV: ${{ github.workspace }}/.venv
