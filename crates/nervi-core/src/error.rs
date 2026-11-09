@@ -33,7 +33,7 @@ impl fmt::Display for Gdl {
 
 /// Error devuelto por la validación del modelo o por el análisis.
 #[derive(Clone, Debug, PartialEq)]
-pub enum ErrorApex {
+pub enum ErrorNervi {
     /// Los datos del modelo son inconsistentes o físicamente inválidos.
     ModeloInvalido(String),
     /// La estructura no tiene rigidez suficiente (mecanismo o inestabilidad).
@@ -44,20 +44,20 @@ pub enum ErrorApex {
     Numerico(String),
 }
 
-impl fmt::Display for ErrorApex {
+impl fmt::Display for ErrorNervi {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ErrorApex::ModeloInvalido(m) => write!(f, "modelo inválido: {m}"),
-            ErrorApex::Mecanismo(m) => write!(f, "estructura inestable (mecanismo): {m}"),
-            ErrorApex::CargaSinRigidez { nudo, gdl } => write!(
+            ErrorNervi::ModeloInvalido(m) => write!(f, "modelo inválido: {m}"),
+            ErrorNervi::Mecanismo(m) => write!(f, "estructura inestable (mecanismo): {m}"),
+            ErrorNervi::CargaSinRigidez { nudo, gdl } => write!(
                 f,
                 "hay carga en el nudo {nudo}, GDL {gdl}, pero ninguna barra ni apoyo le da rigidez"
             ),
-            ErrorApex::Numerico(m) => write!(f, "error numérico: {m}"),
+            ErrorNervi::Numerico(m) => write!(f, "error numérico: {m}"),
         }
     }
 }
 
-impl std::error::Error for ErrorApex {}
+impl std::error::Error for ErrorNervi {}
 
-pub type Resultado<T> = Result<T, ErrorApex>;
+pub type Resultado<T> = Result<T, ErrorNervi>;

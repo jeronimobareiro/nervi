@@ -1,4 +1,4 @@
-# Apex BIM — Especificación técnica v2
+# Nervi — Especificación técnica v2
 
 **Estado del documento:** borrador de diseño, corregido a partir de la versión generada por Gemini.
 **Estado del código:** la Fase 0 y la Fase 1 (pórtico plano) están implementadas en el repositorio `bareirojero/Apex-BIM`. El resto es diseño propuesto. Ver `docs/contrato-datos.md` en el repositorio para el contrato vigente.
@@ -7,7 +7,7 @@
 
 ## 1. Visión
 
-Apex BIM es un software libre para análisis estructural por el Método de los Elementos Finitos (MEF), dimensionamiento según normas y flujo de trabajo BIM (IFC). Busca ser una alternativa abierta a programas comerciales de cálculo de estructuras, empezando por el mercado sudamericano.
+Nervi es un software libre para análisis estructural por el Método de los Elementos Finitos (MEF), dimensionamiento según normas y flujo de trabajo BIM (IFC). Busca ser una alternativa abierta a programas comerciales de cálculo de estructuras, empezando por el mercado sudamericano.
 
 Principios:
 
@@ -23,7 +23,7 @@ Identidad visual (sin cambios): azul noche `#0B132B` / `#0F172A`, acentos `#00E5
 | Opción | Ventaja | Costo |
 |---|---|---|
 | GPL-3.0 para todo | Simple; compatible con PyQt6 e IfcOpenShell | Nadie puede integrar el motor en software cerrado |
-| MPL-2.0 o LGPL-3.0 para `apex-core`, GPL-3.0 para la app | El motor puede adoptarse como biblioteca, lo que atrae contribuyentes | Dos licencias que gestionar |
+| MPL-2.0 o LGPL-3.0 para `nervi-core`, GPL-3.0 para la app | El motor puede adoptarse como biblioteca, lo que atrae contribuyentes | Dos licencias que gestionar |
 
 Se decide al crear el repositorio, porque cambiarla después requiere el permiso de todos los contribuyentes.
 
@@ -33,24 +33,24 @@ Se decide al crear el repositorio, porque cambiarla después requiere el permiso
 
 | Componente | Tecnología | Responsabilidad |
 |---|---|---|
-| `apex-core` (Rust) | Rust edición 2021 o 2024, `faer` (álgebra densa y dispersa) | Elementos, ensamblaje, solucionadores, esfuerzos internos. Sin dependencias de Python. |
-| `apex-py` (puente) | PyO3 ≥ 0.21 (API `Bound`), `numpy` crate, Maturin | Conversión de arreglos NumPy ↔ Rust, validación de entradas, errores como excepciones Python. |
-| `apex` (Python) | Python ≥ 3.11, NumPy, SciPy | Modelo, casos y combinaciones de carga, normas de diseño, IO. |
-| `apex.ifc` | IfcOpenShell | Importación / exportación IFC4 e IFC4.3. |
-| `apex.gui` (fase posterior) | PySide6 o PyQt6 según licencia; PyVista/VTK o VisPy | CAD 3D y visualización de resultados. |
+| `nervi-core` (Rust) | Rust edición 2021 o 2024, `faer` (álgebra densa y dispersa) | Elementos, ensamblaje, solucionadores, esfuerzos internos. Sin dependencias de Python. |
+| `nervi-py` (puente) | PyO3 ≥ 0.21 (API `Bound`), `numpy` crate, Maturin | Conversión de arreglos NumPy ↔ Rust, validación de entradas, errores como excepciones Python. |
+| `nervi` (Python) | Python ≥ 3.11, NumPy, SciPy | Modelo, casos y combinaciones de carga, normas de diseño, IO. |
+| `nervi.ifc` | IfcOpenShell | Importación / exportación IFC4 e IFC4.3. |
+| `nervi.gui` (fase posterior) | PySide6 o PyQt6 según licencia; PyVista/VTK o VisPy | CAD 3D y visualización de resultados. |
 
 Motivo de `faer` sobre `nalgebra-sparse`: ofrece Cholesky y LU dispersos con reordenamiento para reducir el relleno, y rinde mucho mejor en sistemas grandes. `nalgebra` se puede usar para matrices pequeñas fijas si se prefiere, pero no hace falta mezclar con `ndarray`.
 
 Estructura objetivo del repositorio:
 
 ```
-apex-bim/
+nervi/
 ├── crates/
-│   ├── apex-core/        # motor MEF puro Rust
+│   ├── nervi-core/        # motor MEF puro Rust
 │   │   ├── src/{elements,assembly,solver,results,loads}.rs
 │   │   └── tests/        # verificación analítica
-│   └── apex-py/          # binding PyO3
-├── python/apex/          # paquete Python
+│   └── nervi-py/          # binding PyO3
+├── python/nervi/          # paquete Python
 │   ├── model.py
 │   ├── loads.py
 │   ├── design/           # normas (fase 3)
@@ -178,7 +178,7 @@ Reglas: arreglos planos contiguos (`float64`, `int64`, `uint8`), stride fijo y d
 
 Salida (diccionario de arreglos NumPy): `desplazamientos (n_casos × n_nudos × 3)`, `reacciones (n_casos × n_nudos × 3)`, `fuerzas_extremo (n_casos × n_barras × 6)`, `estaciones` con `x, N, V, M, flecha`.
 
-La implementación está en `crates/apex-py/src/lib.rs` (`resolver_portico_2d`), con PyO3 0.30 y la API `Bound`.
+La implementación está en `crates/nervi-py/src/lib.rs` (`resolver_portico_2d`), con PyO3 0.30 y la API `Bound`.
 
 El cálculo pesado se hace con el GIL liberado (`py.detach`) para no bloquear la interfaz.
 

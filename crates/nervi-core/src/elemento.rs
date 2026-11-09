@@ -1,7 +1,7 @@
 //! Barra de pórtico plano Euler-Bernoulli: rigidez, transformación, cargas
 //! nodales equivalentes, liberaciones y soluciones de empotramiento perfecto.
 
-use crate::error::{ErrorApex, Resultado};
+use crate::error::{ErrorNervi, Resultado};
 use crate::modelo::{Barra, CargaBarra, Ejes, TipoCargaBarra};
 
 pub type Mat6 = [[f64; 6]; 6];
@@ -196,7 +196,7 @@ impl BarraAnalisis {
             .map(|&r| liberados.iter().map(|&q| k[r][q]).collect())
             .collect();
         let krr_inv = invertir(krr).ok_or_else(|| {
-            ErrorApex::ModeloInvalido("combinación de liberaciones inestable en una barra".into())
+            ErrorNervi::ModeloInvalido("combinación de liberaciones inestable en una barra".into())
         })?;
         let mut k_cond = [[0.0; 6]; 6];
         for &p in &retenidos {

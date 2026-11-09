@@ -5,13 +5,13 @@ import doctest
 import numpy as np
 import pytest
 
-import apex
+import nervi
 
 E, A, I = 2.0e8, 0.01, 1.0e-4
 
 
-def viga(l: float) -> tuple[apex.Modelo, int, int, int]:
-    m = apex.Modelo()
+def viga(l: float) -> tuple[nervi.Modelo, int, int, int]:
+    m = nervi.Modelo()
     a = m.agregar_nudo(0.0, 0.0)
     b = m.agregar_nudo(l, 0.0)
     barra = m.agregar_barra(a, b, E, A, I)
@@ -59,7 +59,7 @@ def test_combinacion_con_estaciones_distintas():
 
 
 def test_cercha_reporta_giros_sin_rigidez():
-    m = apex.Modelo()
+    m = nervi.Modelo()
     n0, n1, n2 = m.agregar_nudo(0, 0), m.agregar_nudo(4, 0), m.agregar_nudo(2, 2)
     for i, j in [(n0, n2), (n2, n1), (n0, n1)]:
         m.agregar_barra(i, j, E, A, I, articulada_i=True, articulada_j=True)
@@ -86,7 +86,7 @@ def test_mecanismo_lanza_error_claro():
     m.apoyar(a, ux=False, rz=False)
     m.apoyar(b, ux=False, rz=False)
     m.carga_nodal("H", b, fx=1.0)
-    with pytest.raises(apex.MecanismoError, match="mecanismo"):
+    with pytest.raises(nervi.MecanismoError, match="mecanismo"):
         m.resolver()
 
 
@@ -106,9 +106,9 @@ def test_contrato_valida_formas():
     arr = m.arreglos()
     arr["props"] = arr["props"][:, :2].copy()
     with pytest.raises(ValueError, match="props"):
-        apex._core.resolver_portico_2d(apex._core.VERSION_CONTRATO, **arr)
+        nervi._core.resolver_portico_2d(nervi._core.VERSION_CONTRATO, **arr)
     with pytest.raises(ValueError, match="versión"):
-        apex._core.resolver_portico_2d(99, **m.arreglos())
+        nervi._core.resolver_portico_2d(99, **m.arreglos())
 
 
 def test_arreglos_resultado_tienen_formas_del_contrato():
@@ -125,4 +125,4 @@ def test_arreglos_resultado_tienen_formas_del_contrato():
 
 
 def test_ejemplo_de_la_documentacion():
-    assert doctest.testmod(apex).failed == 0
+    assert doctest.testmod(nervi).failed == 0

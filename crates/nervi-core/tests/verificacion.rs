@@ -6,8 +6,8 @@
 
 #![allow(clippy::needless_range_loop)]
 
-use apex_core::{
-    analizar, Barra, CargaBarra, CasoCarga, Ejes, ErrorApex, Gdl, Modelo, TipoCargaBarra,
+use nervi_core::{
+    analizar, Barra, CargaBarra, CasoCarga, Ejes, ErrorNervi, Gdl, Modelo, TipoCargaBarra,
 };
 
 const E: f64 = 2.0e8; // kN/m² (acero)
@@ -543,7 +543,7 @@ fn mecanismo_viga_sobre_dos_carritos() {
     c.nodales.push((1, [1.0, 0.0, 0.0]));
     m.agregar_caso(c);
     match analizar(&m) {
-        Err(ErrorApex::Mecanismo(_)) => {}
+        Err(ErrorNervi::Mecanismo(_)) => {}
         otro => panic!("se esperaba un mecanismo, se obtuvo {otro:?}"),
     }
 }
@@ -561,7 +561,7 @@ fn carga_sobre_giro_sin_rigidez_es_error() {
     m.agregar_caso(c);
     assert_eq!(
         analizar(&m).unwrap_err(),
-        ErrorApex::CargaSinRigidez {
+        ErrorNervi::CargaSinRigidez {
             nudo: n1,
             gdl: Gdl::Rz
         }
@@ -572,17 +572,17 @@ fn carga_sobre_giro_sin_rigidez_es_error() {
 fn datos_invalidos_se_rechazan_con_mensaje() {
     let mut m = viga(3.0);
     m.barras[0].e = 0.0;
-    assert!(matches!(analizar(&m), Err(ErrorApex::ModeloInvalido(_))));
+    assert!(matches!(analizar(&m), Err(ErrorNervi::ModeloInvalido(_))));
 
     let mut m = Modelo::new();
     m.agregar_nudo(0.0, 0.0);
     m.agregar_nudo(0.0, 0.0);
     m.agregar_barra(Barra::new(0, 1, E, A, I));
-    assert!(matches!(analizar(&m), Err(ErrorApex::ModeloInvalido(_))));
+    assert!(matches!(analizar(&m), Err(ErrorNervi::ModeloInvalido(_))));
 
     let mut m = viga(3.0);
     m.barras[0].nudo_j = 7;
-    assert!(matches!(analizar(&m), Err(ErrorApex::ModeloInvalido(_))));
+    assert!(matches!(analizar(&m), Err(ErrorNervi::ModeloInvalido(_))));
 }
 
 #[test]

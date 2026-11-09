@@ -1,10 +1,10 @@
-//! # apex-core
+//! # nervi-core
 //!
-//! Núcleo de análisis estructural de Apex BIM. Fase 1: pórtico plano lineal
+//! Núcleo de análisis estructural de Nervi. Fase 1: pórtico plano lineal
 //! elástico (barras Euler-Bernoulli, 3 GDL por nudo).
 //!
 //! ```
-//! use apex_core::{analizar, Barra, CasoCarga, Modelo};
+//! use nervi_core::{analizar, Barra, CasoCarga, Modelo};
 //!
 //! // Voladizo de 3 m con carga puntual de 10 kN hacia abajo en el extremo.
 //! let mut m = Modelo::new();
@@ -32,5 +32,5 @@ pub mod modelo;
 
 pub use analisis::{analizar, Resultados, ResultadosCaso, Seccion};
 pub use elemento::CargaLocal;
-pub use error::{ErrorApex, Gdl};
+pub use error::{ErrorNervi, Gdl};
 pub use modelo::{Barra, CargaBarra, CasoCarga, Ejes, Modelo, TipoCargaBarra};

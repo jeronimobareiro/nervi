@@ -1,9 +1,11 @@
-//! Puente PyO3 entre el núcleo `apex-core` y el paquete Python `apex`.
+//! Puente PyO3 entre el núcleo `nervi-core` y el paquete Python `nervi`.
 //!
 //! Contrato de datos v1: ver `docs/contrato-datos.md`. Todos los arreglos son
 //! NumPy contiguos con forma fija; se validan aquí antes de llamar al núcleo.
 
-use apex_core::{analizar, Barra, CargaBarra, CasoCarga, Ejes, ErrorApex, Modelo, TipoCargaBarra};
+use nervi_core::{
+    analizar, Barra, CargaBarra, CasoCarga, Ejes, ErrorNervi, Modelo, TipoCargaBarra,
+};
 use numpy::ndarray::Array3;
 use numpy::{IntoPyArray, PyReadonlyArray2, PyReadonlyArray3};
 use pyo3::create_exception;
@@ -21,13 +23,13 @@ create_exception!(
     "La estructura es inestable o tiene GDL cargados sin rigidez."
 );
 
-fn error_a_python(e: ErrorApex) -> PyErr {
+fn error_a_python(e: ErrorNervi) -> PyErr {
     match e {
-        ErrorApex::ModeloInvalido(_) => PyValueError::new_err(e.to_string()),
-        ErrorApex::Mecanismo(_) | ErrorApex::CargaSinRigidez { .. } => {
+        ErrorNervi::ModeloInvalido(_) => PyValueError::new_err(e.to_string()),
+        ErrorNervi::Mecanismo(_) | ErrorNervi::CargaSinRigidez { .. } => {
             MecanismoError::new_err(e.to_string())
         }
-        ErrorApex::Numerico(_) => PyRuntimeError::new_err(e.to_string()),
+        ErrorNervi::Numerico(_) => PyRuntimeError::new_err(e.to_string()),
     }
 }
 

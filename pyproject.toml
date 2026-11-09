@@ -3,7 +3,7 @@ requires = ["maturin>=1.7,<2.0"]
 build-backend = "maturin"
 
 [project]
-name = "apex-bim"
+name = "nervi"
 description = "Software libre de análisis y dimensionamiento estructural"
 readme = "README.md"
 license = { text = "GPL-3.0-or-later" }
@@ -21,9 +21,9 @@ classifiers = [
 dev = ["pytest>=8", "ruff>=0.6"]
 
 [tool.maturin]
-manifest-path = "crates/apex-py/Cargo.toml"
+manifest-path = "crates/nervi-py/Cargo.toml"
 python-source = "python"
-module-name = "apex._core"
+module-name = "nervi._core"
 features = ["pyo3/extension-module"]
 
 [tool.pytest.ini_options]
@@ -38,4 +38,4 @@ select = ["E", "F", "I", "B", "UP", "RUF"]
 ignore = ["E741"]  # l, I: notación estándar en estructuras
 
 [tool.ruff.lint.isort]
-known-first-party = ["apex"]
+known-first-party = ["nervi"]

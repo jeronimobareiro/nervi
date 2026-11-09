@@ -17,12 +17,12 @@ def leer(_ruta: str) -> str:
 
 
 def test_aporte_completo_pasa():
-    lista = [("M", "crates/apex-core/src/analisis.rs"), ("A", ENTRADA), ("M", vb.ESTADO)]
+    lista = [("M", "crates/nervi-core/src/analisis.rs"), ("A", ENTRADA), ("M", vb.ESTADO)]
     assert vb.verificar(lista, leer) == []
 
 
 def test_codigo_sin_bitacora_falla():
-    errores = vb.verificar([("M", "python/apex/modelo.py")], leer)
+    errores = vb.verificar([("M", "python/nervi/modelo.py")], leer)
     assert any("no agrega una entrada" in e for e in errores)
     assert any("ESTADO.md" in e for e in errores)
 

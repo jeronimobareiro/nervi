@@ -6,7 +6,7 @@
 //! - Ejes locales de barra: `x` de nudo `i` a nudo `j`, `y` a 90° antihorario.
 //! - Unidades consistentes a elección del usuario (por ejemplo kN y m).
 
-use crate::error::{ErrorApex, Resultado};
+use crate::error::{ErrorNervi, Resultado};
 
 /// Barra de pórtico plano (Euler-Bernoulli).
 #[derive(Clone, Debug, PartialEq)]
@@ -165,7 +165,7 @@ impl Modelo {
 
     /// Verifica que el modelo sea consistente antes de analizarlo.
     pub fn validar(&self) -> Resultado<()> {
-        let inv = |m: String| Err(ErrorApex::ModeloInvalido(m));
+        let inv = |m: String| Err(ErrorNervi::ModeloInvalido(m));
         let n = self.nudos.len();
         if n == 0 {
             return inv("el modelo no tiene nudos".into());

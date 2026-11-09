@@ -12,22 +12,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "apex-core"
-version = "0.1.0"
-dependencies = [
- "faer",
-]
-
-[[package]]
-name = "apex-py"
-version = "0.1.0"
-dependencies = [
- "apex-core",
- "numpy",
- "pyo3",
-]
-
-[[package]]
 name = "ar_archive_writer"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -638,6 +622,22 @@ dependencies = [
  "portable-atomic",
  "portable-atomic-util",
  "rawpointer",
+]
+
+[[package]]
+name = "nervi-core"
+version = "0.1.0"
+dependencies = [
+ "faer",
+]
+
+[[package]]
+name = "nervi-py"
+version = "0.1.0"
+dependencies = [
+ "nervi-core",
+ "numpy",
+ "pyo3",
 ]
 
 [[package]]

@@ -1,4 +1,6 @@
-# Apex BIM
+# Nervi
+
+_Antes llamado Apex BIM._
 
 Software libre de análisis y dimensionamiento estructural, con un núcleo numérico en Rust y una capa de aplicación en Python.
 
@@ -21,9 +23,9 @@ Apoyos por partición de grados de libertad (sin penalización) y Cholesky dispe
 ## Uso
 
 ```python
-import apex
+import nervi
 
-m = apex.Modelo()
+m = nervi.Modelo()
 a = m.agregar_nudo(0, 0)
 b = m.agregar_nudo(6, 0)
 viga = m.agregar_barra(a, b, E=2.5e7, A=0.125, I=2.6e-3)   # kN, m
@@ -49,25 +51,25 @@ python -m venv .venv && source .venv/bin/activate
 pip install maturin pytest
 maturin develop --release
 pytest
-cargo test -p apex-core
+cargo test -p nervi-core
 ```
 
 ## Estructura
 
 ```
-crates/apex-core/   núcleo MEF en Rust puro (sin Python)
+crates/nervi-core/   núcleo MEF en Rust puro (sin Python)
   src/elemento.rs     rigidez, transformación, cargas equivalentes, liberaciones
   src/analisis.rs     ensamblaje, solución, reacciones, diagramas
   tests/verificacion.rs  casos contra soluciones analíticas
-crates/apex-py/     puente PyO3 (contrato en docs/contrato-datos.md)
-python/apex/        paquete Python
+crates/nervi-py/     puente PyO3 (contrato en docs/contrato-datos.md)
+python/nervi/        paquete Python
 tests/              pruebas de la API Python
 docs/               especificación, convenciones, contrato de datos
 ```
 
 ## Verificación
 
-Cada caso de `crates/apex-core/tests/verificacion.rs` compara contra una fórmula cerrada con tolerancia relativa de 1e-9: voladizos, vigas biapoyadas, biempotradas y continuas, carga puntual excéntrica, pórtico con carga lateral, cercha, barras inclinadas, asentamientos, apoyos elásticos, viga Gerber con articulación, equilibrio global de un pórtico de varios pisos y detección de mecanismos.
+Cada caso de `crates/nervi-core/tests/verificacion.rs` compara contra una fórmula cerrada con tolerancia relativa de 1e-9: voladizos, vigas biapoyadas, biempotradas y continuas, carga puntual excéntrica, pórtico con carga lateral, cercha, barras inclinadas, asentamientos, apoyos elásticos, viga Gerber con articulación, equilibrio global de un pórtico de varios pisos y detección de mecanismos.
 
 **Regla para contribuir:** toda funcionalidad nueva llega con sus casos de verificación y la fuente de cada fórmula.
 

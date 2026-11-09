@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["crates/apex-core", "crates/apex-py"]
+members = ["crates/nervi-core", "crates/nervi-py"]
 
 [workspace.package]
 version = "0.1.0"

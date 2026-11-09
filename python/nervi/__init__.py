@@ -1,9 +1,9 @@
-"""Apex BIM: análisis y dimensionamiento estructural de código abierto.
+"""Nervi: análisis y dimensionamiento estructural de código abierto.
 
 Fase 1: pórtico plano lineal elástico.
 
->>> import apex
->>> m = apex.Modelo()
+>>> import nervi
+>>> m = nervi.Modelo()
 >>> a, b = m.agregar_nudo(0, 0), m.agregar_nudo(3, 0)
 >>> barra = m.agregar_barra(a, b, E=2e8, A=0.01, I=1e-4)
 >>> m.apoyar(a)

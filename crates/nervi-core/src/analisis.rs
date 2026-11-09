@@ -15,7 +15,7 @@ use crate::elemento::{
     a_global, a_local, carga_a_local, cargas_equivalentes, flecha_biempotrada, BarraAnalisis,
     CargaLocal, Vec6,
 };
-use crate::error::{ErrorApex, Gdl, Resultado};
+use crate::error::{ErrorNervi, Gdl, Resultado};
 use crate::modelo::Modelo;
 
 /// Umbral del cociente `max|u| · max(K_ii) / max|F|` por encima del cual se
@@ -145,7 +145,7 @@ pub fn analizar(modelo: &Modelo) -> Resultado<Resultados> {
                 .iter()
                 .any(|f| f[g].abs() > 1e-14 * escala_f.max(f64::MIN_POSITIVE))
             {
-                return Err(ErrorApex::CargaSinRigidez {
+                return Err(ErrorNervi::CargaSinRigidez {
                     nudo,
                     gdl: Gdl::desde_indice(d),
                 });
@@ -222,9 +222,9 @@ pub fn analizar(modelo: &Modelo) -> Resultado<Resultados> {
     if n_libres > 0 {
         let k_ff =
             SparseColMat::<usize, f64>::try_new_from_triplets(n_libres, n_libres, &tripletas)
-                .map_err(|e| ErrorApex::Numerico(format!("no se pudo armar la matriz: {e:?}")))?;
+                .map_err(|e| ErrorNervi::Numerico(format!("no se pudo armar la matriz: {e:?}")))?;
         let llt = k_ff.sp_cholesky(Side::Lower).map_err(|e| {
-            ErrorApex::Mecanismo(format!(
+            ErrorNervi::Mecanismo(format!(
                 "la matriz de rigidez no es definida positiva ({e:?}); revisar apoyos y articulaciones"
             ))
         })?;
@@ -239,7 +239,7 @@ pub fn analizar(modelo: &Modelo) -> Resultado<Resultados> {
             if !u_max.is_finite()
                 || (f_max > 0.0 && u_max * diag_libre_max > LIMITE_FLEXIBILIDAD * f_max)
             {
-                return Err(ErrorApex::Mecanismo(format!(
+                return Err(ErrorNervi::Mecanismo(format!(
                     "caso {c}: la matriz de rigidez es numéricamente singular; revisar apoyos y articulaciones"
                 )));
             }

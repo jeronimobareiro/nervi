@@ -1,8 +1,12 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-09 · entrada [2026-11-09-04](bitacora/2026-11-09-04-control-bitacora-ci.md)_
+_Última actualización: 2026-11-09 · entrada [2026-11-09-05](bitacora/2026-11-09-05-renombre-nervi.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
+
+## Nombre
+
+El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py`, paquete Python `nervi`. El repositorio de GitHub todavía se llama `Apex-BIM`; renombrarlo es decisión del usuario.
 
 ## Fase actual
 
@@ -10,7 +14,7 @@ Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia est
 
 ## Qué funciona
 
-- Análisis de pórticos planos desde Python (`import apex`): cargas nodales, uniformes y puntuales; articulaciones y cerchas; apoyos rígidos y elásticos; asentamientos; varios casos y combinaciones.
+- Análisis de pórticos planos desde Python (`import nervi`): cargas nodales, uniformes y puntuales; articulaciones y cerchas; apoyos rígidos y elásticos; asentamientos; varios casos y combinaciones.
 - Reacciones, fuerzas de extremo, diagramas N/V/M y deformada.
 - 19 casos de verificación analítica en Rust y 16 pruebas en Python, en verde.
 - Registro de aportes: `AGENTS.md`, esta foto y `bitacora/`, con control automático en el CI.

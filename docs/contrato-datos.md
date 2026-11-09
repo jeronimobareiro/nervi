@@ -1,11 +1,11 @@
 # Contrato de datos Rust ↔ Python (versión 1)
 
-Función: `apex._core.resolver_portico_2d(version, coords, conectividad, props, liberaciones, restricciones, resortes, cargas_nodales, cargas_barra, despl_impuestos, n_estaciones=11)`.
+Función: `nervi._core.resolver_portico_2d(version, coords, conectividad, props, liberaciones, restricciones, resortes, cargas_nodales, cargas_barra, despl_impuestos, n_estaciones=11)`.
 
 Reglas:
 
 - Todos los arreglos son NumPy con la forma y el tipo indicados. Rust verifica cada forma y lanza `ValueError` con el nombre del arreglo si no coincide.
-- `version` debe ser `apex._core.VERSION_CONTRATO`. Cualquier cambio incompatible del contrato incrementa este número.
+- `version` debe ser `nervi._core.VERSION_CONTRATO`. Cualquier cambio incompatible del contrato incrementa este número.
 - El cálculo se hace con el GIL liberado.
 - `n_casos` se deduce de `cargas_nodales.shape[0]`.
 
@@ -42,4 +42,4 @@ Diccionario:
 | Excepción | Cuándo |
 |---|---|
 | `ValueError` | formas incorrectas, índices fuera de rango, propiedades no positivas, barras de longitud nula, combinaciones de liberaciones inestables |
-| `apex.MecanismoError` | estructura inestable (falta de apoyos o articulaciones de más), o carga sobre un GDL sin rigidez |
+| `nervi.MecanismoError` | estructura inestable (falta de apoyos o articulaciones de más), o carga sobre un GDL sin rigidez |

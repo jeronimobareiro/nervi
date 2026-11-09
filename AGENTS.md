@@ -1,6 +1,6 @@
 # Instrucciones para agentes de IA
 
-Este archivo es para cualquier IA que trabaje en Apex BIM (Claude, Gemini, ChatGPT/Codex, Copilot u otra). **Leelo completo antes de tocar el código.**
+Este archivo es para cualquier IA que trabaje en Nervi (Claude, Gemini, ChatGPT/Codex, Copilot u otra). **Leelo completo antes de tocar el código.**
 
 ## 1. Antes de empezar
 
@@ -12,12 +12,12 @@ Este archivo es para cualquier IA que trabaje en Apex BIM (Claude, Gemini, ChatG
 ## 2. Mientras trabajás
 
 - No afirmes que algo "está implementado" si no hay código y pruebas que lo demuestren.
-- Toda fórmula nueva lleva su **fuente** (norma con artículo, libro o fórmula cerrada) en un comentario y una **prueba de verificación** en `crates/apex-core/tests/` o `tests/`.
+- Toda fórmula nueva lleva su **fuente** (norma con artículo, libro o fórmula cerrada) en un comentario y una **prueba de verificación** en `crates/nervi-core/tests/` o `tests/`.
 - Antes de terminar, corré y dejá en verde:
   ```
   cargo fmt --all -- --check
   cargo clippy --workspace --all-targets -- -D warnings
-  cargo test -p apex-core
+  cargo test -p nervi-core
   maturin develop --release && pytest
   ruff check python tests examples scripts && ruff format --check python tests examples scripts
   python scripts/verificar_bitacora.py origin/main

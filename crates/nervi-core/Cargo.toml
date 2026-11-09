@@ -1,6 +1,6 @@
 [package]
-name = "apex-core"
-description = "Núcleo de análisis estructural por elementos finitos de Apex BIM"
+name = "nervi-core"
+description = "Núcleo de análisis estructural por elementos finitos de Nervi"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

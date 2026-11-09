@@ -3,13 +3,13 @@
 Ejecutar con: python examples/portico_simple.py
 """
 
-import apex
+import nervi
 
 E = 2.5e7  # hormigón, kN/m²
 COLUMNA = dict(E=E, A=0.30 * 0.30, I=0.30 * 0.30**3 / 12)
 VIGA = dict(E=E, A=0.25 * 0.50, I=0.25 * 0.50**3 / 12)
 
-m = apex.Modelo()
+m = nervi.Modelo()
 base_izq = m.agregar_nudo(0.0, 0.0)
 cabeza_izq = m.agregar_nudo(0.0, 3.0)
 cabeza_der = m.agregar_nudo(6.0, 3.0)

@@ -1,5 +1,5 @@
 [package]
-name = "apex-py"
+name = "nervi-py"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -12,6 +12,6 @@ name = "_core"
 crate-type = ["cdylib"]
 
 [dependencies]
-apex-core = { path = "../apex-core" }
+nervi-core = { path = "../nervi-core" }
 pyo3 = { version = "0.30", features = ["abi3-py310"] }
 numpy = "0.30"
