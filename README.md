@@ -1,3 +1,10 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/marca/nervi-logotipo-oscuro.svg">
+    <img alt="Nervi" src="docs/marca/nervi-logotipo-claro.svg" width="320">
+  </picture>
+</p>
+
 # Nervi
 
 _Antes llamado Apex BIM._

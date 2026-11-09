@@ -1,12 +1,12 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-09 · entrada [2026-11-09-05](bitacora/2026-11-09-05-renombre-nervi.md)_
+_Última actualización: 2026-11-09 · entrada [2026-11-09-06](bitacora/2026-11-09-06-marca-nervi.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
 ## Nombre
 
-El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py`, paquete Python `nervi`. El repositorio de GitHub todavía se llama `Apex-BIM`; renombrarlo es decisión del usuario.
+El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py`, paquete Python `nervi`. El repositorio de GitHub todavía se llama `Apex-BIM`; renombrarlo es decisión del usuario. Logo e identidad visual en [`marca/`](marca/) (ver especificación §1).
 
 ## Fase actual
 

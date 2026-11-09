@@ -16,7 +16,7 @@ Principios:
 - **Crecimiento por fases.** Cada fase entrega algo usable por un ingeniero antes de empezar la siguiente.
 - **Responsabilidad profesional.** El software asiste al ingeniero; no lo reemplaza. Cada módulo normativo debe ser revisado por un ingeniero estructural antes de publicarse.
 
-Identidad visual (sin cambios): azul noche `#0B132B` / `#0F172A`, acentos `#00E5FF` / `#3B82F6`.
+Identidad visual: el isotipo es una **N isométrica** en tres tonos de azul: `#3B82F6` al frente, `#93C5FD` / `#00E5FF` arriba y `#1E3A8A` al costado. El logotipo usa **Archivo 600**. Fondos oscuros en azul noche `#0B132B` / `#0F172A`. Hay versiones monocromas (blanco y negro) para usos de alto contraste. Archivos en `docs/marca/`.
 
 ### 1.1 Licencia (decisión pendiente)
 
