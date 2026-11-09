@@ -1,12 +1,12 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-09 · entrada [2026-11-09-07](bitacora/2026-11-09-07-apertura-comunidad.md)_
+_Última actualización: 2026-11-09 · entrada [2026-11-09-08](bitacora/2026-11-09-08-repositorio-nuevo.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
 ## Nombre
 
-El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py`, paquete Python `nervi`. El repositorio de GitHub todavía se llama `Apex-BIM`; renombrarlo es decisión del usuario. Logo e identidad visual en [`marca/`](marca/) (ver especificación §1).
+El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py`, paquete Python `nervi`. Repositorio: [github.com/jeronimobareiro/nervi](https://github.com/jeronimobareiro/nervi). Logo e identidad visual en [`marca/`](marca/) (ver especificación §1).
 
 ## Fase actual
 
@@ -23,9 +23,7 @@ El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py
 
 ## En curso o bloqueado
 
-- **La cuenta de GitHub del usuario está suspendida** (2026-11-09). El PR #1 (`fase-1-portico-2d`) está abierto pero no se puede actualizar. Hay copias del repositorio (zip y git bundle) en la carpeta del proyecto.
-- CI del PR #1: el trabajo de Python 3.10 falló por un 504 de GitHub al descargar Python; falta volver a correrlo.
-- Los commits de la bitácora y de su control automático están solo en la copia local (bundle y zip): falta subirlos a la rama `fase-1-portico-2d`.
+- **Mudanza al repositorio nuevo** `jeronimobareiro/nervi` (el repositorio `bareirojero/Apex-BIM` y su PR #1 se borraron). Todo el historial está en el bundle de la carpeta del proyecto; falta que el usuario lo suba a `main` del repositorio nuevo y verifique el primer CI.
 - Los commits posteriores a la entrada 07 necesitan `Signed-off-by` de una persona: el usuario los firma antes de subir con `git rebase --signoff origin/main`.
 - Confirmar el correo de contacto de `CODE_OF_CONDUCT.md` y `SECURITY.md`.
 - Para que el control de bitácora **bloquee** el merge, el dueño del repo tiene que marcar "Bitácora de aportes" como check obligatorio en Settings → Branches (o Rules) para `main`.

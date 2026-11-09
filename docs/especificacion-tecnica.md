@@ -1,7 +1,7 @@
 # Nervi — Especificación técnica v2
 
 **Estado del documento:** borrador de diseño, corregido a partir de la versión generada por Gemini.
-**Estado del código:** la Fase 0 y la Fase 1 (pórtico plano) están implementadas en el repositorio `bareirojero/Apex-BIM`. El resto es diseño propuesto. Ver `docs/contrato-datos.md` en el repositorio para el contrato vigente.
+**Estado del código:** la Fase 0 y la Fase 1 (pórtico plano) están implementadas en el repositorio [`jeronimobareiro/nervi`](https://github.com/jeronimobareiro/nervi). El resto es diseño propuesto. Ver `docs/contrato-datos.md` en el repositorio para el contrato vigente.
 
 ---
 
