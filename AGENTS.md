@@ -7,7 +7,7 @@ Este archivo es para cualquier IA que trabaje en Nervi (Claude, Gemini, ChatGPT/
 1. Leé [`docs/ESTADO.md`](docs/ESTADO.md): dónde quedó el proyecto, qué está en curso y qué sigue.
 2. Leé las **últimas 3 entradas** de [`docs/bitacora/`](docs/bitacora/) (orden cronológico por nombre de archivo).
 3. Si tu tarea toca el motor o la API, leé [`docs/convenciones.md`](docs/convenciones.md) y [`docs/contrato-datos.md`](docs/contrato-datos.md).
-4. La hoja de ruta y las fases están en [`docs/especificacion-tecnica.md`](docs/especificacion-tecnica.md).
+4. Las fases están en [`docs/especificacion-tecnica.md`](docs/especificacion-tecnica.md) §7 y el plan con hitos e issues en [`docs/hoja-de-ruta.md`](docs/hoja-de-ruta.md). Si tu tarea corresponde a un issue, citalo en el PR y en la bitácora.
 
 ## 2. Mientras trabajás
 
