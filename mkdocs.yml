@@ -77,6 +77,7 @@ markdown_extensions:
 
 nav:
   - Inicio: index.md
+  - Por qué Nervi: por-que-nervi.md
   - Descargar: descargar.md
   - Primeros pasos: primeros-pasos.md
   - Documentación técnica:

@@ -18,6 +18,8 @@ Nervi analiza pórticos por el método de los elementos finitos y muestra reacci
 [Descargar](descargar.md){ .md-button .md-button--primary }
 [Primeros pasos](primeros-pasos.md){ .md-button }
 
+[¿Por qué se llama Nervi?](por-que-nervi.md){ .nv-porque }
+
 </div>
 
 ![Ventana de Nervi con los diagramas de momento de un pórtico](img/interfaz.png){ .nv-captura }

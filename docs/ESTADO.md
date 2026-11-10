@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-10 · entrada [2026-11-10-08](bitacora/2026-11-10-08-combinaciones-envolventes.md)_
+_Última actualización: 2026-11-10 · entrada [2026-11-10-09](bitacora/2026-11-10-09-por-que-nervi.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
@@ -25,7 +25,7 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 - Registro de aportes: `AGENTS.md`, esta foto y `bitacora/`, con control automático en el CI.
 - Apertura a la comunidad: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `SECURITY.md`, `CITATION.cff`, plantillas de issues y PR, encabezados SPDX.
 - Controles en el CI: certificado de origen (DCO, `Signed-off-by` obligatorio desde la entrada 07) y licencias de dependencias (`cargo-deny`, `deny.toml`).
-- Sitio web público en https://jeronimobareiro.github.io/nervi/ (MkDocs + GitHub Pages, publicado solo desde `main`): portada, descargar, primeros pasos, documentación técnica, hoja de ruta, participar y bitácora. No publica `ESTADO.md` ni `AGENTS.md`, y el armado falla si aparece el nombre anterior del proyecto.
+- Sitio web público en https://jeronimobareiro.github.io/nervi/ (MkDocs + GitHub Pages, publicado solo desde `main`): portada, por qué Nervi (homenaje a Pier Luigi Nervi con fotos libres de Commons), descargar, primeros pasos, documentación técnica, hoja de ruta, participar y bitácora. No publica `ESTADO.md` ni `AGENTS.md`, y el armado falla si aparece el nombre anterior del proyecto.
 - Hoja de ruta para colaborar: 31 issues en GitHub con etiquetas de fase, tamaño (`buen-primer-aporte`, `proyecto-academico`, `tesis-posible`) y área; el flujo "Organizar hoja de ruta" crea los hitos y asigna los issues.
 
 ## En curso o bloqueado
