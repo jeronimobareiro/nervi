@@ -1,0 +1,149 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Pruebas de humo de la interfaz de escritorio (pytest-qt, sin pantalla)."""
+
+import os
+
+import pytest
+
+os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+pytest.importorskip("PySide6.QtWidgets", exc_type=ImportError)
+pytest.importorskip("pytestqt")
+
+from PySide6.QtCore import Qt
+
+from nervi import formato
+from nervi.gui.paleta import filtrar
+from nervi.gui.sesion import Seleccion, Sesion, documento_ejemplo
+from nervi.gui.ventana import Ventana
+
+
+@pytest.fixture
+def ventana(qtbot):
+    v = Ventana(Sesion(documento_ejemplo()))
+    v.show()
+    qtbot.waitExposed(v)
+    yield v
+    v.sesion.modificado = False  # que el cierre no pregunte por cambios sin guardar
+    v.close()
+    v.deleteLater()
+
+
+def test_calcular_y_mostrar_resultados(ventana):
+    assert ventana.calcular()
+    s = ventana.sesion
+    assert s.al_dia
+    ventana.combo.setCurrentText("1.2D+1.6L")
+    r = s.resultado()
+    viga = s.indices.barras[2]
+    assert r.diagrama(viga)["M"].max() == pytest.approx(119.08, abs=0.01)
+    assert ventana.tabs_res.widget(0).model().rowCount() == 2
+    assert "al día" in ventana.lbl_estado.text()
+
+
+def test_editar_tabla_desactualiza_resultados(ventana):
+    ventana.calcular()
+    tabla = ventana.tabs_modelo.widget(0).modelo  # nudos
+    assert tabla.setData(tabla.index(1, 2), "3.5")
+    assert ventana.sesion.modelo["nudos"][1]["y"] == 3.5
+    assert not ventana.sesion.al_dia
+    assert ventana.sesion.modificado
+    assert "desactualizados" in ventana.lbl_estado.text()
+
+
+def test_dato_invalido_no_se_acepta(ventana):
+    tabla = ventana.tabs_modelo.widget(1).modelo  # barras
+    assert not tabla.setData(tabla.index(0, 3), "abc")
+    assert ventana.sesion.modelo["barras"][0]["E"] == 2.5e7
+
+
+def test_agregar_y_eliminar_filas(ventana):
+    editor = ventana.tabs_modelo.widget(0)
+    editor.agregar()
+    assert ventana.sesion.modelo["nudos"][-1]["id"] == 5
+    assert any(a.nivel == "error" and "N5" in a.texto for a in ventana.sesion.avisos)
+    editor.tabla.selectRow(4)
+    editor.eliminar()
+    assert len(ventana.sesion.modelo["nudos"]) == 4
+
+
+def test_mecanismo_avisa_sin_romper(ventana):
+    modelo = ventana.sesion.copia_modelo()
+    modelo["apoyos"] = []
+    ventana.sesion.editar(modelo)
+    assert not ventana.calcular()
+    assert ventana.panel_inferior.currentWidget() is ventana.revision
+
+
+def test_guardar_y_abrir(ventana, tmp_path):
+    ruta = tmp_path / "portico"
+    assert ventana._guardar_en(ruta)
+    assert (tmp_path / "portico.nrv").exists()
+    assert ventana.windowTitle().startswith("portico.nrv")
+    doc = formato.abrir(tmp_path / "portico.nrv")
+    assert doc.modelo == ventana.sesion.modelo
+    ventana.sesion.nuevo()
+    assert ventana.abrir(tmp_path / "portico.nrv")
+    assert len(ventana.sesion.modelo["barras"]) == 3
+
+
+def test_diagramas_y_seleccion(ventana, qtbot):
+    ventana.calcular()
+    for clave in ("V", "N", "D", "M"):
+        ventana.botones_diagrama[clave].click()
+        assert ventana.vista.diagrama == clave
+        ventana.vista.grab()  # dibuja sin errores
+    ventana.sesion.seleccionar(Seleccion("barra", 2))
+    assert ventana.lbl_sel.text() == "B2"
+    ventana.sesion.seleccionar(Seleccion("nudo", 1))
+    assert ventana.lbl_sel.text() == "N1"
+
+
+def test_clic_en_la_vista_selecciona_la_barra(ventana, qtbot):
+    _bid, _k, pi, pj = ventana.vista._barras()[1]
+    medio = ((pi + pj) / 2).toPoint()
+    qtbot.mouseClick(ventana.vista, Qt.LeftButton, pos=medio)
+    assert ventana.sesion.seleccion == Seleccion("barra", 2)
+
+
+def test_paleta_de_comandos(ventana):
+    entradas = ventana.entradas_paleta()
+    assert [e.texto for e in filtrar(entradas, "calcul")] == ["Calcular"]
+    assert any(e.texto.startswith("B2") for e in filtrar(entradas, "b2"))
+    assert filtrar(entradas, "geometria")  # sin tilde también encuentra
+    paleta = ventana.abrir_paleta()
+    paleta.campo.setText("calcular")
+    paleta._ejecutar_actual()
+    assert ventana.sesion.al_dia
+
+
+def test_consola(ventana):
+    ventana.calcular()
+    ventana.combo.setCurrentText("1.2D+1.6L")
+    salida = ventana.consola.ejecutar("round(float(r.reacciones[0, 1]), 2)")
+    assert salida.strip() == "120.0"
+    assert "NameError" in ventana.consola.ejecutar("no_existe")
+
+
+def test_carga_trapezoidal_en_la_tabla(ventana):
+    editor = ventana.tabs_modelo.widget(5)  # cargas en barras
+    tabla = editor.modelo
+    assert tabla.lista == "cargas_barra"
+    cols = [c.clave for c in tabla.columnas]
+    fila = 0
+    assert ventana.sesion.modelo["cargas_barra"][fila]["tipo"] == "uniforme"
+    assert not tabla.flags(tabla.index(fila, cols.index("b"))) & Qt.ItemIsEditable
+    assert tabla.setData(tabla.index(fila, cols.index("tipo")), "trapezoidal")
+    carga = ventana.sesion.modelo["cargas_barra"][fila]
+    assert carga["qy1"] == carga["qy2"] == -20.0  # la uniforme pasa a parcial en toda la luz
+    assert "b" not in carga and "qy" not in carga
+    assert tabla.flags(tabla.index(fila, cols.index("b"))) & Qt.ItemIsEditable
+    assert tabla.setData(tabla.index(fila, cols.index("b")), "4")
+    assert tabla.setData(tabla.index(fila, cols.index("qy2")), "-5")
+    assert not tabla.setData(tabla.index(fila, cols.index("b")), "abc")
+    assert ventana.sesion.modelo["cargas_barra"][fila]["b"] == 4.0
+    assert ventana.calcular()
+    assert tabla.setData(tabla.index(fila, cols.index("b")), "")
+    assert "b" not in ventana.sesion.modelo["cargas_barra"][fila]
+    assert tabla.setData(tabla.index(fila, cols.index("tipo")), "puntual")
+    carga = ventana.sesion.modelo["cargas_barra"][fila]
+    assert set(carga) == {"caso", "barra", "tipo", "ejes", "a", "px", "py"}

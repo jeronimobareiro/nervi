@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Nervi
+GenericName=Análisis estructural
+Comment=Análisis y dimensionamiento estructural de código abierto
+Exec=nervi %f
+Icon=nervi
+Terminal=false
+Categories=Science;Engineering;
+MimeType=application/vnd.nervi.proyecto+zip;
+Keywords=estructuras;pórtico;cálculo;ingeniería;

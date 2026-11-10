@@ -101,7 +101,8 @@ Cubre lo que hoy modela `nervi.Modelo` (Fase 1, pórtico plano). El esquema form
   ],
   "cargas_barra": [
     {"caso": 1, "barra": 2, "tipo": "uniforme", "ejes": "local", "qy": -12.0},
-    {"caso": 2, "barra": 2, "tipo": "puntual", "ejes": "global", "a": 2.5, "py": -20.0}
+    {"caso": 2, "barra": 2, "tipo": "puntual", "ejes": "global", "a": 2.5, "py": -20.0},
+    {"caso": 1, "barra": 2, "tipo": "trapezoidal", "ejes": "local", "a": 1.0, "b": 4.0, "qy1": -5.0, "qy2": -15.0}
   ],
   "desplazamientos_impuestos": [],
   "combinaciones": [
@@ -118,13 +119,14 @@ Cubre lo que hoy modela `nervi.Modelo` (Fase 1, pórtico plano). El esquema form
 - **Convenciones de signos y ejes:** las de `docs/convenciones.md`, sin excepción.
 - **Valores por omisión.** Una clave numérica ausente vale 0 (`fx`, `qy`, `kx`…), `liberaciones` ausente vale seis `false`, y en `apoyos` un GDL ausente vale `false`.
 - **Números.** Se escriben con la representación más corta que vuelve exactamente al mismo `float64` (lo que hace `json` de Python y `serde_json` con `ryu`): guardar y abrir no cambia ni un bit. `NaN` e `Infinity` están prohibidos.
+- **Cargas en barras.** `tipo` ∈ {`uniforme`, `puntual`, `trapezoidal`}, cada uno con sus claves y ninguna otra: `uniforme` usa `qx, qy` (toda la luz); `puntual` usa `a, px, py` (`a` obligatoria); `trapezoidal` usa `a, b, qx1, qy1, qx2, qy2`, una carga que varía linealmente de `(qx1, qy1)` en `a` a `(qx2, qy2)` en `b`, con `0 ≤ a < b ≤ L`. En la trapezoidal, `a` ausente vale 0 y `b` ausente significa "hasta el nudo j", así la carga sigue a la barra si cambia su longitud. Con `qy1 = qy2` es una uniforme parcial. Es el tipo 2 del contrato de datos v2 (`docs/contrato-datos.md`).
 - **Nombres de casos únicos.** `combinaciones[].factores` referencia casos por `nombre`, igual que `Resultados.combinar`.
 - **`extensiones`.** Objeto libre para complementos y pruebas, con claves con prefijo (`"miplugin.algo"`). El lector lo conserva sin interpretarlo. Nada de lo que Nervi necesita para calcular puede vivir ahí.
-- **Validación.** Al abrir se valida contra el esquema y además: referencias a `id` existentes, barras con nudos distintos, `E`, `A`, `I` > 0, `0 ≤ a ≤ L` en cargas puntuales. Un error dice archivo, ruta JSON y motivo (por ejemplo `modelo.json: barras[3].j = 17: no existe el nudo 17`).
+- **Validación.** Al abrir se valida contra el esquema y además: referencias a `id` existentes, barras con nudos distintos, `E`, `A`, `I` > 0, `0 ≤ a ≤ L` en cargas puntuales y `0 ≤ a < b ≤ L` en trapezoidales. Un error dice archivo, ruta JSON y motivo (por ejemplo `modelo.json: barras[3].j = 17: no existe el nudo 17`).
 
 ### 4.2 Lo que viene en esquemas posteriores (no es parte del esquema 1)
 
-Materiales y secciones con nombre (en lugar de `E, A, I` por barra), modelo 3D (Fase 2), masas y espectros, normas y criterios de diseño (Fase 3), cargas trapezoidales, térmicas y momentos en el tramo. Cada uno entra subiendo `version_esquema` con su migración (§6).
+Materiales y secciones con nombre (en lugar de `E, A, I` por barra), modelo 3D (Fase 2), masas y espectros, normas y criterios de diseño (Fase 3), cargas térmicas y momentos en el tramo. Las trapezoidales entraron al esquema 1 antes de congelarlo (issue #2), porque solo agregan un valor de `tipo` y los archivos anteriores siguen siendo válidos. Cada uno entra subiendo `version_esquema` con su migración (§6).
 
 ## 5. Resultados (`resultados/`, reservado)
 
@@ -182,11 +184,15 @@ Y en `nervi.desktop`: `MimeType=application/vnd.nervi.proyecto+zip;` con `Exec=n
 
 `UTExportedTypeDeclarations` en el `Info.plist` con identificador `io.github.jeronimobareiro.nervi.proyecto` (dominio invertido de un sitio que el proyecto controla), conforme a `public.zip-archive`, extensión `nrv`.
 
-## 8. Implementación prevista
+## 8. Implementación
 
-- `python/nervi/formato/` con `guardar(modelo, ruta)`, `abrir(ruta) -> Modelo` y `migraciones.py`. Solo biblioteca estándar (`zipfile`, `json`) más la validación; sin dependencias nuevas obligatorias.
-- `Modelo` gana `ids` estables o el módulo de formato mantiene la tabla `id → índice`; se decide al implementar.
-- Pruebas: ida y vuelta bit a bit (guardar, abrir, `arreglos()` iguales), archivo con versión futura, archivo de Nero o ZIP cualquiera, `mimetype` comprimido o ausente, referencias rotas, rutas con `..`.
+Implementado en `python/nervi/formato/` (entrada de bitácora 2026-11-10-03):
+
+- `abrir(ruta) -> Documento` y `guardar(documento, ruta, copia_bak=False)`. Un `Documento` tiene el manifiesto, el diccionario de `modelo.json` y los miembros que el programa no interpreta (`otros`), que se conservan al guardar. Se eligió devolver el documento y no un `Modelo` porque `Modelo` no guarda `id`, unidades, combinaciones ni extensiones.
+- `construir_modelo(modelo_json) -> (Modelo, Indices)`: el módulo de formato mantiene la tabla `id → índice`; `Modelo` no cambia.
+- `desde_modelo(Modelo, combinaciones) -> modelo_json` (los `id` son índice + 1) y `validar(modelo_json)`, escrita a mano según el esquema y §4.1 para no sumar `jsonschema` como dependencia.
+- `migraciones.py`: cadena vacía mientras exista solo el esquema 1.
+- Pruebas en `tests/test_formato.py`: ida y vuelta bit a bit, firma `mimetype`, miembros desconocidos conservados, `id` no consecutivos, versión futura, archivo de Nero, ZIP cualquiera, `mimetype` comprimido, rutas con `..`, referencias rotas y demás reglas de §4.1.
 - La GUI (PySide6) solo llama a `nervi.formato`; no escribe JSON por su cuenta.
 
 ## 9. Historial del esquema

@@ -51,6 +51,17 @@ print(combo.diagrama(viga)["M"].max())     # 0.125 · 40 · 6² = 180 kN·m
 
 Más ejemplos en [`examples/`](examples/). Convenciones de signos en [`docs/convenciones.md`](docs/convenciones.md).
 
+### Interfaz de escritorio (preliminar)
+
+```
+pip install "nervi[gui]"       # o, desde el código fuente: pip install PySide6-Essentials
+nervi-gui                      # o: python -m nervi.gui proyecto.nrv
+```
+
+Todo el trabajo pasa en una sola ventana: tablas de nudos, barras, apoyos, cargas y combinaciones, cálculo con F5, diagramas N, V, M y deformada con lectura de esfuerzos al pasar el cursor, propiedades de la selección, revisión del modelo, consola Python y buscador de comandos (Ctrl+K). Los proyectos se guardan en formato [`.nrv`](docs/formato-nrv.md). Los instaladores para Windows (`.exe`) y Linux (AppImage) se generan en [Releases](https://github.com/jeronimobareiro/nervi/releases) al publicar una etiqueta `v*`; no están firmados.
+
+> **Versión preliminar, no apta para proyecto.** El análisis lineal elástico está verificado contra soluciones analíticas; el diseño según norma todavía no existe.
+
 ## Compilar desde el código fuente
 
 Requisitos: Rust estable y Python ≥ 3.10.

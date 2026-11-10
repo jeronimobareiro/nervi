@@ -1,0 +1,5 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Arranque del AppImage de Nervi.
+AQUI="$(dirname "$(readlink -f "$0")")"
+exec "$AQUI/usr/lib/nervi/Nervi" "$@"

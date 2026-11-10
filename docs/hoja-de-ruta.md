@@ -102,6 +102,8 @@ Después de ACI 318-19 y la norma regional siguen CIRSOC 201, NBR 6118, NCh 430/
 
 ### Fase 5 · Interfaz gráfica
 
+Desde la entrada 2026-11-10-03 la interfaz es una **vía paralela**: `nervi.gui` (PySide6) ya cubre el pórtico plano de la Fase 1 en una sola ventana y crece junto con cada fase del motor, con instaladores preliminares para Windows y Linux. Esta fase queda para lo que necesita la Fase 2a: visor 3D y edición gráfica de modelos espaciales. Regla: la interfaz no calcula ni guarda nada por su cuenta, solo usa `nervi` y `nervi.formato`.
+
 | Issue | Tarea | Tamaño | Área |
 |---|---|---|---|
 | [#30](https://github.com/jeronimobareiro/nervi/issues/30) | Prototipo de visor 3D | PA | interfaz |
