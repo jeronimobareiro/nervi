@@ -62,6 +62,18 @@ pub enum TipoCargaBarra {
     Uniforme { qx: f64, qy: f64 },
     /// Carga puntual `(px, py)` a la distancia `a` del nudo `i`, con `0 <= a <= L`.
     Puntual { a: f64, px: f64, py: f64 },
+    /// Carga distribuida que varía linealmente entre `a` y `b` (distancias desde el
+    /// nudo `i`, con `0 <= a < b <= L`): vale `(qx1, qy1)` en `a` y `(qx2, qy2)` en
+    /// `b`, por unidad de longitud. Con `qx1 = qx2` y `qy1 = qy2` es una carga
+    /// uniforme parcial; con `a = 0`, `b = L`, una trapezoidal en toda la luz.
+    Trapezoidal {
+        a: f64,
+        b: f64,
+        qx1: f64,
+        qy1: f64,
+        qx2: f64,
+        qy2: f64,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -255,7 +267,7 @@ impl Modelo {
                 };
                 let (l, _, _) = self.geometria_barra(b);
                 let valores = match cb.tipo {
-                    TipoCargaBarra::Uniforme { qx, qy } => [qx, qy, 0.0],
+                    TipoCargaBarra::Uniforme { qx, qy } => vec![qx, qy],
                     TipoCargaBarra::Puntual { a, px, py } => {
                         if !(a.is_finite() && a >= 0.0 && a <= l * (1.0 + 1e-12)) {
                             return inv(format!(
@@ -263,7 +275,29 @@ impl Modelo {
                                 cb.barra
                             ));
                         }
-                        [px, py, a]
+                        vec![px, py, a]
+                    }
+                    TipoCargaBarra::Trapezoidal {
+                        a,
+                        b,
+                        qx1,
+                        qy1,
+                        qx2,
+                        qy2,
+                    } => {
+                        if !(a.is_finite()
+                            && b.is_finite()
+                            && a >= 0.0
+                            && a < b
+                            && b <= l * (1.0 + 1e-12))
+                        {
+                            return inv(format!(
+                                "caso {c}: carga trapezoidal en la barra {} con tramo inválido \
+                                 (a = {a}, b = {b}, L = {l}; se requiere 0 <= a < b <= L)",
+                                cb.barra
+                            ));
+                        }
+                        vec![qx1, qy1, qx2, qy2]
                     }
                 };
                 if !valores.iter().all(|v| v.is_finite()) {

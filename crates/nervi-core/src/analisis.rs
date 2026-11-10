@@ -13,8 +13,8 @@ use faer::sparse::{SparseColMat, Triplet};
 use faer::{Mat, Side};
 
 use crate::elemento::{
-    a_global, a_local, carga_a_local, cargas_equivalentes, flecha_biempotrada, BarraAnalisis,
-    CargaLocal, Vec6,
+    a_global, a_local, carga_a_local, cargas_equivalentes, flecha_biempotrada, resultantes_hasta,
+    BarraAnalisis, CargaLocal, Vec6,
 };
 use crate::error::{ErrorNervi, Gdl, Resultado};
 use crate::modelo::Modelo;
@@ -339,20 +339,10 @@ impl Resultados {
         let mut v_local = h1 * ue[1] + h2 * ue[2] + h3 * ue[4] + h4 * ue[5];
 
         for carga in &rc.cargas_locales[barra] {
-            match *carga {
-                CargaLocal::Uniforme { qx, qy } => {
-                    n -= qx * x;
-                    v += qy * x;
-                    m += 0.5 * qy * x * x;
-                }
-                CargaLocal::Puntual { a, px, py } => {
-                    if x > a || (lado_derecho && x == a) {
-                        n -= px;
-                        v += py;
-                        m += py * (x - a);
-                    }
-                }
-            }
+            let (rx, ry, mom) = resultantes_hasta(carga, x, lado_derecho);
+            n -= rx;
+            v += ry;
+            m += mom;
             let (du, dv) = flecha_biempotrada(l, ba.ea, ba.ei, carga, x);
             u_local += du;
             v_local += dv;
@@ -368,8 +358,9 @@ impl Resultados {
     }
 
     /// Diagrama de esfuerzos de una barra en `n_estaciones` puntos equidistantes
-    /// (mínimo 2), más los puntos de cargas puntuales (a ambos lados) y los puntos
-    /// de cortante nulo, donde el momento es extremo.
+    /// (mínimo 2), más los puntos de cargas puntuales (a ambos lados), los
+    /// extremos de las cargas trapezoidales y los puntos de cortante nulo, donde el
+    /// momento es extremo.
     pub fn diagrama(&self, caso: usize, barra: usize, n_estaciones: usize) -> Vec<Seccion> {
         let l = self.barras[barra].l;
         let n_est = n_estaciones.max(2);
@@ -378,25 +369,36 @@ impl Resultados {
             .collect();
         let mut quiebres = vec![0.0, l];
         for carga in &self.casos[caso].cargas_locales[barra] {
-            if let CargaLocal::Puntual { a, .. } = *carga {
-                xs.push((a, false));
-                xs.push((a, true));
-                quiebres.push(a);
+            match *carga {
+                CargaLocal::Puntual { a, .. } => {
+                    xs.push((a, false));
+                    xs.push((a, true));
+                    quiebres.push(a);
+                }
+                CargaLocal::Trapezoidal { a, b, .. } => {
+                    xs.push((a, false));
+                    xs.push((b, false));
+                    quiebres.push(a);
+                    quiebres.push(b);
+                }
+                CargaLocal::Uniforme { .. } => {}
             }
         }
         quiebres.sort_by(f64::total_cmp);
         quiebres.dedup();
-        // Cortante nulo: V es lineal entre quiebres.
+        // Cortante nulo: entre quiebres V es un polinomio de grado 2 como máximo
+        // (lineal con cargas uniformes, cuadrático con trapezoidales), así que tres
+        // valores lo determinan exactamente.
         for w in quiebres.windows(2) {
             let (x0, x1) = (w[0], w[1]);
             if x1 - x0 <= 0.0 {
                 continue;
             }
             let v0 = self.seccion(caso, barra, x0, true).v;
+            let vm = self.seccion(caso, barra, 0.5 * (x0 + x1), false).v;
             let v1 = self.seccion(caso, barra, x1, false).v;
-            if v0 != v1 && v0 * v1 < 0.0 {
-                let x = x0 + (x1 - x0) * v0 / (v0 - v1);
-                xs.push((x, false));
+            for t in raices_cuadratica_en_intervalo(v0, vm, v1) {
+                xs.push((x0 + (x1 - x0) * t, false));
             }
         }
         xs.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
@@ -405,4 +407,40 @@ impl Resultados {
             .map(|(x, der)| self.seccion(caso, barra, x, der))
             .collect()
     }
+}
+
+/// Raíces en el intervalo abierto `(0, 1)` del polinomio de grado ≤ 2 que vale
+/// `f0`, `fm` y `f1` en `t = 0`, `1/2` y `1`.
+fn raices_cuadratica_en_intervalo(f0: f64, fm: f64, f1: f64) -> Vec<f64> {
+    // f(t) = f0 + p·t + q·t² (interpolación de Lagrange en 0, 1/2, 1).
+    let p = -3.0 * f0 + 4.0 * fm - f1;
+    let q = 2.0 * f0 - 4.0 * fm + 2.0 * f1;
+    let escala = f0.abs().max(fm.abs()).max(f1.abs());
+    if escala == 0.0 {
+        return Vec::new();
+    }
+    let dentro = |t: f64| t > 0.0 && t < 1.0;
+    if q.abs() <= 1e-12 * escala {
+        // Lineal.
+        if p.abs() <= 1e-12 * escala {
+            return Vec::new();
+        }
+        let t = -f0 / p;
+        return if dentro(t) { vec![t] } else { Vec::new() };
+    }
+    let disc = p * p - 4.0 * q * f0;
+    if disc < 0.0 {
+        return Vec::new();
+    }
+    // Fórmula estable (evita la cancelación de -p ± √disc).
+    let raiz = disc.sqrt();
+    let w = -0.5 * (p + p.signum() * raiz);
+    let mut out = Vec::new();
+    for t in [w / q, if w != 0.0 { f0 / w } else { f64::NAN }] {
+        if dentro(t) && !out.iter().any(|&o: &f64| (o - t).abs() < 1e-12) {
+            out.push(t);
+        }
+    }
+    out.sort_by(f64::total_cmp);
+    out
 }

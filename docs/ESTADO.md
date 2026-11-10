@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-10 · entrada [2026-11-10-01](bitacora/2026-11-10-01-sitio-web.md)_
+_Última actualización: 2026-11-10 · entrada [2026-11-10-02](bitacora/2026-11-10-02-cargas-trapezoidales.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
@@ -14,9 +14,9 @@ El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py
 
 ## Qué funciona
 
-- Análisis de pórticos planos desde Python (`import nervi`): cargas nodales, uniformes y puntuales; articulaciones y cerchas; apoyos rígidos y elásticos; asentamientos; varios casos y combinaciones.
+- Análisis de pórticos planos desde Python (`import nervi`): cargas nodales, uniformes, puntuales y trapezoidales o uniformes parciales en un tramo `[a, b]` (#2); articulaciones y cerchas; apoyos rígidos y elásticos; asentamientos; varios casos y combinaciones.
 - Reacciones, fuerzas de extremo, diagramas N/V/M y deformada.
-- 19 casos de verificación analítica en Rust y 16 pruebas en Python, en verde.
+- 27 casos de verificación analítica en Rust y 28 pruebas en Python, en verde. Contrato de datos Rust ↔ Python en la versión 2.
 - Registro de aportes: `AGENTS.md`, esta foto y `bitacora/`, con control automático en el CI.
 - Apertura a la comunidad: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `SECURITY.md`, `CITATION.cff`, plantillas de issues y PR, encabezados SPDX.
 - Controles en el CI: certificado de origen (DCO, `Signed-off-by` obligatorio desde la entrada 07) y licencias de dependencias (`cargo-deny`, `deny.toml`).
@@ -26,6 +26,7 @@ El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py
 ## En curso o bloqueado
 
 - **Sitio web**: falta activar GitHub Pages una vez (Settings → Pages → Source: "GitHub Actions").
+- **Cargas trapezoidales en `.nrv` y la GUI**: si el PR #35 entra después que las trapezoidales, hay que adaptar `nervi.formato` al contrato v2 (10 columnas en `cargas_barra`) y sumar el tipo `trapezoidal` al esquema.
 - **Formato de archivo `.nrv`**: especificación en [`formato-nrv.md`](formato-nrv.md) (ZIP + JSON versionado; IFC solo para importar y exportar). Aprobada por el usuario el 2026-11-09; falta el módulo `nervi.formato`. Se congela con la primera versión de la GUI.
 - **Hitos de GitHub**: se crean al integrar el PR de la hoja de ruta (flujo `.github/workflows/hoja-de-ruta.yml`). Hay que confirmar en Actions que corrió bien.
 - Firma DCO: la firma el usuario o, con su autorización explícita para cada trabajo, el agente en su nombre (AGENTS.md §3.4).
@@ -34,7 +35,7 @@ El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py
 
 ## Próximos pasos sugeridos
 
-1. Cerrar la Fase 1: cargas trapezoidales (#2), momentos en el tramo (#3), cargas térmicas (#4) y la biblioteca `verification/` (#5).
+1. Cerrar la Fase 1: momentos en el tramo (#3), cargas térmicas (#4) y la biblioteca `verification/` (#5). Las trapezoidales (#2) ya están.
 2. Difundir los issues `buen-primer-aporte` y `proyecto-academico` entre cátedras (ver `hoja-de-ruta.md` §Colaboración con universidades).
 3. Fase 2a: barra 3D 12×12 (#11), que destraba casi todo lo demás.
 4. Decidir la norma regional (#20) para ordenar la Fase 3 y el espectro sísmico.

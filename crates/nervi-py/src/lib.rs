@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 //! Puente PyO3 entre el núcleo `nervi-core` y el paquete Python `nervi`.
 //!
-//! Contrato de datos v1: ver `docs/contrato-datos.md`. Todos los arreglos son
+//! Contrato de datos v2: ver `docs/contrato-datos.md`. Todos los arreglos son
 //! NumPy contiguos con forma fija; se validan aquí antes de llamar al núcleo.
 
 use nervi_core::{
@@ -15,7 +15,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
 /// Versión del contrato de datos que entiende este módulo.
-const VERSION_CONTRATO: u32 = 1;
+const VERSION_CONTRATO: u32 = 2;
 
 create_exception!(
     _core,
@@ -104,9 +104,10 @@ fn resolver_portico_2d<'py>(
     verificar_forma("resortes", resortes.shape(), &[n, 3])?;
     verificar_forma("cargas_nodales", cargas_nodales.shape(), &[nc, n, 3])?;
     verificar_forma("despl_impuestos", despl_impuestos.shape(), &[nc, n, 3])?;
-    if cargas_barra.shape()[1] != 7 {
+    if cargas_barra.shape()[1] != 10 {
         return Err(PyValueError::new_err(format!(
-            "'cargas_barra' tiene {} columnas; se esperaban 7 [caso, barra, tipo, ejes, a, vx, vy]",
+            "'cargas_barra' tiene {} columnas; se esperaban 10 \
+             [caso, barra, tipo, ejes, a, vx, vy, b, vx2, vy2]",
             cargas_barra.shape()[1]
         )));
     }
@@ -166,9 +167,19 @@ fn resolver_portico_2d<'py>(
                 px: v(5),
                 py: v(6),
             }
+        } else if v(2) == 2.0 {
+            TipoCargaBarra::Trapezoidal {
+                a: v(4),
+                b: v(7),
+                qx1: v(5),
+                qy1: v(6),
+                qx2: v(8),
+                qy2: v(9),
+            }
         } else {
             return Err(PyValueError::new_err(format!(
-                "cargas_barra fila {fila}: tipo {} desconocido (0 = uniforme, 1 = puntual)",
+                "cargas_barra fila {fila}: tipo {} desconocido \
+                 (0 = uniforme, 1 = puntual, 2 = trapezoidal)",
                 v(2)
             )));
         };

@@ -22,6 +22,7 @@ El motor no impone unidades: hay que usar un sistema **consistente**. Recomendad
 - **En barra**, en ejes locales o globales:
   - Uniforme en toda la luz `(qx, qy)`. En ejes globales se entiende **por unidad de longitud de barra** (no proyectada). Para una carga de nieve o de cubierta dada por metro de proyección horizontal, multiplicar por `cos α` antes de cargarla.
   - Puntual `(px, py)` a la distancia `a` del nudo `i`.
+  - Trapezoidal entre `a` y `b` (`0 ≤ a < b ≤ L`): vale `(qx1, qy1)` en `a` y `(qx2, qy2)` en `b` y varía linealmente entre ambos. Con intensidades iguales es una uniforme parcial; con `a = 0`, `b = L` y `q1 = 0`, una triangular. En ejes globales vale lo mismo que para la uniforme (por unidad de longitud de barra).
 - Una carga gravitatoria en una viga horizontal es `qy < 0`.
 
 ## Esfuerzos internos
@@ -41,6 +42,10 @@ M(x) = -f3 + f2·x + qy·x²/2
 ```
 
 Con una carga puntual en `a`, para `x > a` se suman `-px`, `+py` y `+py·(x - a)` respectivamente. En `x = a` los diagramas tienen dos estaciones (izquierda y derecha del salto).
+
+Con una carga trapezoidal se suman las resultantes de la parte de la carga que está en `[a, min(x, b)]`: `-∫qx ds`, `+∫qy ds` y `+∫qy·(x - s) ds`. Los diagramas tienen estaciones en `a` y en `b`, y como entre ellos `V` es cuadrático el punto de cortante nulo (momento extremo) se calcula exactamente.
+
+Las cargas nodales equivalentes de la trapezoidal son el vector de cargas consistente `F = ∫ Nᵀ q ds` con las funciones de forma lineales (axil) y de Hermite (flexión), que en la barra de Euler-Bernoulli coincide con las reacciones de empotramiento exactas. Las integrales se hacen con Gauss-Legendre de 3 puntos, exacta para estos polinomios (grado ≤ 4).
 
 Ejemplo: viga biapoyada con `qy = -q` → `M(L/2) = +qL²/8` (positivo, tracciona abajo).
 
