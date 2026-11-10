@@ -1,7 +1,7 @@
 # Nervi — Especificación técnica v2
 
-**Estado del documento:** borrador de diseño, corregido a partir de la versión generada por Gemini.
-**Estado del código:** la Fase 0 y la Fase 1 (pórtico plano) están implementadas en el repositorio [`jeronimobareiro/nervi`](https://github.com/jeronimobareiro/nervi). El resto es diseño propuesto. Ver `docs/contrato-datos.md` en el repositorio para el contrato vigente.
+**Estado del documento:** borrador de diseño.
+**Estado del código:** la Fase 0, casi toda la Fase 1 (pórtico plano) y una interfaz de escritorio preliminar están implementadas en el repositorio [`jeronimobareiro/nervi`](https://github.com/jeronimobareiro/nervi). El resto es diseño propuesto. Ver `docs/contrato-datos.md` en el repositorio para el contrato vigente.
 
 ---
 
@@ -20,7 +20,7 @@ Identidad visual: el isotipo es una **N isométrica** en tres tonos de azul: `#3
 
 ### 1.1 Licencia (decidida)
 
-**GPL-3.0-or-later para todo el proyecto**, incluido `nervi-core` (decisión del 2026-11-09, entrada 07 de la bitácora). Motivos:
+**GPL-3.0-or-later para todo el proyecto**, incluido `nervi-core` (decisión del 2026-11-09). Motivos:
 
 - Impide que el motor se integre en software cerrado, que es lo que se busca en un proyecto que compite con programas comerciales.
 - No limita a universidades: pueden usarlo, enseñar con él, modificarlo y publicar investigación.

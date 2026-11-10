@@ -7,20 +7,18 @@
 
 # Nervi
 
-_Antes llamado Apex BIM._
-
 Software libre de análisis y dimensionamiento estructural, con un núcleo numérico en Rust y una capa de aplicación en Python.
 
 Documentación: **[jeronimobareiro.github.io/nervi](https://jeronimobareiro.github.io/nervi/)**.
 
-> **Estado: Fase 1 (pórtico plano lineal elástico).** Todavía no hay diseño según normas, interfaz gráfica ni IFC. Ver la hoja de ruta en [`docs/especificacion-tecnica.md`](docs/especificacion-tecnica.md).
+> **Estado: Fase 1 (pórtico plano lineal elástico), con una interfaz de escritorio preliminar.** Todavía no hay diseño según normas ni IFC. Ver la [hoja de ruta](docs/hoja-de-ruta.md).
 >
 > Este software asiste al ingeniero; no reemplaza su criterio ni su responsabilidad profesional. Verificá siempre los resultados.
 
 ## Qué hace hoy
 
 - Pórticos planos con barras Euler-Bernoulli (3 GDL por nudo).
-- Cargas nodales, uniformes y puntuales en barras, en ejes locales o globales.
+- Cargas nodales, uniformes, puntuales y trapezoidales o parciales en barras, en ejes locales o globales.
 - Articulaciones y liberaciones de extremo; cerchas.
 - Apoyos rígidos, apoyos elásticos y asentamientos impuestos.
 - Varios casos de carga con una sola factorización, y combinaciones lineales.
@@ -96,7 +94,7 @@ Cada caso de `crates/nervi-core/tests/verificacion.rs` compara contra una fórmu
 
 ## Pendiente de la Fase 1
 
-- Cargas trapezoidales y parciales en el tramo, y momentos puntuales en el tramo.
+- Momentos puntuales en el tramo.
 - Cargas térmicas.
 
 ## Contribuir

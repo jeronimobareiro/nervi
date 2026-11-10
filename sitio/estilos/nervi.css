@@ -148,3 +148,11 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* Captura de la interfaz en la portada. */
+.md-typeset img.nv-captura {
+  display: block;
+  margin: 0 auto 1.5rem;
+  border: 1px solid var(--nv-linea);
+  border-radius: 8px;
+}
