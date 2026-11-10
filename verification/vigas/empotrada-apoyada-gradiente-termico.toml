@@ -1,0 +1,54 @@
+titulo = "Viga empotrada y apoyada con gradiente térmico"
+fuente = "Ghali, Neville y Brown, Structural Analysis, 6.ª ed., §4.6 (método de las fuerzas con deformaciones por temperatura)"
+descripcion = "κ₀ = αΔT_g/h; el voladizo libre subiría κ₀L²/2 y el carrito lo impide con R = 3EIκ₀/2L: M(0) = -3EIκ₀/2"
+unidades = "kN, m, °C"
+
+[parametros]
+E = 2.0e8
+A = 0.01
+I = 1.0e-4
+alfa = 1.2e-5
+h = 0.4
+dTg = 18.0
+L = 5.0
+k0 = "alfa*dTg/h"
+
+[modelo]
+nudos = [[0, 0], ["L", 0]]
+barras = [{ i = 0, j = 1, E = "E", A = "A", I = "I" }]
+apoyos = [
+    { nudo = 0, ux = true, uy = true, rz = true },
+    { nudo = 1, uy = true },
+]
+
+[[cargas]]
+caso = "T"
+tipo = "termica"
+barra = 0
+alfa = "alfa"
+gradiente = "dTg"
+h = "h"
+
+[[esperado]]
+caso = "T"
+que = "reaccion"
+nudo = 1
+componente = "Ry"
+valor = "-3*E*I*k0/(2*L)"
+
+[[esperado]]
+caso = "T"
+que = "seccion"
+barra = 0
+x = 0
+componente = "M"
+valor = "-3*E*I*k0/2"
+
+[[esperado]]
+caso = "T"
+que = "seccion"
+barra = 0
+x = "L"
+componente = "M"
+valor = 0
+tolerancia_abs = 1e-9

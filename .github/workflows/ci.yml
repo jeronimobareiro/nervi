@@ -76,7 +76,7 @@ jobs:
       - run: python -m venv .venv
       - name: Bibliotecas del sistema para Qt (pruebas de la interfaz sin pantalla)
         run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon0
-      - run: .venv/bin/pip install maturin pytest ruff pytest-qt "PySide6-Essentials>=6.6"
+      - run: .venv/bin/pip install maturin pytest ruff pytest-qt "PySide6-Essentials>=6.6" "tomli>=2; python_version < '3.11'"
       - run: .venv/bin/ruff check python tests examples scripts
       - run: .venv/bin/ruff format --check python tests examples scripts
       - run: .venv/bin/maturin develop --release

@@ -7,7 +7,7 @@ Al participar aceptás el [Código de conducta](CODE_OF_CONDUCT.md). Las reglas 
 ## Formas de aportar
 
 - **Reportar un error.** Si un resultado te parece incorrecto, abrí un issue con el modelo mínimo que lo reproduce y el valor que esperabas, con su fuente. Si el error puede afectar una estructura real, seguí [`SECURITY.md`](SECURITY.md).
-- **Agregar un caso de verificación.** Un ejemplo resuelto de un libro o una solución analítica es un aporte valioso aunque no toques el motor.
+- **Agregar un caso de verificación.** Un ejemplo resuelto de un libro o una solución analítica es un aporte valioso aunque no toques el motor: es un archivo de texto en [`verification/`](verification/README.md).
 - **Implementar una funcionalidad.** Mirá los issues marcados `buen-primer-aporte` (tareas acotadas), `proyecto-academico` (del tamaño de un trabajo práctico, final o práctica profesional) o `tesis-posible` (temas para una tesis de grado o posgrado). El plan con hitos y tareas está en [`docs/hoja-de-ruta.md`](docs/hoja-de-ruta.md).
 - **Mejorar la documentación o el material didáctico.** Ejemplos, notebooks y traducciones son bienvenidos.
 - **Revisar un módulo normativo.** Si sos ingeniero estructural o docente, tu revisión es la condición para que un módulo de diseño deje de ser experimental.
@@ -29,7 +29,7 @@ cargo test -p nervi-core
 ## Reglas para el código
 
 1. **Toda fórmula lleva su fuente** en un comentario: norma con edición y artículo, libro con página, o la derivación. Ejemplo: `// ACI 318-19 §9.6.1.2`.
-2. **Toda funcionalidad llega con su prueba de verificación** en `crates/nervi-core/tests/` o `tests/`, comparada contra una solución cerrada o un ejemplo publicado.
+2. **Toda funcionalidad llega con su prueba de verificación** en `verification/`, `crates/nervi-core/tests/` o `tests/`, comparada contra una solución cerrada o un ejemplo publicado.
 3. **No se borran ni se desactivan pruebas** para que algo pase.
 4. **No se cambia la convención de signos ni el contrato de datos** sin subir `VERSION_CONTRATO` y documentarlo ([`docs/convenciones.md`](docs/convenciones.md), [`docs/contrato-datos.md`](docs/contrato-datos.md)).
 5. **Idioma:** español en código, comentarios y documentación.

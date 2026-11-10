@@ -1,0 +1,56 @@
+titulo = "Viga simplemente apoyada con carga uniforme"
+fuente = "Roark's Formulas for Stress and Strain, 8.ª ed., tabla 8.1 (extremos articulados, carga uniforme)"
+descripcion = "R = qL/2, M_máx = qL²/8 a media luz, δ_máx = 5qL⁴/384EI"
+unidades = "kN, m"
+estaciones = 4  # 0, 2, 4, 6: el máximo de M lo tiene que encontrar el diagrama (cortante nulo)
+
+[parametros]
+E = 2.0e8
+A = 0.01
+I = 1.0e-4
+L = 6.0
+q = 10.0
+
+[modelo]
+nudos = [[0, 0], ["L", 0]]
+barras = [{ i = 0, j = 1, E = "E", A = "A", I = "I" }]
+apoyos = [
+    { nudo = 0, ux = true, uy = true },
+    { nudo = 1, uy = true },
+]
+
+[[cargas]]
+caso = "q"
+tipo = "uniforme"
+barra = 0
+qy = "-q"
+
+[[esperado]]
+caso = "q"
+que = "reaccion"
+nudo = 0
+componente = "Ry"
+valor = "q*L/2"
+
+[[esperado]]
+caso = "q"
+que = "reaccion"
+nudo = 1
+componente = "Ry"
+valor = "q*L/2"
+
+[[esperado]]
+caso = "q"
+que = "seccion"
+barra = 0
+extremo = "max"
+componente = "M"
+valor = "q*L**2/8"
+
+[[esperado]]
+caso = "q"
+que = "seccion"
+barra = 0
+extremo = "min"
+componente = "v"
+valor = "-5*q*L**4/(384*E*I)"

@@ -1,0 +1,79 @@
+titulo = "Viga biempotrada con carga puntual excéntrica"
+fuente = "Roark's Formulas for Stress and Strain, 8.ª ed., tabla 8.1 (extremos empotrados, carga concentrada intermedia)"
+descripcion = "M_A = -Pab²/L², M_B = -Pa²b/L², R_A = Pb²(3a+b)/L³, δ_P = Pa³b³/3EIL³; salto de cortante P bajo la carga"
+unidades = "kN, m"
+
+[parametros]
+E = 2.0e8
+A = 0.01
+I = 1.0e-4
+L = 6.0
+P = 30.0
+a = 2.0
+b = "L - a"
+
+[modelo]
+nudos = [[0, 0], ["L", 0]]
+barras = [{ i = 0, j = 1, E = "E", A = "A", I = "I" }]
+apoyos = [
+    { nudo = 0, ux = true, uy = true, rz = true },
+    { nudo = 1, ux = true, uy = true, rz = true },
+]
+
+[[cargas]]
+caso = "P"
+tipo = "puntual"
+barra = 0
+a = "a"
+py = "-P"
+
+[[esperado]]
+caso = "P"
+que = "seccion"
+barra = 0
+x = 0
+componente = "M"
+valor = "-P*a*b**2/L**2"
+
+[[esperado]]
+caso = "P"
+que = "seccion"
+barra = 0
+x = "L"
+componente = "M"
+valor = "-P*a**2*b/L**2"
+
+[[esperado]]
+caso = "P"
+que = "reaccion"
+nudo = 0
+componente = "Ry"
+valor = "P*b**2*(3*a + b)/L**3"
+
+[[esperado]]
+caso = "P"
+que = "seccion"
+barra = 0
+x = "a"
+componente = "v"
+valor = "-P*a**3*b**3/(3*E*I*L**3)"
+
+[[esperado]]
+descripcion = "V a la izquierda de la carga (= R_A)"
+caso = "P"
+que = "seccion"
+barra = 0
+x = "a"
+lado = "izquierda"
+componente = "V"
+valor = "P*b**2*(3*a + b)/L**3"
+
+[[esperado]]
+descripcion = "V a la derecha de la carga (= R_A - P)"
+caso = "P"
+que = "seccion"
+barra = 0
+x = "a"
+lado = "derecha"
+componente = "V"
+valor = "P*b**2*(3*a + b)/L**3 - P"

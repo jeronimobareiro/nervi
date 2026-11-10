@@ -1,0 +1,64 @@
+titulo = "Viga biempotrada con carga triangular"
+fuente = "Roark's Formulas for Stress and Strain, 8.ª ed., tabla 8.1 (extremos empotrados, carga linealmente creciente)"
+descripcion = "Carga de 0 en A a w en B: M_A = -wL²/30, M_B = -wL²/20, R_A = 3wL/20, R_B = 7wL/20, δ(L/2) = wL⁴/768EI"
+unidades = "kN, m"
+
+[parametros]
+E = 2.0e8
+A = 0.01
+I = 1.0e-4
+L = 6.0
+w = 12.0
+
+[modelo]
+nudos = [[0, 0], ["L", 0]]
+barras = [{ i = 0, j = 1, E = "E", A = "A", I = "I" }]
+apoyos = [
+    { nudo = 0, ux = true, uy = true, rz = true },
+    { nudo = 1, ux = true, uy = true, rz = true },
+]
+
+[[cargas]]
+caso = "tri"
+tipo = "trapezoidal"
+barra = 0
+qy1 = 0
+qy2 = "-w"
+
+[[esperado]]
+caso = "tri"
+que = "seccion"
+barra = 0
+x = 0
+componente = "M"
+valor = "-w*L**2/30"
+
+[[esperado]]
+caso = "tri"
+que = "seccion"
+barra = 0
+x = "L"
+componente = "M"
+valor = "-w*L**2/20"
+
+[[esperado]]
+caso = "tri"
+que = "reaccion"
+nudo = 0
+componente = "Ry"
+valor = "3*w*L/20"
+
+[[esperado]]
+caso = "tri"
+que = "reaccion"
+nudo = 1
+componente = "Ry"
+valor = "7*w*L/20"
+
+[[esperado]]
+caso = "tri"
+que = "seccion"
+barra = 0
+x = "L/2"
+componente = "v"
+valor = "-w*L**4/(768*E*I)"

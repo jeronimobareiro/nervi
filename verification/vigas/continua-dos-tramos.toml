@@ -1,0 +1,64 @@
+titulo = "Viga continua de dos tramos iguales con carga uniforme"
+fuente = "Hibbeler, Structural Analysis, 10.ª ed., cap. 10 (método de las fuerzas); también tablas de vigas continuas"
+descripcion = "R_extremos = 3qL/8, R_centro = 5qL/4, M_apoyo central = -qL²/8"
+unidades = "kN, m"
+
+[parametros]
+E = 2.0e8
+A = 0.01
+I = 1.0e-4
+L = 5.0
+q = 10.0
+
+[modelo]
+nudos = [[0, 0], ["L", 0], ["2*L", 0]]
+barras = [
+    { i = 0, j = 1, E = "E", A = "A", I = "I" },
+    { i = 1, j = 2, E = "E", A = "A", I = "I" },
+]
+apoyos = [
+    { nudo = 0, ux = true, uy = true },
+    { nudo = 1, uy = true },
+    { nudo = 2, uy = true },
+]
+
+[[cargas]]
+caso = "q"
+tipo = "uniforme"
+barra = 0
+qy = "-q"
+
+[[cargas]]
+caso = "q"
+tipo = "uniforme"
+barra = 1
+qy = "-q"
+
+[[esperado]]
+caso = "q"
+que = "reaccion"
+nudo = 0
+componente = "Ry"
+valor = "3*q*L/8"
+
+[[esperado]]
+caso = "q"
+que = "reaccion"
+nudo = 1
+componente = "Ry"
+valor = "5*q*L/4"
+
+[[esperado]]
+caso = "q"
+que = "reaccion"
+nudo = 2
+componente = "Ry"
+valor = "3*q*L/8"
+
+[[esperado]]
+caso = "q"
+que = "seccion"
+barra = 0
+x = "L"
+componente = "M"
+valor = "-q*L**2/8"

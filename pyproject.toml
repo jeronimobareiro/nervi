@@ -20,7 +20,7 @@ classifiers = [
 [project.optional-dependencies]
 # Interfaz de escritorio. PySide6 (Qt for Python) es LGPL-3.0, compatible con GPL-3.0.
 gui = ["PySide6-Essentials>=6.6"]
-dev = ["pytest>=8", "ruff>=0.6", "pytest-qt>=4.4"]
+dev = ["pytest>=8", "ruff>=0.6", "pytest-qt>=4.4", "tomli>=2; python_version < '3.11'"]
 
 [project.gui-scripts]
 nervi-gui = "nervi.gui:main"

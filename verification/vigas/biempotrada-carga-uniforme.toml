@@ -1,0 +1,57 @@
+titulo = "Viga biempotrada con carga uniforme"
+fuente = "Roark's Formulas for Stress and Strain, 8.ª ed., tabla 8.1 (extremos empotrados, carga uniforme)"
+descripcion = "M_extremos = -qL²/12, M_centro = qL²/24, δ_centro = qL⁴/384EI"
+unidades = "kN, m"
+
+[parametros]
+E = 2.0e8
+A = 0.01
+I = 1.0e-4
+L = 5.0
+q = 8.0
+
+[modelo]
+nudos = [[0, 0], ["L", 0]]
+barras = [{ i = 0, j = 1, E = "E", A = "A", I = "I" }]
+apoyos = [
+    { nudo = 0, ux = true, uy = true, rz = true },
+    { nudo = 1, ux = true, uy = true, rz = true },
+]
+
+[[cargas]]
+caso = "q"
+tipo = "uniforme"
+barra = 0
+qy = "-q"
+
+[[esperado]]
+caso = "q"
+que = "seccion"
+barra = 0
+x = 0
+componente = "M"
+valor = "-q*L**2/12"
+
+[[esperado]]
+caso = "q"
+que = "seccion"
+barra = 0
+x = "L"
+componente = "M"
+valor = "-q*L**2/12"
+
+[[esperado]]
+caso = "q"
+que = "seccion"
+barra = 0
+x = "L/2"
+componente = "M"
+valor = "q*L**2/24"
+
+[[esperado]]
+caso = "q"
+que = "seccion"
+barra = 0
+x = "L/2"
+componente = "v"
+valor = "-q*L**4/(384*E*I)"

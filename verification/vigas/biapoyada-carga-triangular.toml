@@ -1,0 +1,56 @@
+titulo = "Viga simplemente apoyada con carga triangular"
+fuente = "Roark's Formulas for Stress and Strain, 8.ª ed., tabla 8.1 (extremos articulados, carga linealmente creciente)"
+descripcion = "Carga de 0 en A a w en B: R_A = wL/6, R_B = wL/3, M_máx = wL²/(9√3) en x = L/√3, δ(L/2) = 5wL⁴/768EI"
+unidades = "kN, m"
+
+[parametros]
+E = 2.0e8
+A = 0.01
+I = 1.0e-4
+L = 6.0
+w = 12.0
+
+[modelo]
+nudos = [[0, 0], ["L", 0]]
+barras = [{ i = 0, j = 1, E = "E", A = "A", I = "I" }]
+apoyos = [
+    { nudo = 0, ux = true, uy = true },
+    { nudo = 1, uy = true },
+]
+
+[[cargas]]
+caso = "tri"
+tipo = "trapezoidal"
+barra = 0
+qy1 = 0
+qy2 = "-w"
+
+[[esperado]]
+caso = "tri"
+que = "reaccion"
+nudo = 0
+componente = "Ry"
+valor = "w*L/6"
+
+[[esperado]]
+caso = "tri"
+que = "reaccion"
+nudo = 1
+componente = "Ry"
+valor = "w*L/3"
+
+[[esperado]]
+caso = "tri"
+que = "seccion"
+barra = 0
+extremo = "max"
+componente = "M"
+valor = "w*L**2/(9*sqrt(3))"
+
+[[esperado]]
+caso = "tri"
+que = "seccion"
+barra = 0
+x = "L/2"
+componente = "v"
+valor = "-5*w*L**4/(768*E*I)"
