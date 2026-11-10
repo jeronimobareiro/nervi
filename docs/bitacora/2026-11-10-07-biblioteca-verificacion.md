@@ -1,4 +1,4 @@
-# 2026-11-10-05 · Biblioteca de casos de verificación
+# 2026-11-10-07 · Biblioteca de casos de verificación
 
 - **Agente:** Claude (Claude Code)
 - **Pedido por:** Jerónimo Bareiro
