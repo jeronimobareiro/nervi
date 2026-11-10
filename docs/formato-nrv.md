@@ -186,7 +186,7 @@ Y en `nervi.desktop`: `MimeType=application/vnd.nervi.proyecto+zip;` con `Exec=n
 
 ## 8. Implementación
 
-Implementado en `python/nervi/formato/` (entrada de bitácora 2026-11-10-03):
+Implementado en `python/nervi/formato/`:
 
 - `abrir(ruta) -> Documento` y `guardar(documento, ruta, copia_bak=False)`. Un `Documento` tiene el manifiesto, el diccionario de `modelo.json` y los miembros que el programa no interpreta (`otros`), que se conservan al guardar. Se eligió devolver el documento y no un `Modelo` porque `Modelo` no guarda `id`, unidades, combinaciones ni extensiones.
 - `construir_modelo(modelo_json) -> (Modelo, Indices)`: el módulo de formato mantiene la tabla `id → índice`; `Modelo` no cambia.

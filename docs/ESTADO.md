@@ -1,12 +1,12 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-10 · entrada [2026-11-10-03](bitacora/2026-11-10-03-gui-escritorio.md)_
+_Última actualización: 2026-11-10 · entrada [2026-11-10-04](bitacora/2026-11-10-04-sitio-publico.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
 ## Nombre
 
-El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py`, paquete Python `nervi`. Repositorio: [github.com/jeronimobareiro/nervi](https://github.com/jeronimobareiro/nervi). Logo e identidad visual en [`marca/`](marca/) (ver especificación §1).
+El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python `nervi`. Repositorio: [github.com/jeronimobareiro/nervi](https://github.com/jeronimobareiro/nervi). Logo e identidad visual en [`marca/`](marca/) (ver especificación §1).
 
 ## Fase actual
 
@@ -23,12 +23,11 @@ El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py
 - Registro de aportes: `AGENTS.md`, esta foto y `bitacora/`, con control automático en el CI.
 - Apertura a la comunidad: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `SECURITY.md`, `CITATION.cff`, plantillas de issues y PR, encabezados SPDX.
 - Controles en el CI: certificado de origen (DCO, `Signed-off-by` obligatorio desde la entrada 07) y licencias de dependencias (`cargo-deny`, `deny.toml`).
-- Sitio web con toda la documentación (MkDocs + GitHub Pages, `mkdocs.yml`, `sitio/`), publicado automáticamente desde `main` en https://jeronimobareiro.github.io/nervi/.
+- Sitio web público en https://jeronimobareiro.github.io/nervi/ (MkDocs + GitHub Pages, publicado solo desde `main`): portada, descargar, primeros pasos, documentación técnica, hoja de ruta, participar y bitácora. No publica `ESTADO.md` ni `AGENTS.md`, y el armado falla si aparece el nombre anterior del proyecto.
 - Hoja de ruta para colaborar: 31 issues en GitHub con etiquetas de fase, tamaño (`buen-primer-aporte`, `proyecto-academico`, `tesis-posible`) y área; el flujo "Organizar hoja de ruta" crea los hitos y asigna los issues.
 
 ## En curso o bloqueado
 
-- **Sitio web**: falta activar GitHub Pages una vez (Settings → Pages → Source: "GitHub Actions").
 - **Instaladores**: el workflow de publicación todavía no corrió. Lanzarlo a mano (Actions → Publicación → Run workflow) y probar el `.exe` en un Windows real antes de la primera etiqueta `v0.1.0`. El formato `.nrv` (esquema 1) se congela con esa etiqueta.
 - Firma de código de los instaladores: pendiente (SignPath Foundation o certificado).
 - **Hitos de GitHub**: se crean al integrar el PR de la hoja de ruta (flujo `.github/workflows/hoja-de-ruta.yml`). Hay que confirmar en Actions que corrió bien.
@@ -46,5 +45,7 @@ El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py
 5. Registrar la marca Nervi en Paraguay (DINAPI, clases 9 y 42), con abogado.
 
 ## Decisiones abiertas (las toma el usuario)
+
+- Dominio propio para el sitio (por ejemplo `nervi.lat`).
 
 - Norma regional prioritaria ([#20](https://github.com/jeronimobareiro/nervi/issues/20)).

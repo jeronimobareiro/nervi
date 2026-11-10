@@ -77,19 +77,18 @@ markdown_extensions:
 
 nav:
   - Inicio: index.md
-  - Guía rápida: guia-rapida.md
-  - Documentación:
-      - Estado actual: estado.md
-      - Especificación técnica: especificacion-tecnica.md
-      - Convenciones de signos: convenciones.md
-      - Contrato de datos: contrato-datos.md
-      - Formato de archivo .nrv: formato-nrv.md
+  - Descargar: descargar.md
+  - Primeros pasos: primeros-pasos.md
+  - Documentación técnica:
+      - Especificación técnica: tecnica/especificacion.md
+      - Convenciones de signos: tecnica/convenciones.md
+      - Contrato de datos: tecnica/contrato-datos.md
+      - Formato de archivo .nrv: tecnica/formato-nrv.md
   - Hoja de ruta: hoja-de-ruta.md
-  - Comunidad:
-      - Cómo contribuir: comunidad/contribuir.md
-      - Código de conducta: comunidad/codigo-de-conducta.md
-      - Gobierno del proyecto: comunidad/gobierno.md
-      - Seguridad de los resultados: comunidad/seguridad.md
-      - Autores: comunidad/autores.md
-      - Instrucciones para agentes de IA: comunidad/agentes-ia.md
+  - Participar:
+      - Cómo contribuir: participar/contribuir.md
+      - Código de conducta: participar/codigo-de-conducta.md
+      - Gobierno del proyecto: participar/gobierno.md
+      - Seguridad de los resultados: participar/seguridad.md
+      - Autores: participar/autores.md
   - Bitácora: bitacora/index.md

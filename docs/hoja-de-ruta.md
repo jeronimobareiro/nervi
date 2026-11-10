@@ -10,7 +10,7 @@ Este documento baja a tareas concretas la hoja de ruta por fases de la [especifi
 
 ## Punto de partida
 
-La Fase 0 (repositorio, CI, reglas) y casi toda la Fase 1 están en `main`: motor de pórtico plano en Rust con API Python, 19 casos de verificación analítica, un pórtico de unas 8 000 barras resuelto en decenas de milisegundos, y controles de bitácora, DCO y licencias en el CI. Faltan algunas cargas para cerrar la Fase 1.
+La Fase 0 (repositorio, CI, reglas) y casi toda la Fase 1 están en `main`: motor de pórtico plano en Rust con API Python, cargas trapezoidales y parciales, 27 casos de verificación analítica, un pórtico de unas 8 000 barras resuelto en decenas de milisegundos, el formato de proyecto `.nrv` y una interfaz de escritorio preliminar. Para cerrar la Fase 1 faltan los momentos en el tramo, las cargas térmicas y la biblioteca de verificación.
 
 ## Hitos
 
@@ -49,7 +49,7 @@ Etiquetas de tamaño: **BPA** = `buen-primer-aporte`, **PA** = `proyecto-academi
 
 | Issue | Tarea | Tamaño | Área |
 |---|---|---|---|
-| [#2](https://github.com/jeronimobareiro/nervi/issues/2) | Cargas trapezoidales y parciales en barras | PA | motor |
+| [#2](https://github.com/jeronimobareiro/nervi/issues/2) | Cargas trapezoidales y parciales en barras (hecho) | PA | motor |
 | [#3](https://github.com/jeronimobareiro/nervi/issues/3) | Momentos puntuales en el tramo | BPA | motor |
 | [#4](https://github.com/jeronimobareiro/nervi/issues/4) | Cargas térmicas (uniforme y gradiente) | PA | motor |
 | [#5](https://github.com/jeronimobareiro/nervi/issues/5) | Biblioteca `verification/` ejecutada en el CI | PA | verificación |
@@ -102,7 +102,7 @@ Después de ACI 318-19 y la norma regional siguen CIRSOC 201, NBR 6118, NCh 430/
 
 ### Fase 5 · Interfaz gráfica
 
-Desde la entrada 2026-11-10-03 la interfaz es una **vía paralela**: `nervi.gui` (PySide6) ya cubre el pórtico plano de la Fase 1 en una sola ventana y crece junto con cada fase del motor, con instaladores preliminares para Windows y Linux. Esta fase queda para lo que necesita la Fase 2a: visor 3D y edición gráfica de modelos espaciales. Regla: la interfaz no calcula ni guarda nada por su cuenta, solo usa `nervi` y `nervi.formato`.
+Desde noviembre de 2026 la interfaz es una **vía paralela**: `nervi.gui` (PySide6) ya cubre el pórtico plano de la Fase 1 en una sola ventana y crece junto con cada fase del motor, con instaladores preliminares para Windows y Linux. Esta fase queda para lo que necesita la Fase 2a: visor 3D y edición gráfica de modelos espaciales. Regla: la interfaz no calcula ni guarda nada por su cuenta, solo usa `nervi` y `nervi.formato`.
 
 | Issue | Tarea | Tamaño | Área |
 |---|---|---|---|

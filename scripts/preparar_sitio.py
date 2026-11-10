@@ -1,16 +1,18 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Arma las fuentes del sitio web de Nervi a partir de la documentación del repositorio.
 
-La documentación vive una sola vez, en docs/ y en los archivos de comunidad de la raíz.
-Este script la copia a build/sitio/ junto con las páginas propias del sitio (sitio/),
-corrige los enlaces relativos y genera el índice de la bitácora. Después:
+El sitio es para el público: quien quiere usar Nervi, aprender con él o sumarse.
+Publica las páginas propias de sitio/ y una selección de la documentación técnica
+y de comunidad, y la bitácora de aportes. No publica las notas internas de trabajo
+(ESTADO.md, con pendientes y decisiones en curso, ni AGENTS.md); los enlaces a esos
+archivos y al código llevan a GitHub.
 
-    mkdocs build --strict      (o mkdocs serve para verla en http://127.0.0.1:8000)
+El nombre anterior del proyecto no aparece en el sitio. Las entradas viejas de la
+bitácora no se editan en el repositorio, así que se adaptan solo al publicarlas
+(ver SUSTITUCIONES); el script falla si el nombre queda en alguna página.
 
-Los enlaces a archivos que no forman parte del sitio (código, LICENSE, plantillas)
-se convierten en enlaces a GitHub.
-
-Uso:  python scripts/preparar_sitio.py
+    python scripts/preparar_sitio.py && mkdocs build --strict
+    (o mkdocs serve para verlo en http://127.0.0.1:8000)
 """
 
 from __future__ import annotations
@@ -27,26 +29,51 @@ GITHUB = "https://github.com/jeronimobareiro/nervi"
 
 # Ruta en el repositorio -> ruta en el sitio. Los .md se reescriben; el resto se copia.
 PAGINAS = {
-    "README.md": "guia-rapida.md",
-    "docs/ESTADO.md": "estado.md",
-    "docs/especificacion-tecnica.md": "especificacion-tecnica.md",
+    "docs/especificacion-tecnica.md": "tecnica/especificacion.md",
+    "docs/convenciones.md": "tecnica/convenciones.md",
+    "docs/contrato-datos.md": "tecnica/contrato-datos.md",
+    "docs/formato-nrv.md": "tecnica/formato-nrv.md",
     "docs/hoja-de-ruta.md": "hoja-de-ruta.md",
-    "docs/convenciones.md": "convenciones.md",
-    "docs/contrato-datos.md": "contrato-datos.md",
-    "docs/formato-nrv.md": "formato-nrv.md",
+    "CONTRIBUTING.md": "participar/contribuir.md",
+    "CODE_OF_CONDUCT.md": "participar/codigo-de-conducta.md",
+    "GOVERNANCE.md": "participar/gobierno.md",
+    "SECURITY.md": "participar/seguridad.md",
+    "AUTHORS.md": "participar/autores.md",
     "docs/bitacora/README.md": "bitacora/index.md",
-    "CONTRIBUTING.md": "comunidad/contribuir.md",
-    "CODE_OF_CONDUCT.md": "comunidad/codigo-de-conducta.md",
-    "GOVERNANCE.md": "comunidad/gobierno.md",
-    "SECURITY.md": "comunidad/seguridad.md",
-    "AUTHORS.md": "comunidad/autores.md",
-    "AGENTS.md": "comunidad/agentes-ia.md",
 }
 CARPETAS = {"docs/marca": "marca", "docs/esquemas": "esquemas"}
-PATRON_ENTRADA = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{2}-[a-z0-9-]+\.md$")
+# Partes de mantenimiento interno que no se publican: (patrón, reemplazo) por archivo.
+QUITAR = {
+    "docs/hoja-de-ruta.md": [
+        (r"\n_Plan de desarrollo[^\n]*_\n", "\n"),
+        (r"\n- Qué está hecho hoy:[^\n]*", ""),
+        (r"\n- Qué se hizo y por qué:[^\n]*", ""),
+        (r"\n## Cómo se mantiene este plan\n.*?(?=\n## |\Z)", ""),
+    ],
+    "CONTRIBUTING.md": [(r" Los agentes de IA siguen además \[`AGENTS\.md`\]\(AGENTS\.md\)\.", "")],
+}
+# Entradas de la bitácora anteriores al cambio de nombre: se publican sin el nombre viejo.
+SUSTITUCIONES = [
+    (r'Reemplazar el nombre "Apex BIM" por', "Reemplazar el nombre anterior del proyecto por"),
+    (
+        r"Crates: `apex-core` → `nervi-core`, `apex-py` → `nervi-py`; "
+        r"tipo `ErrorApex` → `ErrorNervi`\.",
+        "Crates `nervi-core` y `nervi-py`; tipo de error `ErrorNervi`.",
+    ),
+    (r"Paquete Python: `apex` → `nervi` \(", "Paquete Python `nervi` ("),
+    (r'Búsqueda de "apex" en el repositorio', "Búsqueda del nombre anterior en el repositorio"),
+    (r"La URL del repositorio \(`bareirojero/Apex-BIM`\)", "La URL del repositorio anterior"),
+    (r" \(`bareirojero/Apex-BIM`\)", ""),
+    (r"`apex_bim_repository\.zip`", "archivo comprimido del prototipo"),
+    (r"apex-(core|py)", r"nervi-\1"),
+    (r"python/apex\b", "python/nervi"),
+]
+# Nombres que ya no deben aparecer en el sitio.
+PROHIBIDOS = re.compile(r"apex", re.I)
 # Enlaces Markdown en línea: [texto](destino) o ![alt](destino).
 PATRON_ENLACE = re.compile(r"(!?\[[^\]]*\])\(([^)\s]+)\)")
 PATRON_SRCSET = re.compile(r'((?:src|srcset)=")([^"]+)(")')
+PATRON_ENTRADA = re.compile(r"^\d{4}-\d{2}-\d{2}-\d{2}-[a-z0-9-]+\.md$")
 
 
 def mapa() -> dict[str, str]:
@@ -92,12 +119,6 @@ def reescribir(texto: str, origen_repo: str, origen_sitio: str, rutas: dict) -> 
     return PATRON_SRCSET.sub(atributo, PATRON_ENLACE.sub(enlace, texto))
 
 
-def guia_rapida(texto: str) -> str:
-    """El README sin el logo ni el título: el sitio ya los muestra."""
-    inicio = texto.index("\n## ")
-    return "# Guía rápida\n" + texto[inicio:]
-
-
 def indice_bitacora(texto: str, rutas: dict) -> str:
     """Reemplaza la tabla escrita a mano por la lista completa de entradas."""
     entradas = sorted(
@@ -123,13 +144,28 @@ def main() -> int:
         archivo.parent.mkdir(parents=True, exist_ok=True)
         if origen_repo.endswith(".md"):
             texto = (RAIZ / origen_repo).read_text("utf-8")
-            if origen_repo == "README.md":
-                texto = guia_rapida(texto)
+            for patron, reemplazo in QUITAR.get(origen_repo, []):
+                texto, n = re.subn(patron, reemplazo, texto, flags=re.S)
+                if n == 0:
+                    print(f"{origen_repo}: no se encontró {patron!r}", file=sys.stderr)
+                    return 1
+            if PATRON_ENTRADA.match(posixpath.basename(origen_repo)):
+                for patron, reemplazo in SUSTITUCIONES:
+                    texto = re.sub(patron, reemplazo, texto)
             archivo.write_text(reescribir(texto, origen_repo, origen_sitio, rutas), "utf-8")
         else:
             shutil.copyfile(RAIZ / origen_repo, archivo)
     indice = DESTINO / "bitacora" / "index.md"
     indice.write_text(indice_bitacora(indice.read_text("utf-8"), rutas), "utf-8")
+    errores = [
+        f"{md.relative_to(DESTINO)}: contiene {m[0]!r}"
+        for md in sorted(DESTINO.rglob("*.md"))
+        if (m := PROHIBIDOS.search(md.read_text("utf-8")))
+    ]
+    for error in errores:
+        print(error, file=sys.stderr)
+    if errores:
+        return 1
     print(f"Sitio preparado en {DESTINO.relative_to(RAIZ)} ({len(rutas)} archivos de docs).")
     return 0
 
