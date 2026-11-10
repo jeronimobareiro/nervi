@@ -181,7 +181,7 @@ Reglas: arreglos planos contiguos (`float64`, `int64`, `uint8`), stride fijo y d
 | `despl_impuestos` | f64 | `n_casos × n_nudos × 3` | asentamientos por caso (solo se leen donde hay restricción) |
 | `resortes` | f64 | `n_nudos × 3` | rigidez de apoyo elástico |
 | `cargas_nodales` | f64 | `n_casos × n_nudos × 3` | `[Fx, Fy, Mz]` en ejes globales |
-| `cargas_barra` | f64 | `n_cargas × 10` | `[caso, barra, tipo, ejes, a, vx, vy, b, vx2, vy2]`; tipo 0 = uniforme (`vx, vy` = `qx, qy`), 1 = puntual a distancia `a`, 2 = trapezoidal de `(vx, vy)` en `a` a `(vx2, vy2)` en `b`; ejes 0 = local, 1 = global (contrato v2) |
+| `cargas_barra` | f64 | `n_cargas × 10` | `[caso, barra, tipo, ejes, a, vx, vy, b, vx2, vy2]`; tipo 0 = uniforme (`vx, vy` = `qx, qy`), 1 = puntual a distancia `a`, 2 = trapezoidal de `(vx, vy)` en `a` a `(vx2, vy2)` en `b`, 3 = térmica (`a` = α, `vx` = ΔT, `vy` = ΔT_g, `b` = h); ejes 0 = local, 1 = global (contrato v2) |
 
 Salida (diccionario de arreglos NumPy): `desplazamientos (n_casos × n_nudos × 3)`, `reacciones (n_casos × n_nudos × 3)`, `fuerzas_extremo (n_casos × n_barras × 6)`, `estaciones` con `x, N, V, M, flecha`.
 

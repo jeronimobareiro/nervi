@@ -93,7 +93,7 @@ pub fn analizar(modelo: &Modelo) -> Resultado<Resultados> {
         for cb in &caso.en_barras {
             let ba = &barras[cb.barra];
             let cl = carga_a_local(ba.c, ba.s, cb);
-            let f = cargas_equivalentes(ba.l, &cl);
+            let f = cargas_equivalentes(ba.l, ba.ea, ba.ei, &cl);
             for d in 0..6 {
                 feq[c][cb.barra][d] += f[d];
             }
@@ -381,7 +381,7 @@ impl Resultados {
                     quiebres.push(a);
                     quiebres.push(b);
                 }
-                CargaLocal::Uniforme { .. } => {}
+                CargaLocal::Uniforme { .. } | CargaLocal::Termica { .. } => {}
             }
         }
         quiebres.sort_by(f64::total_cmp);

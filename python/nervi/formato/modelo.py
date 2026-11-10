@@ -18,6 +18,11 @@ MIEMBRO = "modelo.json"
 
 _UNIDADES = {"fuerza": ("N", "kN", "kgf", "tf"), "longitud": ("mm", "cm", "m")}
 
+_CLAVES_NUMERICAS_CARGA = (
+    *("a", "b", "qx", "qy", "px", "py", "qx1", "qy1", "qx2", "qy2"),
+    *("alfa", "dt", "gradiente", "h"),
+)
+
 # lista -> (claves obligatorias, claves opcionales numéricas, claves opcionales booleanas)
 _LISTAS: dict[str, tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]] = {
     "nudos": (("id", "x", "y"), (), ()),
@@ -28,7 +33,7 @@ _LISTAS: dict[str, tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]] = {
     "cargas_nodales": (("caso", "nudo"), ("fx", "fy", "mz"), ()),
     "cargas_barra": (
         ("caso", "barra", "tipo", "ejes"),
-        ("a", "b", "qx", "qy", "px", "py", "qx1", "qy1", "qx2", "qy2"),
+        _CLAVES_NUMERICAS_CARGA,
         (),
     ),
     "desplazamientos_impuestos": (("caso", "nudo"), ("ux", "uy", "rz"), ()),
@@ -44,9 +49,25 @@ _CLAVES_CARGA: dict[str, tuple[str, ...]] = {
     "uniforme": ("qx", "qy"),
     "puntual": ("a", "px", "py"),
     "trapezoidal": ("a", "b", "qx1", "qy1", "qx2", "qy2"),
+    "termica": ("alfa", "dt", "gradiente", "h"),
 }
-_TIPOS_CARGA = ("uniforme", "puntual", "trapezoidal")  # índice = tipo del contrato v2
-_CLAVES_CARGA_TODAS = ("a", "b", "qx", "qy", "px", "py", "qx1", "qy1", "qx2", "qy2")
+_TIPOS_CARGA = ("uniforme", "puntual", "trapezoidal", "termica")  # índice = tipo del contrato v2
+_CLAVES_CARGA_TODAS = (
+    "a",
+    "b",
+    "qx",
+    "qy",
+    "px",
+    "py",
+    "qx1",
+    "qy1",
+    "qx2",
+    "qy2",
+    "alfa",
+    "dt",
+    "gradiente",
+    "h",
+)
 
 
 def _lista(claves) -> str:
@@ -193,7 +214,7 @@ def validar(modelo: object) -> None:
         ruta = f"cargas_barra[{k}]"
         if c["tipo"] not in _CLAVES_CARGA:
             raise _err(
-                f"= {c['tipo']!r}: tiene que ser 'uniforme', 'puntual' o 'trapezoidal'",
+                f"= {c['tipo']!r}: tiene que ser 'uniforme', 'puntual', 'trapezoidal' o 'termica'",
                 f"{ruta}.tipo",
             )
         if c["ejes"] not in ("local", "global"):
@@ -211,6 +232,11 @@ def validar(modelo: object) -> None:
                     f"= {c['a']}: tiene que estar entre 0 y la longitud de la barra ({largo:g})",
                     f"{ruta}.a",
                 )
+        elif c["tipo"] == "termica":
+            if "alfa" not in c:
+                raise _err("una carga térmica necesita 'alfa'", ruta)
+            if c.get("gradiente", 0.0) != 0.0 and not c.get("h", 0.0) > 0:
+                raise _err("una carga térmica con gradiente necesita el canto 'h' > 0", ruta)
         elif c["tipo"] == "trapezoidal":
             a, b = c.get("a", 0.0), c.get("b", largo)
             if not 0 <= a < largo:
@@ -311,6 +337,15 @@ def construir_modelo(modelo: dict) -> tuple[Modelo, Indices]:
                 qx2=c.get("qx2", 0.0),
                 ejes=c["ejes"],
             )
+        elif c["tipo"] == "termica":
+            m.carga_termica(
+                caso,
+                barra,
+                c["alfa"],
+                dt=c.get("dt", 0.0),
+                gradiente=c.get("gradiente", 0.0),
+                h=c.get("h"),
+            )
         else:
             m.carga_puntual(caso, barra, c["a"], c.get("px", 0.0), c.get("py", 0.0), ejes=c["ejes"])
     for d in modelo.get("desplazamientos_impuestos", []):
@@ -370,6 +405,10 @@ def desde_modelo(
             carga.update(qx=float(vx), qy=float(vy))
         elif tipo == 1:
             carga.update(a=float(a), px=float(vx), py=float(vy))
+        elif tipo == 3:
+            carga.update(alfa=float(a), dt=float(vx), gradiente=float(vy))
+            if b > 0:
+                carga["h"] = float(b)
         else:
             carga.update(a=float(a), qx1=float(vx), qy1=float(vy), qx2=float(vx2), qy2=float(vy2))
             if not math.isnan(b):

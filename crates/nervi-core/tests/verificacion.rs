@@ -545,6 +545,7 @@ fn equilibrio_global_en_portico_de_varios_pisos() {
                     }
                 }
             }
+            TipoCargaBarra::Termica { .. } => {}
         }
     }
     let total = 15.0 * 30.0 + 30.0 * 6.0;

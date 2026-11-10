@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-10 · entrada [2026-11-10-05](bitacora/2026-11-10-05-appimagetool.md)_
+_Última actualización: 2026-11-10 · entrada [2026-11-10-06](bitacora/2026-11-10-06-cargas-termicas.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
@@ -14,12 +14,12 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 
 ## Qué funciona
 
-- Análisis de pórticos planos desde Python (`import nervi`): cargas nodales, uniformes, puntuales y trapezoidales o uniformes parciales en un tramo `[a, b]` (#2); articulaciones y cerchas; apoyos rígidos y elásticos; asentamientos; varios casos y combinaciones.
+- Análisis de pórticos planos desde Python (`import nervi`): cargas nodales, uniformes, puntuales, trapezoidales o uniformes parciales en un tramo `[a, b]` (#2) y térmicas, uniformes y con gradiente (#4); articulaciones y cerchas; apoyos rígidos y elásticos; asentamientos; varios casos y combinaciones.
 - Reacciones, fuerzas de extremo, diagramas N/V/M y deformada.
-- Formato de proyecto `.nrv` (`nervi.formato`): abrir, guardar, validar y migrar según [`formato-nrv.md`](formato-nrv.md), con cargas uniformes, puntuales y trapezoidales.
+- Formato de proyecto `.nrv` (`nervi.formato`): abrir, guardar, validar y migrar según [`formato-nrv.md`](formato-nrv.md), con cargas uniformes, puntuales, trapezoidales y térmicas.
 - Interfaz de escritorio `nervi.gui` (PySide6, `nervi-gui`): una sola ventana con tablas editables del modelo, cálculo, diagramas N/V/M y deformada, lectura de esfuerzos con el cursor, revisión del modelo, consola Python y buscador de comandos (Ctrl+K). Aviso permanente de versión preliminar.
 - Workflow de publicación: con una etiqueta `v*` genera el instalador `.exe` de Windows (Inno Setup, asocia `.nrv`) y el AppImage de Linux, sin firma, como versión preliminar en Releases.
-- 27 casos de verificación analítica en Rust y 64 pruebas en Python (formato e interfaz incluidos), en verde. Contrato de datos Rust ↔ Python en la versión 2.
+- 34 casos de verificación analítica en Rust y 71 pruebas en Python (formato e interfaz incluidos), en verde. Contrato de datos Rust ↔ Python en la versión 2.
 - Registro de aportes: `AGENTS.md`, esta foto y `bitacora/`, con control automático en el CI.
 - Apertura a la comunidad: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `SECURITY.md`, `CITATION.cff`, plantillas de issues y PR, encabezados SPDX.
 - Controles en el CI: certificado de origen (DCO, `Signed-off-by` obligatorio desde la entrada 07) y licencias de dependencias (`cargo-deny`, `deny.toml`).
@@ -38,7 +38,7 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 ## Próximos pasos sugeridos
 
 0. Interfaz: dibujar cargas, crear barras con el mouse y deshacer/rehacer; después, visor 3D con la Fase 2a.
-1. Cerrar la Fase 1: momentos en el tramo (#3), cargas térmicas (#4) y la biblioteca `verification/` (#5). Las trapezoidales (#2) ya están, también en `.nrv` y la GUI.
+1. Cerrar la Fase 1: momentos en el tramo (#3) y la biblioteca `verification/` (#5). Las trapezoidales (#2) y las térmicas (#4) ya están, también en `.nrv` y la GUI.
 2. Difundir los issues `buen-primer-aporte` y `proyecto-academico` entre cátedras (ver `hoja-de-ruta.md` §Colaboración con universidades).
 3. Fase 2a: barra 3D 12×12 (#11), que destraba casi todo lo demás.
 4. Decidir la norma regional (#20) para ordenar la Fase 3 y el espectro sísmico.

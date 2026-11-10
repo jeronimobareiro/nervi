@@ -147,3 +147,21 @@ def test_carga_trapezoidal_en_la_tabla(ventana):
     assert tabla.setData(tabla.index(fila, cols.index("tipo")), "puntual")
     carga = ventana.sesion.modelo["cargas_barra"][fila]
     assert set(carga) == {"caso", "barra", "tipo", "ejes", "a", "px", "py"}
+
+
+def test_carga_termica_en_la_tabla(ventana):
+    tabla = ventana.tabs_modelo.widget(5).modelo
+    cols = [c.clave for c in tabla.columnas]
+    assert tabla.setData(tabla.index(0, cols.index("tipo")), "termica")
+    assert not tabla.flags(tabla.index(0, cols.index("qx2"))) & Qt.ItemIsEditable
+    assert tabla.setData(tabla.index(0, cols.index("a")), "1.2e-5")
+    assert tabla.setData(tabla.index(0, cols.index("qx")), "30")
+    carga = ventana.sesion.modelo["cargas_barra"][0]
+    assert carga["tipo"] == "termica"
+    assert carga["alfa"] == 1.2e-5 and carga["dt"] == 30.0
+    # La qy de la uniforme pasó a la columna del gradiente: sin canto no calcula.
+    assert carga["gradiente"] == -20.0
+    assert not ventana.calcular()
+    assert tabla.setData(tabla.index(0, cols.index("b")), "0.5")
+    assert ventana.sesion.modelo["cargas_barra"][0]["h"] == 0.5
+    assert ventana.calcular()

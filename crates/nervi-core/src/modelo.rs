@@ -74,6 +74,18 @@ pub enum TipoCargaBarra {
         qx2: f64,
         qy2: f64,
     },
+    /// Acción térmica en toda la barra (ejes ignorados): variación uniforme de
+    /// temperatura `dt` y diferencia `gradiente = T(cara -y) - T(cara +y)` entre
+    /// las caras de una sección de canto `h`, con coeficiente de dilatación
+    /// `alfa`. Deformaciones libres: `ε₀ = alfa·dt` (alarga la barra) y
+    /// `κ₀ = alfa·gradiente/h` (con `gradiente > 0` la cara `-y` está más
+    /// caliente y la barra se curva como con momento positivo).
+    Termica {
+        alfa: f64,
+        dt: f64,
+        gradiente: f64,
+        h: f64,
+    },
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -298,6 +310,21 @@ impl Modelo {
                             ));
                         }
                         vec![qx1, qy1, qx2, qy2]
+                    }
+                    TipoCargaBarra::Termica {
+                        alfa,
+                        dt,
+                        gradiente,
+                        h,
+                    } => {
+                        if gradiente != 0.0 && !(h.is_finite() && h > 0.0) {
+                            return inv(format!(
+                                "caso {c}: carga térmica con gradiente en la barra {} \
+                                 necesita un canto h > 0 (h = {h})",
+                                cb.barra
+                            ));
+                        }
+                        vec![alfa, dt, gradiente]
                     }
                 };
                 if !valores.iter().all(|v| v.is_finite()) {

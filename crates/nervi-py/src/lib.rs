@@ -176,10 +176,17 @@ fn resolver_portico_2d<'py>(
                 qx2: v(8),
                 qy2: v(9),
             }
+        } else if v(2) == 3.0 {
+            TipoCargaBarra::Termica {
+                alfa: v(4),
+                dt: v(5),
+                gradiente: v(6),
+                h: v(7),
+            }
         } else {
             return Err(PyValueError::new_err(format!(
                 "cargas_barra fila {fila}: tipo {} desconocido \
-                 (0 = uniforme, 1 = puntual, 2 = trapezoidal)",
+                 (0 = uniforme, 1 = puntual, 2 = trapezoidal, 3 = térmica)",
                 v(2)
             )));
         };

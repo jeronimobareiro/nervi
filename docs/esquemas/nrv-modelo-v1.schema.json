@@ -117,13 +117,22 @@
         "properties": {
           "caso": {"$ref": "#/$defs/id"},
           "barra": {"$ref": "#/$defs/id"},
-          "tipo": {"enum": ["uniforme", "puntual"]},
+          "tipo": {"enum": ["uniforme", "puntual", "trapezoidal", "termica"]},
           "ejes": {"enum": ["local", "global"]},
           "a": {"type": "number", "minimum": 0},
           "qx": {"type": "number"},
           "qy": {"type": "number"},
           "px": {"type": "number"},
-          "py": {"type": "number"}
+          "py": {"type": "number"},
+          "b": {"type": "number", "exclusiveMinimum": 0},
+          "qx1": {"type": "number"},
+          "qy1": {"type": "number"},
+          "qx2": {"type": "number"},
+          "qy2": {"type": "number"},
+          "alfa": {"type": "number"},
+          "dt": {"type": "number"},
+          "gradiente": {"type": "number"},
+          "h": {"type": "number", "exclusiveMinimum": 0}
         },
         "allOf": [
           {
@@ -132,7 +141,22 @@
           },
           {
             "if": {"properties": {"tipo": {"const": "uniforme"}}},
-            "then": {"not": {"anyOf": [{"required": ["a"]}, {"required": ["px"]}, {"required": ["py"]}]}}
+            "then": {"propertyNames": {"enum": ["caso", "barra", "tipo", "ejes", "qx", "qy"]}}
+          },
+          {
+            "if": {"properties": {"tipo": {"const": "puntual"}}},
+            "then": {"propertyNames": {"enum": ["caso", "barra", "tipo", "ejes", "a", "px", "py"]}}
+          },
+          {
+            "if": {"properties": {"tipo": {"const": "trapezoidal"}}},
+            "then": {"propertyNames": {"enum": ["caso", "barra", "tipo", "ejes", "a", "b", "qx1", "qy1", "qx2", "qy2"]}}
+          },
+          {
+            "if": {"properties": {"tipo": {"const": "termica"}}},
+            "then": {
+              "required": ["alfa"],
+              "propertyNames": {"enum": ["caso", "barra", "tipo", "ejes", "alfa", "dt", "gradiente", "h"]}
+            }
           }
         ]
       }

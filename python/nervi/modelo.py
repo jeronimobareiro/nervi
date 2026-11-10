@@ -157,6 +157,31 @@ class Modelo:
         """Carga uniforme ``(qx, qy)`` solo en el tramo ``[a, b]`` de la barra."""
         self.carga_trapezoidal(caso, barra, qy, qy, a, b, qx, qx, ejes)
 
+    def carga_termica(
+        self,
+        caso: str | int,
+        barra: int,
+        alfa: float,
+        dt: float = 0.0,
+        gradiente: float = 0.0,
+        h: float | None = None,
+    ) -> None:
+        """Acción térmica en toda la barra.
+
+        ``dt`` es la variación uniforme de temperatura (positiva alarga la barra)
+        y ``gradiente`` la diferencia ``T(cara -y) - T(cara +y)`` entre las caras
+        de la sección de canto ``h``; con ``gradiente > 0`` la cara de abajo (en
+        una viga dibujada de izquierda a derecha) está más caliente y la barra se
+        curva como con momento positivo. ``alfa`` es el coeficiente de
+        dilatación térmica (por ejemplo ``1.2e-5`` 1/°C para el acero).
+        """
+        if gradiente != 0.0 and (h is None or not h > 0.0):
+            raise ValueError("una carga térmica con gradiente necesita el canto h > 0")
+        canto = 0.0 if h is None else float(h)
+        self._cargas_barra.append(
+            (self._indice_caso(caso), barra, 3, 0, alfa, dt, gradiente, canto, 0.0, 0.0)
+        )
+
     def desplazamiento_impuesto(
         self, caso: str | int, nudo: int, ux: float = 0.0, uy: float = 0.0, rz: float = 0.0
     ) -> None:
