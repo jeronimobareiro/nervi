@@ -526,6 +526,25 @@ fn equilibrio_global_en_portico_de_varios_pisos() {
                 suma(xi + c * l / 2.0, yi + s * l / 2.0, [qx * l, qy * l, 0.0])
             }
             TipoCargaBarra::Puntual { a, px, py } => suma(xi + c * a, yi + s * a, [px, py, 0.0]),
+            TipoCargaBarra::Trapezoidal {
+                a,
+                b,
+                qx1,
+                qy1,
+                qx2,
+                qy2,
+            } => {
+                // Cada componente es un trapecio: resultante en su centroide.
+                for (q1, q2, dir) in [(qx1, qx2, 0), (qy1, qy2, 1)] {
+                    let r = 0.5 * (q1 + q2) * (b - a);
+                    if r != 0.0 {
+                        let d = a + (b - a) * (q1 + 2.0 * q2) / (3.0 * (q1 + q2));
+                        let mut f = [0.0; 3];
+                        f[dir] = r;
+                        suma(xi + c * d, yi + s * d, f);
+                    }
+                }
+            }
         }
     }
     let total = 15.0 * 30.0 + 30.0 * 6.0;

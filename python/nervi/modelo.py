@@ -102,7 +102,9 @@ class Modelo:
     ) -> None:
         """Carga uniforme en toda la luz. En ejes globales se entiende por unidad
         de longitud de barra (no proyectada)."""
-        self._cargas_barra.append((self._indice_caso(caso), barra, 0, _EJES[ejes], 0.0, qx, qy))
+        self._cargas_barra.append(
+            (self._indice_caso(caso), barra, 0, _EJES[ejes], 0.0, qx, qy, 0.0, 0.0, 0.0)
+        )
 
     def carga_puntual(
         self,
@@ -114,7 +116,46 @@ class Modelo:
         ejes: str = "local",
     ) -> None:
         """Carga puntual a la distancia ``a`` del nudo i."""
-        self._cargas_barra.append((self._indice_caso(caso), barra, 1, _EJES[ejes], a, px, py))
+        self._cargas_barra.append(
+            (self._indice_caso(caso), barra, 1, _EJES[ejes], a, px, py, 0.0, 0.0, 0.0)
+        )
+
+    def carga_trapezoidal(
+        self,
+        caso: str | int,
+        barra: int,
+        qy1: float = 0.0,
+        qy2: float = 0.0,
+        a: float = 0.0,
+        b: float | None = None,
+        qx1: float = 0.0,
+        qx2: float = 0.0,
+        ejes: str = "local",
+    ) -> None:
+        """Carga distribuida que varía linealmente de ``(qx1, qy1)`` en ``a`` a
+        ``(qx2, qy2)`` en ``b`` (distancias desde el nudo i, ``0 <= a < b <= L``).
+
+        ``b=None`` significa hasta el nudo j. Con ``qy1 == qy2`` es una carga
+        uniforme parcial. En ejes globales se entiende por unidad de longitud de
+        barra (no proyectada), igual que :meth:`carga_uniforme`.
+        """
+        fin = float("nan") if b is None else float(b)
+        self._cargas_barra.append(
+            (self._indice_caso(caso), barra, 2, _EJES[ejes], a, qx1, qy1, fin, qx2, qy2)
+        )
+
+    def carga_parcial(
+        self,
+        caso: str | int,
+        barra: int,
+        a: float,
+        b: float,
+        qx: float = 0.0,
+        qy: float = 0.0,
+        ejes: str = "local",
+    ) -> None:
+        """Carga uniforme ``(qx, qy)`` solo en el tramo ``[a, b]`` de la barra."""
+        self.carga_trapezoidal(caso, barra, qy, qy, a, b, qx, qx, ejes)
 
     def desplazamiento_impuesto(
         self, caso: str | int, nudo: int, ux: float = 0.0, uy: float = 0.0, rz: float = 0.0
@@ -125,7 +166,7 @@ class Modelo:
 
     # --- Análisis --------------------------------------------------------------
     def arreglos(self) -> dict[str, np.ndarray]:
-        """Arreglos del contrato de datos v1 (ver ``docs/contrato-datos.md``)."""
+        """Arreglos del contrato de datos v2 (ver ``docs/contrato-datos.md``)."""
         n, m, nc = len(self._nudos), len(self._barras), len(self._casos)
         coords = np.array(self._nudos, dtype=np.float64).reshape(n, 2)
         conect = np.array([b[:2] for b in self._barras], dtype=np.int64).reshape(m, 2)
@@ -144,7 +185,15 @@ class Modelo:
                 nodales[c, k] = f
             for k, u in caso.impuestos.items():
                 impuestos[c, k] = u
-        cargas_barra = np.array(self._cargas_barra, dtype=np.float64).reshape(-1, 7)
+        cargas_barra = np.array(self._cargas_barra, dtype=np.float64).reshape(-1, 10)
+        # Cargas trapezoidales "hasta el nudo j" (b = None): b = L de la barra.
+        for fila in cargas_barra:
+            if fila[2] == 2 and np.isnan(fila[7]):
+                k = int(fila[1])
+                if 0 <= k < m:
+                    i, j = conect[k]
+                    if 0 <= i < n and 0 <= j < n:
+                        fila[7] = float(np.hypot(*(coords[j] - coords[i])))
         return {
             "coords": coords,
             "conectividad": conect,

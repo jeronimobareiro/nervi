@@ -11,8 +11,86 @@ pub type Vec6 = [f64; 6];
 /// Carga en el tramo expresada en ejes locales de la barra.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CargaLocal {
-    Uniforme { qx: f64, qy: f64 },
-    Puntual { a: f64, px: f64, py: f64 },
+    Uniforme {
+        qx: f64,
+        qy: f64,
+    },
+    Puntual {
+        a: f64,
+        px: f64,
+        py: f64,
+    },
+    /// Variación lineal de `(qx1, qy1)` en `a` a `(qx2, qy2)` en `b`.
+    Trapezoidal {
+        a: f64,
+        b: f64,
+        qx1: f64,
+        qy1: f64,
+        qx2: f64,
+        qy2: f64,
+    },
+}
+
+/// Puntos y pesos de Gauss-Legendre de 3 puntos en `[x0, x1]`.
+///
+/// Integra exactamente polinomios de grado 5 o menor (Abramowitz y Stegun,
+/// Handbook of Mathematical Functions, 25.4.29 y tabla 25.4). Todas las integrales
+/// de cargas lineales que aparecen acá (contra funciones de forma cúbicas o contra
+/// la función de Green de la barra biempotrada, cúbica a cada lado del punto) son
+/// polinomios de grado 4 como máximo, así que el resultado es exacto, no aproximado.
+fn gauss3(x0: f64, x1: f64) -> [(f64, f64); 3] {
+    let (m, h) = (0.5 * (x0 + x1), 0.5 * (x1 - x0));
+    let r = (0.6_f64).sqrt();
+    [
+        (m - h * r, h * 5.0 / 9.0),
+        (m, h * 8.0 / 9.0),
+        (m + h * r, h * 5.0 / 9.0),
+    ]
+}
+
+/// Intensidad `(qx, qy)` de una carga trapezoidal en la abscisa `x` (sin
+/// comprobar que `x` esté en `[a, b]`).
+fn intensidad_trapezoidal(a: f64, b: f64, q1: (f64, f64), q2: (f64, f64), x: f64) -> (f64, f64) {
+    let t = (x - a) / (b - a);
+    (q1.0 + (q2.0 - q1.0) * t, q1.1 + (q2.1 - q1.1) * t)
+}
+
+/// Resultantes de la carga en el tramo `[0, x]` de la barra, para los diagramas:
+/// `(Σ px, Σ py, Σ py·(x - s))`, es decir fuerza axial, fuerza transversal y
+/// momento respecto de la sección `x`. En una carga puntual ubicada exactamente en
+/// `x`, `incluir_en_x` indica si se cuenta (lado derecho del salto).
+pub fn resultantes_hasta(carga: &CargaLocal, x: f64, incluir_en_x: bool) -> (f64, f64, f64) {
+    match *carga {
+        CargaLocal::Uniforme { qx, qy } => (qx * x, qy * x, 0.5 * qy * x * x),
+        CargaLocal::Puntual { a, px, py } => {
+            if x > a || (incluir_en_x && x == a) {
+                (px, py, py * (x - a))
+            } else {
+                (0.0, 0.0, 0.0)
+            }
+        }
+        CargaLocal::Trapezoidal {
+            a,
+            b,
+            qx1,
+            qy1,
+            qx2,
+            qy2,
+        } => {
+            let hasta = x.min(b);
+            if hasta <= a {
+                return (0.0, 0.0, 0.0);
+            }
+            let mut r = (0.0, 0.0, 0.0);
+            for (s, w) in gauss3(a, hasta) {
+                let (qx, qy) = intensidad_trapezoidal(a, b, (qx1, qy1), (qx2, qy2), s);
+                r.0 += w * qx;
+                r.1 += w * qy;
+                r.2 += w * qy * (x - s);
+            }
+            r
+        }
+    }
 }
 
 /// Matriz de rigidez local 6×6 de la barra (sin liberaciones).
@@ -105,11 +183,37 @@ pub fn carga_a_local(c: f64, s: f64, carga: &CargaBarra) -> CargaLocal {
             let (px, py) = rot(px, py);
             CargaLocal::Puntual { a, px, py }
         }
+        TipoCargaBarra::Trapezoidal {
+            a,
+            b,
+            qx1,
+            qy1,
+            qx2,
+            qy2,
+        } => {
+            let (qx1, qy1) = rot(qx1, qy1);
+            let (qx2, qy2) = rot(qx2, qy2);
+            CargaLocal::Trapezoidal {
+                a,
+                b,
+                qx1,
+                qy1,
+                qx2,
+                qy2,
+            }
+        }
     }
 }
 
 /// Cargas nodales equivalentes (reacciones de empotramiento perfecto cambiadas de
 /// signo) en ejes locales, para una barra biempotrada.
+///
+/// Para la carga trapezoidal se integra la carga contra las funciones de forma
+/// (vector de cargas consistente, `F = ∫ Nᵀ q ds`): lineales en el axil y de
+/// Hermite en la flexión (Przemieniecki, Theory of Matrix Structural Analysis,
+/// §5.5 y §11.1; McGuire, Gallagher y Ziemian, Matrix Structural Analysis,
+/// 2.ª ed., §5.6). Para la barra prismática de Euler-Bernoulli coincide con las
+/// reacciones de empotramiento exactas.
 pub fn cargas_equivalentes(l: f64, carga: &CargaLocal) -> Vec6 {
     match *carga {
         CargaLocal::Uniforme { qx, qy } => [
@@ -132,6 +236,28 @@ pub fn cargas_equivalentes(l: f64, carga: &CargaLocal) -> Vec6 {
                 py * a * a * (a + 3.0 * b) / l3,
                 -py * a * a * b / l2,
             ]
+        }
+        CargaLocal::Trapezoidal {
+            a,
+            b,
+            qx1,
+            qy1,
+            qx2,
+            qy2,
+        } => {
+            let mut f = [0.0; 6];
+            for (s, w) in gauss3(a, b) {
+                let (qx, qy) = intensidad_trapezoidal(a, b, (qx1, qy1), (qx2, qy2), s);
+                let xi = s / l;
+                let (xi2, xi3) = (xi * xi, xi * xi * xi);
+                f[0] += w * qx * (1.0 - xi);
+                f[3] += w * qx * xi;
+                f[1] += w * qy * (1.0 - 3.0 * xi2 + 2.0 * xi3);
+                f[2] += w * qy * l * (xi - 2.0 * xi2 + xi3);
+                f[4] += w * qy * (3.0 * xi2 - 2.0 * xi3);
+                f[5] += w * qy * l * (-xi2 + xi3);
+            }
+            f
         }
     }
 }
@@ -161,6 +287,41 @@ pub fn flecha_biempotrada(l: f64, ea: f64, ei: f64, carga: &CargaLocal, x: f64) 
             } else {
                 tramo(py, b, a, l - x)
             };
+            (u, v)
+        }
+        CargaLocal::Trapezoidal {
+            a,
+            b,
+            qx1,
+            qy1,
+            qx2,
+            qy2,
+        } => {
+            // Superposición de cargas puntuales: u(x) = ∫ G(x, s) q(s) ds, con G la
+            // flecha de la barra biempotrada para una carga unitaria en s (la rama
+            // `Puntual` de arriba). G es cúbica en s a cada lado de x, así que se
+            // integra por separado en [a, x] y [x, b] y Gauss de 3 puntos es exacto.
+            let mut tramos = Vec::with_capacity(2);
+            if x > a && x < b {
+                tramos.push((a, x));
+                tramos.push((x, b));
+            } else {
+                tramos.push((a, b));
+            }
+            let (mut u, mut v) = (0.0, 0.0);
+            for (x0, x1) in tramos {
+                for (s, w) in gauss3(x0, x1) {
+                    let (qx, qy) = intensidad_trapezoidal(a, b, (qx1, qy1), (qx2, qy2), s);
+                    let p = CargaLocal::Puntual {
+                        a: s,
+                        px: w * qx,
+                        py: w * qy,
+                    };
+                    let (du, dv) = flecha_biempotrada(l, ea, ei, &p, x);
+                    u += du;
+                    v += dv;
+                }
+            }
             (u, v)
         }
     }
