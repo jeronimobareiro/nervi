@@ -1,0 +1,46 @@
+titulo = "Asentamiento de un apoyo de una viga biempotrada"
+fuente = "Weaver y Gere, Matrix Analysis of Framed Structures, 3.ª ed., tabla B-1 (fuerzas de empotramiento por desplazamiento de un extremo)"
+descripcion = "Descenso Δ del extremo derecho: M = 6EIΔ/L², V = 12EIΔ/L³"
+unidades = "kN, m"
+
+[parametros]
+E = 2.0e8
+A = 0.01
+I = 1.0e-4
+L = 5.0
+D = 0.01
+
+[modelo]
+nudos = [[0, 0], ["L", 0]]
+barras = [{ i = 0, j = 1, E = "E", A = "A", I = "I" }]
+apoyos = [
+    { nudo = 0, ux = true, uy = true, rz = true },
+    { nudo = 1, ux = true, uy = true, rz = true },
+]
+
+[[cargas]]
+caso = "asentamiento"
+tipo = "desplazamiento_impuesto"
+nudo = 1
+uy = "-D"
+
+[[esperado]]
+caso = "asentamiento"
+que = "desplazamiento"
+nudo = 1
+componente = "uy"
+valor = "-D"
+
+[[esperado]]
+caso = "asentamiento"
+que = "reaccion"
+nudo = 1
+componente = "Ry"
+valor = "-12*E*I*D/L**3"
+
+[[esperado]]
+caso = "asentamiento"
+que = "reaccion"
+nudo = 0
+componente = "Ry"
+valor = "12*E*I*D/L**3"

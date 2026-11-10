@@ -1,0 +1,60 @@
+titulo = "Cercha triangular con carga en el vértice"
+fuente = "Estática (método de los nudos); p. ej. Hibbeler, Structural Analysis, 10.ª ed., §3.3"
+descripcion = "Base 2a, altura a, P vertical en el vértice: diagonales N = -P/√2, cordón inferior N = P/2"
+unidades = "kN, m"
+
+[parametros]
+E = 2.0e8
+A = 0.01
+I = 1.0e-4
+a = 2.0
+P = 100.0
+
+[modelo]
+nudos = [[0, 0], ["2*a", 0], ["a", "a"]]
+barras = [
+    { i = 0, j = 2, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },
+    { i = 2, j = 1, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },
+    { i = 0, j = 1, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },
+]
+apoyos = [
+    { nudo = 0, ux = true, uy = true },
+    { nudo = 1, uy = true },
+]
+
+[[cargas]]
+caso = "P"
+tipo = "nodal"
+nudo = 2
+fy = "-P"
+
+[[esperado]]
+caso = "P"
+que = "seccion"
+barra = 0
+x = 0
+componente = "N"
+valor = "-P/sqrt(2)"
+
+[[esperado]]
+caso = "P"
+que = "seccion"
+barra = 1
+x = 0
+componente = "N"
+valor = "-P/sqrt(2)"
+
+[[esperado]]
+caso = "P"
+que = "seccion"
+barra = 2
+x = 0
+componente = "N"
+valor = "P/2"
+
+[[esperado]]
+caso = "P"
+que = "reaccion"
+nudo = 0
+componente = "Ry"
+valor = "P/2"

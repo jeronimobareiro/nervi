@@ -1,0 +1,58 @@
+titulo = "Voladizo con carga puntual en el extremo"
+fuente = "Roark's Formulas for Stress and Strain, 8.ª ed., tabla 8.1 (voladizo, carga concentrada en el extremo)"
+descripcion = "δ = PL³/3EI, θ = PL²/2EI, R = P, M_empotramiento = PL"
+unidades = "kN, m"
+
+[parametros]
+E = 2.0e8
+A = 0.01
+I = 1.0e-4
+L = 4.0
+P = 25.0
+
+[modelo]
+nudos = [[0, 0], ["L", 0]]
+barras = [{ i = 0, j = 1, E = "E", A = "A", I = "I" }]
+apoyos = [{ nudo = 0, ux = true, uy = true, rz = true }]
+
+[[cargas]]
+caso = "P"
+tipo = "nodal"
+nudo = 1
+fy = "-P"
+
+[[esperado]]
+caso = "P"
+que = "desplazamiento"
+nudo = 1
+componente = "uy"
+valor = "-P*L**3/(3*E*I)"
+
+[[esperado]]
+caso = "P"
+que = "desplazamiento"
+nudo = 1
+componente = "rz"
+valor = "-P*L**2/(2*E*I)"
+
+[[esperado]]
+caso = "P"
+que = "reaccion"
+nudo = 0
+componente = "Ry"
+valor = "P"
+
+[[esperado]]
+caso = "P"
+que = "reaccion"
+nudo = 0
+componente = "Mz"
+valor = "P*L"
+
+[[esperado]]
+caso = "P"
+que = "seccion"
+barra = 0
+x = 0
+componente = "M"
+valor = "-P*L"

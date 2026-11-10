@@ -62,7 +62,7 @@ nervi/
 │   ├── loads.py
 │   ├── design/           # normas (fase 3)
 │   └── ifc/              # fase 4
-├── verification/         # casos de referencia (JSON + resultado esperado + fuente)
+├── verification/         # casos de referencia (TOML: modelo + resultado esperado + fuente)
 ├── docs/
 └── .github/workflows/ci.yml
 ```

@@ -1,0 +1,52 @@
+titulo = "Voladizo con carga uniforme"
+fuente = "Roark's Formulas for Stress and Strain, 8.ª ed., tabla 8.1 (voladizo, carga uniforme)"
+descripcion = "δ = qL⁴/8EI, R = qL, M_empotramiento = qL²/2; flecha en x: q x²(6L² - 4Lx + x²)/24EI"
+unidades = "kN, m"
+
+[parametros]
+E = 2.0e8
+A = 0.01
+I = 1.0e-4
+L = 3.0
+q = 12.0
+x = "L/2"
+
+[modelo]
+nudos = [[0, 0], ["L", 0]]
+barras = [{ i = 0, j = 1, E = "E", A = "A", I = "I" }]
+apoyos = [{ nudo = 0, ux = true, uy = true, rz = true }]
+
+[[cargas]]
+caso = "q"
+tipo = "uniforme"
+barra = 0
+qy = "-q"
+
+[[esperado]]
+caso = "q"
+que = "desplazamiento"
+nudo = 1
+componente = "uy"
+valor = "-q*L**4/(8*E*I)"
+
+[[esperado]]
+caso = "q"
+que = "reaccion"
+nudo = 0
+componente = "Ry"
+valor = "q*L"
+
+[[esperado]]
+caso = "q"
+que = "reaccion"
+nudo = 0
+componente = "Mz"
+valor = "q*L**2/2"
+
+[[esperado]]
+caso = "q"
+que = "seccion"
+barra = 0
+x = "x"
+componente = "v"
+valor = "-q*x**2*(6*L**2 - 4*L*x + x**2)/(24*E*I)"

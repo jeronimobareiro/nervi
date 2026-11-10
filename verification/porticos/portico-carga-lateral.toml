@@ -1,0 +1,64 @@
+titulo = "Pórtico de una crujía con bases empotradas y carga lateral"
+fuente = "Kleinlogel, Rahmenformeln; también Hibbeler, Structural Analysis, 10.ª ed., cap. 11 (método de la pendiente-deflexión)"
+descripcion = "Barras axialmente rígidas, k = (I_v/L)/(I_c/h): M_base = (Hh/2)(3k+1)/(6k+1), M_cabeza = (Hh/2)·3k/(6k+1), cortante H/2 por columna"
+unidades = "kN, m"
+# La fórmula supone barras axialmente rígidas; con un área grande pero finita el
+# error es del orden de 1e-7, por eso la tolerancia es mayor que la habitual.
+tolerancia = 1e-6
+
+[parametros]
+E = 2.0e8
+A = 1.0e6
+Ic = 2.0e-4
+Iv = 4.0e-4
+h = 3.0
+L = 6.0
+H = 20.0
+k = "(Iv/L)/(Ic/h)"
+
+[modelo]
+nudos = [[0, 0], [0, "h"], ["L", "h"], ["L", 0]]
+barras = [
+    { i = 0, j = 1, E = "E", A = "A", I = "Ic" },
+    { i = 1, j = 2, E = "E", A = "A", I = "Iv" },
+    { i = 3, j = 2, E = "E", A = "A", I = "Ic" },
+]
+apoyos = [
+    { nudo = 0, ux = true, uy = true, rz = true },
+    { nudo = 3, ux = true, uy = true, rz = true },
+]
+
+[[cargas]]
+caso = "H"
+tipo = "nodal"
+nudo = 1
+fx = "H"
+
+[[esperado]]
+caso = "H"
+que = "reaccion"
+nudo = 0
+componente = "Mz"
+valor = "H*h/2*(3*k + 1)/(6*k + 1)"
+
+[[esperado]]
+caso = "H"
+que = "reaccion"
+nudo = 3
+componente = "Mz"
+valor = "H*h/2*(3*k + 1)/(6*k + 1)"
+
+[[esperado]]
+caso = "H"
+que = "reaccion"
+nudo = 0
+componente = "Rx"
+valor = "-H/2"
+
+[[esperado]]
+caso = "H"
+que = "seccion"
+barra = 0
+x = "h"
+componente = "M"
+valor = "H*h/2*3*k/(6*k + 1)"
