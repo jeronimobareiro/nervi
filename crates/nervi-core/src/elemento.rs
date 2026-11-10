@@ -29,6 +29,12 @@ pub enum CargaLocal {
         qx2: f64,
         qy2: f64,
     },
+    /// Deformaciones térmicas libres: axial `eps0` y curvatura `kappa0`
+    /// (positiva como la que produce un momento positivo).
+    Termica {
+        eps0: f64,
+        kappa0: f64,
+    },
 }
 
 /// Puntos y pesos de Gauss-Legendre de 3 puntos en `[x0, x1]`.
@@ -90,6 +96,8 @@ pub fn resultantes_hasta(carga: &CargaLocal, x: f64, incluir_en_x: bool) -> (f64
             }
             r
         }
+        // La acción térmica no aplica fuerzas en el tramo.
+        CargaLocal::Termica { .. } => (0.0, 0.0, 0.0),
     }
 }
 
@@ -202,6 +210,19 @@ pub fn carga_a_local(c: f64, s: f64, carga: &CargaBarra) -> CargaLocal {
                 qy2,
             }
         }
+        TipoCargaBarra::Termica {
+            alfa,
+            dt,
+            gradiente,
+            h,
+        } => CargaLocal::Termica {
+            eps0: alfa * dt,
+            kappa0: if gradiente == 0.0 {
+                0.0
+            } else {
+                alfa * gradiente / h
+            },
+        },
     }
 }
 
@@ -214,7 +235,13 @@ pub fn carga_a_local(c: f64, s: f64, carga: &CargaBarra) -> CargaLocal {
 /// §5.5 y §11.1; McGuire, Gallagher y Ziemian, Matrix Structural Analysis,
 /// 2.ª ed., §5.6). Para la barra prismática de Euler-Bernoulli coincide con las
 /// reacciones de empotramiento exactas.
-pub fn cargas_equivalentes(l: f64, carga: &CargaLocal) -> Vec6 {
+///
+/// Para la acción térmica, la barra biempotrada no puede deformarse, así que
+/// aparecen `N = -EA·ε₀` y `M = -EI·κ₀` constantes y ningún cortante; las cargas
+/// equivalentes son esas fuerzas de empotramiento cambiadas de signo
+/// (Przemieniecki, op. cit., §5.6, "thermal loading"; Weaver y Gere, Matrix
+/// Analysis of Framed Structures, 3.ª ed., §3.5).
+pub fn cargas_equivalentes(l: f64, ea: f64, ei: f64, carga: &CargaLocal) -> Vec6 {
     match *carga {
         CargaLocal::Uniforme { qx, qy } => [
             qx * l / 2.0,
@@ -258,6 +285,10 @@ pub fn cargas_equivalentes(l: f64, carga: &CargaLocal) -> Vec6 {
                 f[5] += w * qy * l * (-xi2 + xi3);
             }
             f
+        }
+        CargaLocal::Termica { eps0, kappa0 } => {
+            let (n, m) = (ea * eps0, ei * kappa0);
+            [-n, 0.0, -m, n, 0.0, m]
         }
     }
 }
@@ -324,6 +355,10 @@ pub fn flecha_biempotrada(l: f64, ea: f64, ei: f64, carga: &CargaLocal, x: f64) 
             }
             (u, v)
         }
+        // En la barra biempotrada la deformación térmica libre queda impedida por
+        // completo: el campo de desplazamientos es nulo (la deformación total es
+        // la libre más la mecánica, `ε₀ + N/EA = 0` y `κ₀ + M/EI = 0`).
+        CargaLocal::Termica { .. } => (0.0, 0.0),
     }
 }
 
@@ -543,6 +578,8 @@ mod tests {
         let (l, p) = (6.0, -10.0);
         let f = cargas_equivalentes(
             l,
+            1.0,
+            1.0,
             &CargaLocal::Puntual {
                 a: 3.0,
                 px: 0.0,

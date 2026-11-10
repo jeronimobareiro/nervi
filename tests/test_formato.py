@@ -212,6 +212,34 @@ def test_trapezoidal_hasta_el_nudo_j_sigue_a_la_barra():
 
 def test_tipo_de_carga_sin_esquema_da_error_claro():
     m = _portico()
-    m._cargas_barra.append((0, 0, 3, 0, 1e-5, 20.0, 0.0, 0.5, 0.0, 0.0))
-    with pytest.raises(formato.FormatoError, match="tipo de carga en barra 3"):
+    m._cargas_barra.append((0, 0, 9, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0))
+    with pytest.raises(formato.FormatoError, match="tipo de carga en barra 9"):
         formato.desde_modelo(m)
+
+
+def test_carga_termica_ida_y_vuelta(tmp_path):
+    """Tipo 3 del contrato: se guarda como "termica" y da los mismos resultados."""
+    m = _portico()
+    m.carga_termica("T", 2, 1.0e-5, dt=25.0, gradiente=10.0, h=0.5)
+    m.carga_termica("T", 0, 1.0e-5, dt=-5.0)  # sin gradiente: sin h
+    doc = formato.Documento.nuevo()
+    doc.modelo = formato.desde_modelo(m)
+    termicas = [c for c in doc.modelo["cargas_barra"] if c["tipo"] == "termica"]
+    assert termicas[0]["h"] == 0.5 and "h" not in termicas[1]
+    ruta = _guardar(tmp_path, doc)
+    m2, _ = formato.construir_modelo(formato.abrir(ruta).modelo)
+    r1, r2 = m.resolver()["T"], m2.resolver()["T"]
+    np.testing.assert_allclose(r2.reacciones, r1.reacciones, rtol=1e-12, atol=1e-9)
+
+
+def test_carga_termica_invalida():
+    d = formato.desde_modelo(_portico())
+    base = {"caso": 1, "barra": 1, "tipo": "termica", "ejes": "local"}
+    for carga, motivo in (
+        ({**base, "dt": 10.0}, "alfa"),
+        ({**base, "alfa": 1e-5, "gradiente": 5.0}, "canto"),
+        ({**base, "alfa": 1e-5, "qy": 1.0}, "termica usa"),
+    ):
+        d["cargas_barra"] = [carga]
+        with pytest.raises(formato.FormatoError, match=motivo):
+            formato.validar(d)
