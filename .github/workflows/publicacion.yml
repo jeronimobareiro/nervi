@@ -14,7 +14,7 @@ permissions:
 
 env:
   PYTHON: "3.12"
-  APPIMAGETOOL: https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage
+  APPIMAGETOOL: https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage
 
 jobs:
   windows:

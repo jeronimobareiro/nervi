@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-10 · entrada [2026-11-10-05](bitacora/2026-11-10-05-cargas-termicas.md)_
+_Última actualización: 2026-11-10 · entrada [2026-11-10-06](bitacora/2026-11-10-06-cargas-termicas.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
@@ -28,7 +28,7 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 
 ## En curso o bloqueado
 
-- **Instaladores**: el workflow de publicación todavía no corrió. Lanzarlo a mano (Actions → Publicación → Run workflow) y probar el `.exe` en un Windows real antes de la primera etiqueta `v0.1.0`. El formato `.nrv` (esquema 1) se congela con esa etiqueta.
+- **Instaladores**: el workflow de publicación ya genera el `.exe` de Windows y el AppImage de Linux (la descarga de `appimagetool` se arregló en la entrada 2026-11-10-05). Falta probarlos en equipos reales antes de la primera etiqueta `v0.1.0`. El formato `.nrv` (esquema 1) se congela con esa etiqueta.
 - Firma de código de los instaladores: pendiente (SignPath Foundation o certificado).
 - **Hitos de GitHub**: se crean al integrar el PR de la hoja de ruta (flujo `.github/workflows/hoja-de-ruta.yml`). Hay que confirmar en Actions que corrió bien.
 - Firma DCO: la firma el usuario o, con su autorización explícita para cada trabajo, el agente en su nombre (AGENTS.md §3.4).
