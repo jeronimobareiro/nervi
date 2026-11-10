@@ -56,12 +56,14 @@ fn indice(nombre: &str, v: f64, limite: usize) -> PyResult<usize> {
 ///
 /// Devuelve un diccionario con `desplazamientos (n_casos, n_nudos, 3)`,
 /// `reacciones (n_casos, n_nudos, 3)`, `fuerzas_extremo (n_casos, n_barras, 6)`,
-/// `gdl_sin_rigidez` (lista de `(nudo, gdl)`) y `diagramas` (lista por caso de
-/// diccionarios con arreglos `barra, x, N, V, M, u, v`).
+/// `gdl_sin_rigidez` (lista de `(nudo, gdl)`), `diagramas` (lista por caso de
+/// diccionarios con arreglos `barra, x, N, V, M, u, v`) y
+/// `diagramas_combinaciones` (lo mismo para cada fila de `combinaciones`, todas
+/// en las mismas estaciones por barra; vacía si no se pasan combinaciones).
 #[pyfunction]
 #[pyo3(signature = (
     version, coords, conectividad, props, liberaciones, restricciones, resortes,
-    cargas_nodales, cargas_barra, despl_impuestos, n_estaciones = 11
+    cargas_nodales, cargas_barra, despl_impuestos, n_estaciones = 11, combinaciones = None
 ))]
 #[allow(clippy::too_many_arguments)]
 fn resolver_portico_2d<'py>(
@@ -77,6 +79,7 @@ fn resolver_portico_2d<'py>(
     cargas_barra: PyReadonlyArray2<'py, f64>,
     despl_impuestos: PyReadonlyArray3<'py, f64>,
     n_estaciones: usize,
+    combinaciones: Option<PyReadonlyArray2<'py, f64>>,
 ) -> PyResult<Bound<'py, PyDict>> {
     if version != VERSION_CONTRATO {
         return Err(PyValueError::new_err(format!(
@@ -104,6 +107,24 @@ fn resolver_portico_2d<'py>(
     verificar_forma("resortes", resortes.shape(), &[n, 3])?;
     verificar_forma("cargas_nodales", cargas_nodales.shape(), &[nc, n, 3])?;
     verificar_forma("despl_impuestos", despl_impuestos.shape(), &[nc, n, 3])?;
+    let combinaciones: Vec<Vec<f64>> = match &combinaciones {
+        None => Vec::new(),
+        Some(arr) => {
+            let a = arr.as_array();
+            if a.shape()[1] != nc {
+                return Err(PyValueError::new_err(format!(
+                    "'combinaciones' tiene {} columnas; se esperaba una por caso ({nc})",
+                    a.shape()[1]
+                )));
+            }
+            if a.iter().any(|v| !v.is_finite()) {
+                return Err(PyValueError::new_err(
+                    "'combinaciones' tiene factores no finitos",
+                ));
+            }
+            a.outer_iter().map(|fila| fila.to_vec()).collect()
+        }
+    };
     if cargas_barra.shape()[1] != 10 {
         return Err(PyValueError::new_err(format!(
             "'cargas_barra' tiene {} columnas; se esperaban 10 \
@@ -242,6 +263,38 @@ fn resolver_portico_2d<'py>(
         }
         diagramas.append(dic)?;
     }
+    // Diagramas de las combinaciones, todas en las mismas estaciones por barra
+    // para poder compararlas punto a punto (envolventes).
+    let diagramas_comb = PyList::empty(py);
+    let estaciones: Vec<Vec<(f64, bool)>> = if combinaciones.is_empty() {
+        Vec::new()
+    } else {
+        (0..m)
+            .map(|k| res.estaciones_comunes(&combinaciones, k, n_estaciones))
+            .collect()
+    };
+    for factores in &combinaciones {
+        let mut cols: [Vec<f64>; 6] = Default::default();
+        let mut barra_col: Vec<i64> = Vec::new();
+        for (k, est) in estaciones.iter().enumerate() {
+            for &(x, der) in est {
+                let s = res.seccion_combinada(factores, k, x, der);
+                barra_col.push(k as i64);
+                for (col, val) in cols
+                    .iter_mut()
+                    .zip([s.x, s.n, s.v, s.m, s.u_local, s.v_local])
+                {
+                    col.push(val);
+                }
+            }
+        }
+        let dic = PyDict::new(py);
+        dic.set_item("barra", barra_col.into_pyarray(py))?;
+        for (nombre, col) in ["x", "N", "V", "M", "u", "v"].iter().zip(cols) {
+            dic.set_item(*nombre, col.into_pyarray(py))?;
+        }
+        diagramas_comb.append(dic)?;
+    }
     let sin_rigidez = PyList::empty(py);
     for (nudo, gdl) in &res.gdl_sin_rigidez {
         sin_rigidez.append((*nudo, gdl.to_string()))?;
@@ -253,6 +306,7 @@ fn resolver_portico_2d<'py>(
     out.set_item("fuerzas_extremo", fext.into_pyarray(py))?;
     out.set_item("gdl_sin_rigidez", sin_rigidez)?;
     out.set_item("diagramas", diagramas)?;
+    out.set_item("diagramas_combinaciones", diagramas_comb)?;
     Ok(out)
 }
 

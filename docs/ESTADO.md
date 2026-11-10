@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-10 · entrada [2026-11-10-07](bitacora/2026-11-10-07-biblioteca-verificacion.md)_
+_Última actualización: 2026-11-10 · entrada [2026-11-10-08](bitacora/2026-11-10-08-combinaciones-envolventes.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
@@ -19,8 +19,9 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 - Formato de proyecto `.nrv` (`nervi.formato`): abrir, guardar, validar y migrar según [`formato-nrv.md`](formato-nrv.md), con cargas uniformes, puntuales, trapezoidales y térmicas.
 - Interfaz de escritorio `nervi.gui` (PySide6, `nervi-gui`): una sola ventana con tablas editables del modelo, cálculo, diagramas N/V/M y deformada, lectura de esfuerzos con el cursor, revisión del modelo, consola Python y buscador de comandos (Ctrl+K). Aviso permanente de versión preliminar.
 - Workflow de publicación: con una etiqueta `v*` genera el instalador `.exe` de Windows (Inno Setup, asocia `.nrv`) y el AppImage de Linux, sin firma, como versión preliminar en Releases.
-- 34 casos de verificación analítica en Rust y 71 pruebas en Python (formato e interfaz incluidos), en verde. Contrato de datos Rust ↔ Python en la versión 2.
+- 35 casos de verificación analítica en Rust y 97 pruebas en Python (formato e interfaz incluidos), en verde. Contrato de datos Rust ↔ Python en la versión 2.
 - Biblioteca de casos de verificación en `verification/` (#5): 12 casos en TOML con su fuente, que corren en el CI y se pueden aportar sin saber Rust (`verification/README.md`).
+- Combinaciones de carga ACI 318-19 y envolventes por sección en `nervi.design` (#21), **experimental** hasta la revisión de un ingeniero. Las combinaciones se resuelven junto con el modelo y sus diagramas son exactos.
 - Registro de aportes: `AGENTS.md`, esta foto y `bitacora/`, con control automático en el CI.
 - Apertura a la comunidad: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `SECURITY.md`, `CITATION.cff`, plantillas de issues y PR, encabezados SPDX.
 - Controles en el CI: certificado de origen (DCO, `Signed-off-by` obligatorio desde la entrada 07) y licencias de dependencias (`cargo-deny`, `deny.toml`).
@@ -41,7 +42,7 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 0. Interfaz: dibujar cargas, crear barras con el mouse y deshacer/rehacer; después, visor 3D con la Fase 2a.
 1. Cerrar la Fase 1: momentos en el tramo (#3), ejemplos de libros en `verification/` (#6) y material didáctico (#10). Las trapezoidales (#2) y las térmicas (#4) ya están, también en `.nrv` y la GUI, y la biblioteca de verificación (#5) también.
 2. Difundir los issues `buen-primer-aporte` y `proyecto-academico` entre cátedras (ver `hoja-de-ruta.md` §Colaboración con universidades).
-3. Fase 2a: barra 3D 12×12 (#11), que destraba casi todo lo demás.
+3. Fase 2a: barra 3D 12×12 (#11), que destraba casi todo lo demás. En paralelo, Fase 3: revisión de ingeniería de `nervi.design` y diseño de vigas a flexión y cortante (#22, #23) sobre las envolventes.
 4. Decidir la norma regional (#20) para ordenar la Fase 3 y el espectro sísmico.
 5. Registrar la marca Nervi en Paraguay (DINAPI, clases 9 y 42), con abogado.
 

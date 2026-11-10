@@ -231,15 +231,40 @@ class Modelo:
             "despl_impuestos": impuestos,
         }
 
-    def resolver(self, n_estaciones: int = 11) -> Resultados:
+    def resolver(
+        self,
+        n_estaciones: int = 11,
+        combinaciones: dict[str, dict[str, float]] | None = None,
+    ) -> Resultados:
         """Resuelve todos los casos de carga. Lanza ``ValueError`` si el modelo es
-        inválido y ``MecanismoError`` si la estructura es inestable."""
+        inválido y ``MecanismoError`` si la estructura es inestable.
+
+        ``combinaciones`` (opcional) es ``{nombre: {caso: factor}}``, por ejemplo
+        ``{"1.2D+1.6L": {"D": 1.2, "L": 1.6}}``. Sus resultados se piden con
+        ``res[nombre]`` como los de un caso y son exactos (los diagramas incluyen
+        los puntos de cortante nulo de cada combinación). Todas las combinaciones
+        comparten las estaciones de cada barra, lo que permite calcular
+        envolventes punto a punto (ver ``nervi.design.envolvente``).
+        """
         if not self._casos:
             raise ValueError("el modelo no tiene casos de carga")
+        nombres = [c.nombre for c in self._casos]
+        combinaciones = combinaciones or {}
+        matriz = np.zeros((len(combinaciones), len(nombres)), dtype=np.float64)
+        for k, (nombre, factores) in enumerate(combinaciones.items()):
+            if nombre in nombres:
+                raise ValueError(f"la combinación {nombre!r} tiene el nombre de un caso")
+            if not factores:
+                raise ValueError(f"la combinación {nombre!r} no tiene casos")
+            for caso, f in factores.items():
+                if caso not in nombres:
+                    raise ValueError(f"la combinación {nombre!r} usa el caso inexistente {caso!r}")
+                matriz[k, nombres.index(caso)] += float(f)
+        extra = {"combinaciones": matriz} if combinaciones else {}
         crudo = _core.resolver_portico_2d(
-            _core.VERSION_CONTRATO, **self.arreglos(), n_estaciones=n_estaciones
+            _core.VERSION_CONTRATO, **self.arreglos(), n_estaciones=n_estaciones, **extra
         )
-        return Resultados([c.nombre for c in self._casos], crudo)
+        return Resultados(nombres, crudo, dict(zip(combinaciones, matriz, strict=True)))
 
 
 class ResultadoCaso:
@@ -274,7 +299,12 @@ class ResultadoCaso:
 class Resultados:
     """Resultados de todos los casos de carga."""
 
-    def __init__(self, nombres: list[str], crudo: dict) -> None:
+    def __init__(
+        self,
+        nombres: list[str],
+        crudo: dict,
+        combinaciones: dict[str, np.ndarray] | None = None,
+    ) -> None:
         self.gdl_sin_rigidez: list[tuple[int, str]] = list(crudo["gdl_sin_rigidez"])
         self._casos = {
             nombre: ResultadoCaso(
@@ -286,16 +316,45 @@ class Resultados:
             )
             for c, nombre in enumerate(nombres)
         }
+        self._combinaciones: dict[str, ResultadoCaso] = {}
+        self._factores: dict[str, dict[str, float]] = {}
+        for k, (nombre, fila) in enumerate((combinaciones or {}).items()):
+            # Desplazamientos, reacciones y fuerzas de extremo: superposición exacta.
+            self._combinaciones[nombre] = ResultadoCaso(
+                nombre,
+                np.tensordot(fila, crudo["desplazamientos"], axes=1),
+                np.tensordot(fila, crudo["reacciones"], axes=1),
+                np.tensordot(fila, crudo["fuerzas_extremo"], axes=1),
+                crudo["diagramas_combinaciones"][k],
+            )
+            self._factores[nombre] = {
+                caso: float(f) for caso, f in zip(nombres, fila, strict=True) if f != 0.0
+            }
 
     @property
     def casos(self) -> list[str]:
         return list(self._casos)
 
+    @property
+    def combinaciones(self) -> list[str]:
+        """Nombres de las combinaciones resueltas junto con el modelo."""
+        return list(self._combinaciones)
+
+    def factores(self, combinacion: str) -> dict[str, float]:
+        """Factores ``{caso: factor}`` de una combinación resuelta."""
+        return dict(self._factores[combinacion])
+
     def __getitem__(self, nombre: str) -> ResultadoCaso:
-        return self._casos[nombre]
+        if nombre in self._casos:
+            return self._casos[nombre]
+        return self._combinaciones[nombre]
 
     def combinar(self, nombre: str, factores: dict[str, float]) -> ResultadoCaso:
-        """Combinación lineal de casos, p. ej. ``{"D": 1.2, "L": 1.6}``.
+        """Combinación lineal de casos, p. ej. ``{"D": 1.2, "L": 1.6}``, después de
+        resolver.
+
+        Para resultados exactos en todos los casos conviene pasar las
+        combinaciones a ``Modelo.resolver(combinaciones=...)``.
 
         Válida por superposición (análisis lineal). Desplazamientos, reacciones y
         fuerzas de extremo son exactos. Los diagramas son exactos si todos los

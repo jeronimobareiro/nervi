@@ -357,31 +357,109 @@ impl Resultados {
         }
     }
 
+    /// Sección de una combinación lineal de casos, `Σ factores[c] · caso c`.
+    ///
+    /// Es exacta por superposición (análisis lineal): cada caso se evalúa en la
+    /// misma sección y se suman los valores. `factores` tiene un valor por caso.
+    pub fn seccion_combinada(
+        &self,
+        factores: &[f64],
+        barra: usize,
+        x: f64,
+        lado_derecho: bool,
+    ) -> Seccion {
+        let mut out = Seccion {
+            x,
+            n: 0.0,
+            v: 0.0,
+            m: 0.0,
+            u_local: 0.0,
+            v_local: 0.0,
+        };
+        for (c, &f) in factores.iter().enumerate() {
+            if f == 0.0 {
+                continue;
+            }
+            let s = self.seccion(c, barra, x, lado_derecho);
+            out.n += f * s.n;
+            out.v += f * s.v;
+            out.m += f * s.m;
+            out.u_local += f * s.u_local;
+            out.v_local += f * s.v_local;
+        }
+        out
+    }
+
     /// Diagrama de esfuerzos de una barra en `n_estaciones` puntos equidistantes
     /// (mínimo 2), más los puntos de cargas puntuales (a ambos lados), los
     /// extremos de las cargas trapezoidales y los puntos de cortante nulo, donde el
     /// momento es extremo.
     pub fn diagrama(&self, caso: usize, barra: usize, n_estaciones: usize) -> Vec<Seccion> {
+        let mut f = vec![0.0; self.casos.len()];
+        f[caso] = 1.0;
+        self.diagrama_combinado(&f, barra, n_estaciones)
+    }
+
+    /// Diagrama de una combinación lineal de casos (ver [`Self::seccion_combinada`]),
+    /// con sus propias estaciones: las de [`Self::diagrama`] de todos los casos que
+    /// intervienen y los puntos de cortante nulo de la combinación.
+    pub fn diagrama_combinado(
+        &self,
+        factores: &[f64],
+        barra: usize,
+        n_estaciones: usize,
+    ) -> Vec<Seccion> {
+        self.estaciones_comunes(
+            std::slice::from_ref(&factores.to_vec()),
+            barra,
+            n_estaciones,
+        )
+        .into_iter()
+        .map(|(x, der)| self.seccion_combinada(factores, barra, x, der))
+        .collect()
+    }
+
+    /// Estaciones de una barra comunes a varias combinaciones: los puntos
+    /// equidistantes, los puntos de carga de todos los casos que intervienen (a
+    /// ambos lados de las puntuales) y los puntos de cortante nulo de **cada**
+    /// combinación. Evaluar todas las combinaciones en estas estaciones permite
+    /// compararlas punto a punto (envolventes) sin interpolar.
+    ///
+    /// Cada estación es `(x, lado_derecho)`; en un salto hay dos.
+    pub fn estaciones_comunes(
+        &self,
+        combinaciones: &[Vec<f64>],
+        barra: usize,
+        n_estaciones: usize,
+    ) -> Vec<(f64, bool)> {
         let l = self.barras[barra].l;
         let n_est = n_estaciones.max(2);
         let mut xs: Vec<(f64, bool)> = (0..n_est)
             .map(|k| (l * k as f64 / (n_est - 1) as f64, false))
             .collect();
         let mut quiebres = vec![0.0, l];
-        for carga in &self.casos[caso].cargas_locales[barra] {
-            match *carga {
-                CargaLocal::Puntual { a, .. } => {
-                    xs.push((a, false));
-                    xs.push((a, true));
-                    quiebres.push(a);
+        for c in 0..self.casos.len() {
+            if combinaciones
+                .iter()
+                .all(|f| f.get(c).copied().unwrap_or(0.0) == 0.0)
+            {
+                continue;
+            }
+            for carga in &self.casos[c].cargas_locales[barra] {
+                match *carga {
+                    CargaLocal::Puntual { a, .. } => {
+                        xs.push((a, false));
+                        xs.push((a, true));
+                        quiebres.push(a);
+                    }
+                    CargaLocal::Trapezoidal { a, b, .. } => {
+                        xs.push((a, false));
+                        xs.push((b, false));
+                        quiebres.push(a);
+                        quiebres.push(b);
+                    }
+                    CargaLocal::Uniforme { .. } | CargaLocal::Termica { .. } => {}
                 }
-                CargaLocal::Trapezoidal { a, b, .. } => {
-                    xs.push((a, false));
-                    xs.push((b, false));
-                    quiebres.push(a);
-                    quiebres.push(b);
-                }
-                CargaLocal::Uniforme { .. } | CargaLocal::Termica { .. } => {}
             }
         }
         quiebres.sort_by(f64::total_cmp);
@@ -389,23 +467,25 @@ impl Resultados {
         // Cortante nulo: entre quiebres V es un polinomio de grado 2 como máximo
         // (lineal con cargas uniformes, cuadrático con trapezoidales), así que tres
         // valores lo determinan exactamente.
-        for w in quiebres.windows(2) {
-            let (x0, x1) = (w[0], w[1]);
-            if x1 - x0 <= 0.0 {
-                continue;
-            }
-            let v0 = self.seccion(caso, barra, x0, true).v;
-            let vm = self.seccion(caso, barra, 0.5 * (x0 + x1), false).v;
-            let v1 = self.seccion(caso, barra, x1, false).v;
-            for t in raices_cuadratica_en_intervalo(v0, vm, v1) {
-                xs.push((x0 + (x1 - x0) * t, false));
+        for factores in combinaciones {
+            for w in quiebres.windows(2) {
+                let (x0, x1) = (w[0], w[1]);
+                if x1 - x0 <= 0.0 {
+                    continue;
+                }
+                let v0 = self.seccion_combinada(factores, barra, x0, true).v;
+                let vm = self
+                    .seccion_combinada(factores, barra, 0.5 * (x0 + x1), false)
+                    .v;
+                let v1 = self.seccion_combinada(factores, barra, x1, false).v;
+                for t in raices_cuadratica_en_intervalo(v0, vm, v1) {
+                    xs.push((x0 + (x1 - x0) * t, false));
+                }
             }
         }
         xs.sort_by(|a, b| a.0.total_cmp(&b.0).then(a.1.cmp(&b.1)));
         xs.dedup_by(|a, b| a.0 == b.0 && a.1 == b.1);
-        xs.into_iter()
-            .map(|(x, der)| self.seccion(caso, barra, x, der))
-            .collect()
+        xs
     }
 }
 
