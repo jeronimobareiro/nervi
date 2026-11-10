@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-09 · entrada [2026-11-09-11](bitacora/2026-11-09-11-formato-nrv.md)_
+_Última actualización: 2026-11-10 · entrada [2026-11-10-01](bitacora/2026-11-10-01-sitio-web.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
@@ -20,10 +20,12 @@ El proyecto se llama **Nervi** (antes Apex BIM): crates `nervi-core` y `nervi-py
 - Registro de aportes: `AGENTS.md`, esta foto y `bitacora/`, con control automático en el CI.
 - Apertura a la comunidad: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `SECURITY.md`, `CITATION.cff`, plantillas de issues y PR, encabezados SPDX.
 - Controles en el CI: certificado de origen (DCO, `Signed-off-by` obligatorio desde la entrada 07) y licencias de dependencias (`cargo-deny`, `deny.toml`).
+- Sitio web con toda la documentación (MkDocs + GitHub Pages, `mkdocs.yml`, `sitio/`), publicado automáticamente desde `main` en https://jeronimobareiro.github.io/nervi/.
 - Hoja de ruta para colaborar: 31 issues en GitHub con etiquetas de fase, tamaño (`buen-primer-aporte`, `proyecto-academico`, `tesis-posible`) y área; el flujo "Organizar hoja de ruta" crea los hitos y asigna los issues.
 
 ## En curso o bloqueado
 
+- **Sitio web**: falta activar GitHub Pages una vez (Settings → Pages → Source: "GitHub Actions").
 - **Formato de archivo `.nrv`**: especificación en [`formato-nrv.md`](formato-nrv.md) (ZIP + JSON versionado; IFC solo para importar y exportar). Aprobada por el usuario el 2026-11-09; falta el módulo `nervi.formato`. Se congela con la primera versión de la GUI.
 - **Hitos de GitHub**: se crean al integrar el PR de la hoja de ruta (flujo `.github/workflows/hoja-de-ruta.yml`). Hay que confirmar en Actions que corrió bien.
 - Firma DCO: la firma el usuario o, con su autorización explícita para cada trabajo, el agente en su nombre (AGENTS.md §3.4).
