@@ -1,0 +1,127 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Instaladores de escritorio. Se ejecuta al empujar una etiqueta v* (crea una versión
+# preliminar en GitHub Releases) o a mano desde Actions (deja los instaladores como
+# artefactos del workflow, sin publicar nada). Los instaladores NO están firmados.
+name: Publicación
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHON: "3.12"
+  APPIMAGETOOL: https://github.com/AppImage/AppImageKit/releases/download/13/appimagetool-x86_64.AppImage
+
+jobs:
+  windows:
+    name: Windows (.exe)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON }}
+      - name: Versión
+        shell: bash
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then v="${GITHUB_REF#refs/tags/v}"; else v="0.0.0-dev"; fi
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+      - name: Compilar el motor y crear el ejecutable
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          pip install maturin pyinstaller "PySide6-Essentials>=6.6"
+          maturin build --release --out wheels
+          pip install wheels/*.whl
+          python packaging/generar_iconos.py build/iconos
+          pyinstaller --noconfirm --windowed --name Nervi --icon build/iconos/nervi.ico \
+            --collect-data nervi packaging/pyinstaller/nervi_gui.py
+      - name: Prueba de arranque del ejecutable
+        shell: bash
+        run: |
+          timeout 20 dist/Nervi/Nervi.exe & pid=$!
+          sleep 10
+          kill -0 "$pid"   # sigue abierto: arrancó bien
+          kill "$pid" || true
+      - name: Instalador (Inno Setup)
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) {
+            choco install innosetup --no-progress -y
+            $env:PATH += ";C:\Program Files (x86)\Inno Setup 6"
+          }
+          iscc /DVersion=$env:VERSION /DOrigen="$PWD\dist\Nervi" /DIconos="$PWD\build\iconos" packaging\windows\nervi.iss
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nervi-windows
+          path: dist/Nervi-*-windows-x64.exe
+          if-no-files-found: error
+
+  linux:
+    name: Linux (AppImage)
+    # La versión más vieja disponible de Ubuntu: el AppImage corre en distribuciones con
+    # glibc igual o más nueva.
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON }}
+      - name: Dependencias del sistema
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon-x11-0 libxcb-cursor0 libfuse2
+      - name: Versión
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then v="${GITHUB_REF#refs/tags/v}"; else v="0.0.0-dev"; fi
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+      - name: Compilar el motor y crear el ejecutable
+        run: |
+          python -m pip install --upgrade pip
+          pip install maturin pyinstaller "PySide6-Essentials>=6.6"
+          maturin build --release --out wheels
+          pip install wheels/*.whl
+          python packaging/generar_iconos.py build/iconos
+          pyinstaller --noconfirm --windowed --name Nervi --collect-data nervi \
+            packaging/pyinstaller/nervi_gui.py
+      - name: Prueba de arranque del ejecutable
+        run: |
+          QT_QPA_PLATFORM=offscreen timeout 20 dist/Nervi/Nervi & pid=$!
+          sleep 10
+          kill -0 "$pid"
+          kill "$pid" || true
+      - name: AppImage
+        run: |
+          curl -sSfL -o appimagetool "$APPIMAGETOOL"
+          chmod +x appimagetool
+          packaging/linux/construir_appimage.sh dist/Nervi build/iconos ./appimagetool \
+            "dist/Nervi-${VERSION}-linux-x86_64.AppImage"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nervi-linux
+          path: dist/Nervi-*-linux-x86_64.AppImage
+          if-no-files-found: error
+
+  publicar:
+    name: Versión preliminar en GitHub
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: instaladores
+          merge-multiple: true
+      - name: Crear la versión
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" instaladores/* \
+            --repo "$GITHUB_REPOSITORY" --prerelease --title "Nervi $GITHUB_REF_NAME (preliminar)" \
+            --notes "Versión preliminar, no apta para proyecto: el análisis lineal elástico está verificado contra soluciones analíticas, pero el diseño según norma todavía no existe. Los instaladores no están firmados: Windows puede mostrar el aviso de SmartScreen (Más información → Ejecutar de todas formas)."

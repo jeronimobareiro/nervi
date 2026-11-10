@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-License-Identifier: GPL-3.0-or-later. Tipo MIME de los proyectos .nrv (docs/formato-nrv.md §7.2). -->
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/vnd.nervi.proyecto+zip">
+    <comment>Proyecto de Nervi</comment>
+    <sub-class-of type="application/zip"/>
+    <generic-icon name="application-x-nervi"/>
+    <magic priority="70">
+      <match type="string" offset="30" value="mimetypeapplication/vnd.nervi.proyecto+zip"/>
+    </magic>
+    <glob pattern="*.nrv"/>
+  </mime-type>
+</mime-info>
