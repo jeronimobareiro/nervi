@@ -1,0 +1,95 @@
+# Sitio web de Nervi: https://jeronimobareiro.github.io/nervi/
+# Las fuentes se arman con `python scripts/preparar_sitio.py` (copia docs/ a build/sitio/).
+site_name: Nervi
+site_description: Software libre de análisis y dimensionamiento estructural.
+site_url: https://jeronimobareiro.github.io/nervi/
+repo_url: https://github.com/jeronimobareiro/nervi
+repo_name: jeronimobareiro/nervi
+edit_uri: ""
+copyright: Nervi · GPL-3.0 o posterior · Jerónimo Bareiro y colaboradores
+docs_dir: build/sitio
+site_dir: build/html
+
+theme:
+  name: material
+  language: es
+  logo: marca/nervi-isotipo.svg
+  favicon: marca/nervi-favicon.svg
+  font:
+    text: Inter
+    code: JetBrains Mono
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-night
+        name: Modo oscuro
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/weather-sunny
+        name: Modo claro
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.footer
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+  icon:
+    repo: material/github
+
+extra_css:
+  - https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css
+  - estilos/nervi.css
+extra_javascript:
+  - js/katex.js
+  - https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js
+  - https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js
+extra:
+  generator: false
+  social:
+    - icon: material/github
+      link: https://github.com/jeronimobareiro/nervi
+
+plugins:
+  - search:
+      lang: es
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: "#"
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.inlinehilite
+  - pymdownx.details
+
+nav:
+  - Inicio: index.md
+  - Guía rápida: guia-rapida.md
+  - Documentación:
+      - Estado actual: estado.md
+      - Especificación técnica: especificacion-tecnica.md
+      - Convenciones de signos: convenciones.md
+      - Contrato de datos: contrato-datos.md
+      - Formato de archivo .nrv: formato-nrv.md
+  - Hoja de ruta: hoja-de-ruta.md
+  - Comunidad:
+      - Cómo contribuir: comunidad/contribuir.md
+      - Código de conducta: comunidad/codigo-de-conducta.md
+      - Gobierno del proyecto: comunidad/gobierno.md
+      - Seguridad de los resultados: comunidad/seguridad.md
+      - Autores: comunidad/autores.md
+      - Instrucciones para agentes de IA: comunidad/agentes-ia.md
+  - Bitácora: bitacora/index.md

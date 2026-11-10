@@ -11,6 +11,8 @@ _Antes llamado Apex BIM._
 
 Software libre de análisis y dimensionamiento estructural, con un núcleo numérico en Rust y una capa de aplicación en Python.
 
+Documentación: **[jeronimobareiro.github.io/nervi](https://jeronimobareiro.github.io/nervi/)**.
+
 > **Estado: Fase 1 (pórtico plano lineal elástico).** Todavía no hay diseño según normas, interfaz gráfica ni IFC. Ver la hoja de ruta en [`docs/especificacion-tecnica.md`](docs/especificacion-tecnica.md).
 >
 > Este software asiste al ingeniero; no reemplaza su criterio ni su responsabilidad profesional. Verificá siempre los resultados.
@@ -72,6 +74,7 @@ crates/nervi-py/     puente PyO3 (contrato en docs/contrato-datos.md)
 python/nervi/        paquete Python
 tests/              pruebas de la API Python
 docs/               especificación, convenciones, contrato de datos
+sitio/              portada y estilo del sitio web (mkdocs.yml, scripts/preparar_sitio.py)
 ```
 
 ## Verificación

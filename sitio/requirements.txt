@@ -1,0 +1,3 @@
+# Dependencias para generar el sitio web (licencias BSD-2 y MIT). Uso: ver mkdocs.yml.
+mkdocs==1.6.1
+mkdocs-material==9.7.7

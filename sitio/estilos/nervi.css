@@ -1,0 +1,150 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Estilo del sitio de Nervi: claro, plano y sobrio, con un solo color de acento,
+   coherente con la interfaz de escritorio. Colores de marca en especificación §1. */
+
+@import url("https://fonts.googleapis.com/css2?family=Archivo:wght@600&display=swap");
+
+:root {
+  --nv-acento: #1d4ed8;
+  --nv-tinta: #0f172a;
+  --nv-linea: #e2e8f0;
+}
+
+[data-md-color-scheme="default"] {
+  --md-primary-fg-color: #ffffff;
+  --md-primary-fg-color--light: #ffffff;
+  --md-primary-fg-color--dark: #f8fafc;
+  --md-primary-bg-color: var(--nv-tinta);
+  --md-primary-bg-color--light: #475569;
+  --md-accent-fg-color: var(--nv-acento);
+  --md-typeset-a-color: var(--nv-acento);
+  --md-default-fg-color: var(--nv-tinta);
+  --md-footer-bg-color: #f8fafc;
+  --md-footer-bg-color--dark: #f1f5f9;
+  --md-footer-fg-color: #334155;
+  --md-footer-fg-color--light: #475569;
+  --md-footer-fg-color--lighter: #64748b;
+}
+
+[data-md-color-scheme="slate"] {
+  --nv-acento: #93c5fd;
+  --nv-linea: #1e293b;
+  --md-hue: 222;
+  --md-default-bg-color: #0b132b;
+  --md-primary-fg-color: #0b132b;
+  --md-primary-fg-color--dark: #0f172a;
+  --md-primary-bg-color: #e2e8f0;
+  --md-accent-fg-color: var(--nv-acento);
+  --md-typeset-a-color: var(--nv-acento);
+  --md-footer-bg-color: #0f172a;
+  --md-footer-bg-color--dark: #0b132b;
+}
+
+/* Encabezado y pestañas planos, separados por una línea fina. */
+.md-header,
+.md-tabs {
+  box-shadow: none;
+  border-bottom: 1px solid var(--nv-linea);
+}
+.md-header[data-md-state="shadow"],
+.md-header--shadow {
+  box-shadow: none;
+}
+.md-tabs__link--active,
+.md-tabs__item--active .md-tabs__link {
+  color: var(--nv-acento);
+  font-weight: 600;
+}
+.md-search__form {
+  background-color: var(--md-default-fg-color--lightest);
+}
+
+/* Títulos con la tipografía del logotipo. */
+.md-header__topic,
+.md-typeset h1,
+.md-typeset h2 {
+  font-family: "Archivo", var(--md-text-font-family), sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.md-typeset h1 {
+  color: var(--md-default-fg-color);
+}
+
+/* Botones planos. */
+.md-typeset .md-button {
+  border-radius: 6px;
+  border-width: 1px;
+  font-weight: 600;
+  padding: 0.5em 1.4em;
+}
+.md-typeset .md-button--primary {
+  background-color: var(--nv-acento);
+  border-color: var(--nv-acento);
+  color: #ffffff;
+}
+[data-md-color-scheme="slate"] .md-typeset .md-button--primary {
+  color: #0b132b;
+}
+.md-typeset .md-button:not(.md-button--primary) {
+  color: var(--md-default-fg-color);
+  border-color: var(--nv-linea);
+}
+
+/* Tablas y avisos sin sombras. */
+.md-typeset table:not([class]) {
+  box-shadow: none;
+  border: 1px solid var(--nv-linea);
+  border-radius: 6px;
+}
+.md-typeset .admonition,
+.md-typeset details {
+  box-shadow: none;
+  border-width: 1px;
+  border-radius: 6px;
+}
+
+/* Portada. */
+.nv-portada {
+  text-align: center;
+  max-width: 38rem;
+  margin: 2.5rem auto 2rem;
+}
+.nv-portada .nv-logo {
+  width: 15rem;
+  max-width: 70%;
+  margin-bottom: 0.5rem;
+}
+.nv-portada .nv-lema {
+  font-family: "Archivo", var(--md-text-font-family), sans-serif;
+  font-size: 1.35rem;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--md-default-fg-color);
+}
+.nv-portada .md-button {
+  margin: 0.3rem;
+}
+[data-md-color-scheme="default"] .nv-oscuro,
+[data-md-color-scheme="slate"] .nv-claro {
+  display: none;
+}
+.md-typeset .nv-tarjetas > ul > li {
+  box-shadow: none;
+  border: 1px solid var(--nv-linea);
+  border-radius: 6px;
+}
+.md-typeset .nv-tarjetas > ul > li:hover {
+  box-shadow: none;
+  border-color: var(--nv-acento);
+}
+
+/* Título de la portada solo para lectores de pantalla y buscadores. */
+.md-typeset .nv-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
