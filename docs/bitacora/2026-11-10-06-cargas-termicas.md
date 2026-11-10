@@ -1,4 +1,4 @@
-# 2026-11-10-06 · Cargas térmicas en barras
+# 2026-11-10-04 · Cargas térmicas en barras
 
 - **Agente:** Claude (Claude Code)
 - **Pedido por:** Jerónimo Bareiro

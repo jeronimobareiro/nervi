@@ -36,6 +36,8 @@ Tercer punto del plan de la semana: la carpeta `verification/` con casos de refe
 - Issue #6 (ejemplos resueltos de libros): ya se puede hacer sobre este formato.
 - Firma DCO: el usuario autorizó por escrito, el 2026-11-10 a las 13:30 UTC ("firmalo todo por mi, te autorizo"), que el agente firme en su nombre los aportes de este plan de trabajo, como `bareirojero <345933350+bareirojero@users.noreply.github.com>`.
 
+- La entrada [2026-11-10-06](2026-11-10-06-cargas-termicas.md) quedó con «2026-11-10-04» en el título porque se renumeró al integrar `main`; el nombre del archivo es el correcto.
+
 ## Para quien siga
 
 - Siguiente en el plan: combinaciones de carga y envolventes (#21).
