@@ -1,0 +1,34 @@
+# Тексты интерфейса сайта на русском. Используется scripts/preparar_sitio.py.
+descripcion: Свободное программное обеспечение для расчёта строительных конструкций.
+copyright: Nervi · GPL-3.0 или новее · Jerónimo Bareiro и участники проекта
+tema: ru
+busqueda: ru
+modo_oscuro: Тёмная тема
+modo_claro: Светлая тема
+nav:
+  - Главная: index.md
+  - Почему Nervi: por-que-nervi.md
+  - Скачать: descargar.md
+  - Быстрый старт: primeros-pasos.md
+  - Техническая документация:
+      - Техническая спецификация: tecnica/especificacion.md
+      - Правила знаков: tecnica/convenciones.md
+      - Контракт данных: tecnica/contrato-datos.md
+      - Формат файла .nrv: tecnica/formato-nrv.md
+  - Дорожная карта: hoja-de-ruta.md
+  - Участие:
+      - Обзор: participar/index.md
+      - Как внести вклад: participar/contribuir.md
+      - Кодекс поведения: participar/codigo-de-conducta.md
+      - Управление проектом: participar/gobierno.md
+      - Безопасность результатов: participar/seguridad.md
+      - Авторы: participar/autores.md
+  - Журнал: bitacora/index.md
+aviso:
+  titulo: Только на испанском
+  texto: Эта страница ещё не переведена и показана на испанском, рабочем языке проекта. Вы можете прочитать её с помощью переводчика или помочь с переводом.
+  enlace: Открыть оригинальную страницу
+creditos:
+  autor desconocido: автор неизвестен
+  Dominio público: общественное достояние
+  vía: через
