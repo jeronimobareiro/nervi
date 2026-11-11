@@ -54,3 +54,11 @@ Diccionario:
 |---|---|
 | `ValueError` | formas incorrectas, índices fuera de rango, propiedades no positivas, barras de longitud nula, combinaciones de liberaciones inestables |
 | `nervi.MecanismoError` | estructura inestable (falta de apoyos o articulaciones de más), o carga sobre un GDL sin rigidez |
+
+`nervi.MecanismoError` trae además estos atributos (issue #9), que no cambian la versión del contrato porque son un agregado compatible:
+
+| Atributo | Tipo | Contenido |
+|---|---|---|
+| `nudo` | `int` o `None` | nudo que más se mueve en el primer modo de mecanismo, o el nudo cargado sin rigidez; `None` si no se pudo localizar |
+| `gdl` | `"ux"`, `"uy"`, `"rz"` o `None` | GDL de ese nudo (una traslación, salvo que el modo solo tenga giros) |
+| `modos` | lista de listas de `(nudo, gdl, valor)` | modos de mecanismo (hasta 6), cada uno normalizado para que el GDL principal valga 1; solo las componentes con valor absoluto de al menos 1e-6. Vacía para la carga sin rigidez |

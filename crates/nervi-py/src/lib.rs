@@ -24,13 +24,35 @@ create_exception!(
     "La estructura es inestable o tiene GDL cargados sin rigidez."
 );
 
-fn error_a_python(e: ErrorNervi) -> PyErr {
-    match e {
-        ErrorNervi::ModeloInvalido(_) => PyValueError::new_err(e.to_string()),
-        ErrorNervi::Mecanismo(_) | ErrorNervi::CargaSinRigidez { .. } => {
-            MecanismoError::new_err(e.to_string())
-        }
-        ErrorNervi::Numerico(_) => PyRuntimeError::new_err(e.to_string()),
+/// Convierte el error del núcleo. `MecanismoError` lleva además los atributos
+/// `nudo` y `gdl` (`None` si no se pudo localizar) y `modos`, una lista de modos,
+/// cada uno una lista de `(nudo, gdl, valor)` (ver `docs/contrato-datos.md`).
+fn error_a_python(py: Python<'_>, e: ErrorNervi) -> PyErr {
+    let texto = e.to_string();
+    let (ubicacion, modos) = match e {
+        ErrorNervi::ModeloInvalido(_) => return PyValueError::new_err(texto),
+        ErrorNervi::Numerico(_) => return PyRuntimeError::new_err(texto),
+        ErrorNervi::CargaSinRigidez { nudo, gdl } => (Some((nudo, gdl)), Vec::new()),
+        ErrorNervi::Mecanismo(d) => (d.ubicacion, d.modos),
+    };
+    let err = MecanismoError::new_err(texto);
+    let atributos = || -> PyResult<()> {
+        let valor = err.value(py);
+        valor.setattr("nudo", ubicacion.map(|u| u.0))?;
+        valor.setattr("gdl", ubicacion.map(|u| u.1.to_string()))?;
+        let lista: Vec<Vec<(usize, String, f64)>> = modos
+            .iter()
+            .map(|m| {
+                m.iter()
+                    .map(|c| (c.nudo, c.gdl.to_string(), c.valor))
+                    .collect()
+            })
+            .collect();
+        valor.setattr("modos", lista)
+    };
+    match atributos() {
+        Ok(()) => err,
+        Err(fallo) => fallo,
     }
 }
 
@@ -227,7 +249,9 @@ fn resolver_portico_2d<'py>(
     }
 
     // El cálculo no necesita a Python: se libera el GIL.
-    let res = py.detach(|| analizar(&modelo)).map_err(error_a_python)?;
+    let res = py
+        .detach(|| analizar(&modelo))
+        .map_err(|e| error_a_python(py, e))?;
 
     let mut despl = Array3::<f64>::zeros((nc, n, 3));
     let mut reac = Array3::<f64>::zeros((nc, n, 3));

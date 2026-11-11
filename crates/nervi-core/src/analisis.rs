@@ -6,6 +6,7 @@
 //! 2. Partición de GDL en libres y restringidos (no se usa penalización).
 //! 3. Factorización de Cholesky dispersa de `K_ff` (una sola para todos los casos).
 //! 4. `K_ff U_f = F_f - K_fr U_r` para cada caso de carga.
+//!    Si falla (mecanismo), `mecanismo::diagnosticar` localiza el nudo y el GDL.
 //! 5. Fuerzas de extremo `f = k u - F_eq`, reacciones por equilibrio de nudos.
 
 use faer::linalg::solvers::Solve;
@@ -16,7 +17,8 @@ use crate::elemento::{
     a_global, a_local, carga_a_local, cargas_equivalentes, flecha_biempotrada, resultantes_hasta,
     BarraAnalisis, CargaLocal, Vec6,
 };
-use crate::error::{ErrorNervi, Gdl, Resultado};
+use crate::error::{DiagnosticoMecanismo, ErrorNervi, Gdl, Resultado};
+use crate::mecanismo;
 use crate::modelo::Modelo;
 
 /// Umbral del cociente `max|u| · max(K_ii) / max|F|` por encima del cual se
@@ -224,11 +226,23 @@ pub fn analizar(modelo: &Modelo) -> Resultado<Resultados> {
         let k_ff =
             SparseColMat::<usize, f64>::try_new_from_triplets(n_libres, n_libres, &tripletas)
                 .map_err(|e| ErrorNervi::Numerico(format!("no se pudo armar la matriz: {e:?}")))?;
-        let llt = k_ff.sp_cholesky(Side::Lower).map_err(|e| {
-            ErrorNervi::Mecanismo(format!(
-                "la matriz de rigidez no es definida positiva ({e:?}); revisar apoyos y articulaciones"
-            ))
-        })?;
+        let gdl_global: Vec<usize> = (0..n_gdl).filter(|&g| libre_idx[g] != usize::MAX).collect();
+        let mecanismo = |detalle: String| {
+            let d = mecanismo::diagnosticar(n_libres, &tripletas, &gdl_global)
+                .map(|mut d| {
+                    d.detalle = format!("{detalle}; {}", d.detalle);
+                    d
+                })
+                .unwrap_or(DiagnosticoMecanismo {
+                    detalle,
+                    ubicacion: None,
+                    modos: Vec::new(),
+                });
+            ErrorNervi::Mecanismo(d)
+        };
+        let llt = k_ff
+            .sp_cholesky(Side::Lower)
+            .map_err(|_| mecanismo("la matriz de rigidez no es definida positiva".to_string()))?;
         llt.solve_in_place(u_libres.as_mut());
 
         let diag_libre_max = (0..n_gdl)
@@ -240,8 +254,8 @@ pub fn analizar(modelo: &Modelo) -> Resultado<Resultados> {
             if !u_max.is_finite()
                 || (f_max > 0.0 && u_max * diag_libre_max > LIMITE_FLEXIBILIDAD * f_max)
             {
-                return Err(ErrorNervi::Mecanismo(format!(
-                    "caso {c}: la matriz de rigidez es numéricamente singular; revisar apoyos y articulaciones"
+                return Err(mecanismo(format!(
+                    "caso {c}: la matriz de rigidez es numéricamente singular"
                 )));
             }
         }
