@@ -29,9 +29,10 @@
 pub mod analisis;
 pub mod elemento;
 pub mod error;
+mod mecanismo;
 pub mod modelo;
 
 pub use analisis::{analizar, Resultados, ResultadosCaso, Seccion};
 pub use elemento::CargaLocal;
-pub use error::{ErrorNervi, Gdl};
+pub use error::{ComponenteModo, DiagnosticoMecanismo, ErrorNervi, Gdl};
 pub use modelo::{Barra, CargaBarra, CasoCarga, Ejes, Modelo, TipoCargaBarra};
