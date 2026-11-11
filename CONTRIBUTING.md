@@ -32,7 +32,7 @@ cargo test -p nervi-core
 2. **Toda funcionalidad llega con su prueba de verificación** en `verification/`, `crates/nervi-core/tests/` o `tests/`, comparada contra una solución cerrada o un ejemplo publicado.
 3. **No se borran ni se desactivan pruebas** para que algo pase.
 4. **No se cambia la convención de signos ni el contrato de datos** sin subir `VERSION_CONTRATO` y documentarlo ([`docs/convenciones.md`](docs/convenciones.md), [`docs/contrato-datos.md`](docs/contrato-datos.md)).
-5. **Idioma:** español en código, comentarios y documentación.
+5. **Idioma:** español en código, comentarios y documentación técnica. Los issues, PR y conversaciones pueden escribirse en español, inglés, portugués o ruso, y se responde en el idioma de quien escribe. Si un aporte trae nombres en otro idioma, en la revisión se adaptan con ayuda del [glosario](docs/glosario.md).
 6. **Encabezado de licencia** en cada archivo nuevo de código:
    - Rust: `// SPDX-License-Identifier: GPL-3.0-or-later`
    - Python: `# SPDX-License-Identifier: GPL-3.0-or-later`
@@ -78,3 +78,11 @@ Se puede. Quien envía el PR es responsable de lo que contiene: revisalo, entend
 ## Licencia de tus aportes
 
 Al enviar un aporte aceptás que se distribuya bajo GPL-3.0-or-later, la licencia del proyecto. Conservás el derecho de autor sobre lo que escribiste; el proyecto no pide cesión de derechos.
+
+## Contributing from other countries
+
+*English.* You do not need to speak Spanish to contribute. Write your issue or pull request in English, Portuguese or Russian and we will answer in your language. The code uses Spanish names: the [glossary](docs/glosario.md) translates every structural term and code name, and in review we help you adapt new names to that vocabulary. The rules above still apply: cite the source of every formula, add a verification test, sign your commits (`git commit -s`) and add an entry to `docs/bitacora/` (ask for help if you are not sure how). Good starting points are the issues labelled `buen-primer-aporte` (good first issue) and new verification cases in [`verification/`](verification/README.md), which need no Rust. See also [README.en.md](README.en.md).
+
+*Português.* Não é preciso falar espanhol para contribuir. Escreva sua issue ou seu pull request em português, inglês ou russo e responderemos no seu idioma. O código usa nomes em espanhol: o [glossário](docs/glosario.md) traduz cada termo estrutural e cada nome do código, e na revisão ajudamos a adaptar os nomes novos. As regras acima continuam valendo: cite a fonte de cada fórmula, inclua um teste de verificação, assine seus commits (`git commit -s`) e adicione uma entrada em `docs/bitacora/` (peça ajuda se não souber como). Bons pontos de partida são as issues com a etiqueta `buen-primer-aporte` e novos casos de verificação em [`verification/`](verification/README.md), que não exigem Rust. Veja também o [README.pt.md](README.pt.md).
+
+*Русский.* Чтобы участвовать, не нужно знать испанский. Пишите issue или pull request на русском, английском или португальском — мы ответим на вашем языке. В коде используются испанские имена: [глоссарий](docs/glosario.md) переводит все строительные термины и имена из кода, а при ревью мы поможем привести новые имена к этой терминологии. Правила выше остаются в силе: указывайте источник каждой формулы, добавляйте верификационный тест, подписывайте коммиты (`git commit -s`) и добавляйте запись в `docs/bitacora/` (если не знаете как — попросите помощи). Хорошее начало — задачи с меткой `buen-primer-aporte` и новые верификационные примеры в [`verification/`](verification/README.md), для которых не нужен Rust. См. также [README.ru.md](README.ru.md).

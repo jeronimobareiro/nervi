@@ -23,7 +23,7 @@ Este archivo es para cualquier IA que trabaje en Nervi (Claude, Gemini, ChatGPT/
   python scripts/verificar_bitacora.py origin/main
   ```
 - No cambies la convención de signos ni el contrato de datos sin subir `VERSION_CONTRATO` y documentarlo.
-- Idioma del proyecto: español (código, comentarios, documentación).
+- Idioma del proyecto: español (código, comentarios, documentación técnica). En issues y PR respondé en el idioma de quien escribe (español, inglés, portugués o ruso). Si agregás un término nuevo al código, sumalo a [`docs/glosario.md`](docs/glosario.md). Los `README.*.md` traducidos se actualizan junto con `README.md` cuando cambia lo que Nervi hace.
 - Todo archivo nuevo de código empieza con `// SPDX-License-Identifier: GPL-3.0-or-later` (Rust) o `# SPDX-License-Identifier: GPL-3.0-or-later` (Python).
 - Si tu aporte cambia lo que un usuario puede hacer (funciones, instalación, interfaz), actualizá también las páginas públicas de [`sitio/`](sitio/) (portada, descargar, primeros pasos). El sitio es para el público: no publiques ahí pendientes internos ni notas de trabajo.
 - Las reglas para personas están en [`CONTRIBUTING.md`](CONTRIBUTING.md) y también valen para vos.
