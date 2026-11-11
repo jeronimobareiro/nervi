@@ -7,6 +7,8 @@
 
 # Nervi
 
+**Español** · [English](README.en.md) · [Português](README.pt.md) · [Русский](README.ru.md)
+
 Software libre de análisis y dimensionamiento estructural, con un núcleo numérico en Rust y una capa de aplicación en Python.
 
 Documentación: **[jeronimobareiro.github.io/nervi](https://jeronimobareiro.github.io/nervi/)**.
@@ -100,6 +102,8 @@ Cada caso de `crates/nervi-core/tests/verificacion.rs` compara contra una fórmu
 ## Contribuir
 
 Nervi está abierto a estudiantes, docentes, investigadores e ingenieros. Empezá por [`CONTRIBUTING.md`](CONTRIBUTING.md); las reglas de convivencia están en el [Código de conducta](CODE_OF_CONDUCT.md) y las de decisión en [`GOVERNANCE.md`](GOVERNANCE.md). Si encontrás un resultado incorrecto que pueda afectar una estructura real, seguí [`SECURITY.md`](SECURITY.md).
+
+Nervi recibe aportes de todo el mundo: issues y PR se pueden escribir en español, inglés, portugués o ruso, y el [glosario](docs/glosario.md) traduce los términos del código.
 
 Para citar Nervi en un trabajo académico, usá los datos de [`CITATION.cff`](CITATION.cff).
 

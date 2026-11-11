@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-11 · entrada [2026-11-11-03](bitacora/2026-11-11-03-sitio-multilingue.md)_
+_Última actualización: 2026-11-11 · entradas [2026-11-11-02](bitacora/2026-11-11-02-colaboradores-internacionales.md) y [2026-11-11-03](bitacora/2026-11-11-03-sitio-multilingue.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
@@ -24,6 +24,7 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 - Biblioteca de casos de verificación en `verification/` (#5): 12 casos en TOML con su fuente, que corren en el CI y se pueden aportar sin saber Rust (`verification/README.md`).
 - Combinaciones de carga ACI 318-19 y envolventes por sección en `nervi.design` (#21), **experimental** hasta la revisión de un ingeniero. Las combinaciones se resuelven junto con el modelo y sus diagramas son exactos.
 - Registro de aportes: `AGENTS.md`, esta foto y `bitacora/`, con control automático en el CI.
+- Colaboradores de otros idiomas: README en inglés, portugués y ruso (`README.en.md`, `README.pt.md`, `README.ru.md`), glosario es/en/pt/ru en [`glosario.md`](glosario.md) y sección multilingüe en `CONTRIBUTING.md`. El código sigue en español; issues y PR se aceptan en esos cuatro idiomas.
 - Apertura a la comunidad: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `SECURITY.md`, `CITATION.cff`, plantillas de issues y PR, encabezados SPDX.
 - Controles en el CI: certificado de origen (DCO, `Signed-off-by` obligatorio desde la entrada 07) y licencias de dependencias (`cargo-deny`, `deny.toml`).
 - Sitio web público en https://jeronimobareiro.github.io/nervi/ (MkDocs + GitHub Pages, publicado solo desde `main`), en español, inglés (`/en/`), portugués (`/pt/`) y ruso (`/ru/`) con selector de idioma; el resto de la documentación se muestra en español con un aviso. Páginas: portada, por qué Nervi (homenaje a Pier Luigi Nervi con fotos libres de Commons), descargar, primeros pasos, documentación técnica, hoja de ruta, participar y bitácora. No publica `ESTADO.md` ni `AGENTS.md`, y el armado falla si aparece el nombre anterior del proyecto.
