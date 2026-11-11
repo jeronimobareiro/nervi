@@ -1,5 +1,7 @@
 # Sitio web de Nervi: https://jeronimobareiro.github.io/nervi/
-# Las fuentes se arman con `python scripts/preparar_sitio.py` (copia docs/ a build/sitio/).
+# Este es el sitio en español y la base de los demás idiomas: `python scripts/preparar_sitio.py`
+# genera build/config/mkdocs-<idioma>.yml, y `python scripts/construir_sitio.py` arma todo en
+# build/salida/ (español en la raíz; /en/, /pt/ y /ru/).
 site_name: Nervi
 site_description: Software libre de análisis y dimensionamiento estructural.
 site_url: https://jeronimobareiro.github.io/nervi/
@@ -7,8 +9,8 @@ repo_url: https://github.com/jeronimobareiro/nervi
 repo_name: jeronimobareiro/nervi
 edit_uri: ""
 copyright: Nervi · GPL-3.0 o posterior · Jerónimo Bareiro y colaboradores
-docs_dir: build/sitio
-site_dir: build/html
+docs_dir: build/sitio/es
+site_dir: build/html/es
 
 theme:
   name: material
@@ -49,10 +51,24 @@ extra_css:
   - estilos/nervi.css
 extra_javascript:
   - js/katex.js
+  - js/idiomas.js
   - https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js
   - https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js
 extra:
   generator: false
+  alternate:
+    - name: Español
+      link: https://jeronimobareiro.github.io/nervi/
+      lang: es
+    - name: English
+      link: https://jeronimobareiro.github.io/nervi/en/
+      lang: en
+    - name: Português
+      link: https://jeronimobareiro.github.io/nervi/pt/
+      lang: pt
+    - name: Русский
+      link: https://jeronimobareiro.github.io/nervi/ru/
+      lang: ru
   social:
     - icon: material/github
       link: https://github.com/jeronimobareiro/nervi
@@ -87,6 +103,7 @@ nav:
       - Formato de archivo .nrv: tecnica/formato-nrv.md
   - Hoja de ruta: hoja-de-ruta.md
   - Participar:
+      - Resumen: participar/index.md
       - Cómo contribuir: participar/contribuir.md
       - Código de conducta: participar/codigo-de-conducta.md
       - Gobierno del proyecto: participar/gobierno.md

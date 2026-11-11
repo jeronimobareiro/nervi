@@ -1,0 +1,34 @@
+# Texto de interfaz do site em português. Usado por scripts/preparar_sitio.py.
+descripcion: Software livre para análise e dimensionamento estrutural.
+copyright: Nervi · GPL-3.0 ou posterior · Jerónimo Bareiro e colaboradores
+tema: pt-BR
+busqueda: pt
+modo_oscuro: Modo escuro
+modo_claro: Modo claro
+nav:
+  - Início: index.md
+  - Por que Nervi: por-que-nervi.md
+  - Baixar: descargar.md
+  - Primeiros passos: primeros-pasos.md
+  - Documentação técnica:
+      - Especificação técnica: tecnica/especificacion.md
+      - Convenções de sinais: tecnica/convenciones.md
+      - Contrato de dados: tecnica/contrato-datos.md
+      - Formato de arquivo .nrv: tecnica/formato-nrv.md
+  - Roteiro: hoja-de-ruta.md
+  - Participar:
+      - Visão geral: participar/index.md
+      - Como contribuir: participar/contribuir.md
+      - Código de conduta: participar/codigo-de-conducta.md
+      - Governança do projeto: participar/gobierno.md
+      - Segurança dos resultados: participar/seguridad.md
+      - Autores: participar/autores.md
+  - Diário de bordo: bitacora/index.md
+aviso:
+  titulo: Disponível apenas em espanhol
+  texto: Esta página ainda não foi traduzida; ela é exibida em espanhol, o idioma de trabalho do projeto. Você pode lê-la com um tradutor ou ajudar a traduzi-la.
+  enlace: Ver a página original
+creditos:
+  autor desconocido: autor desconhecido
+  Dominio público: Domínio público
+  vía: via
