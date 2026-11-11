@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Arma las fuentes del sitio web de Nervi a partir de la documentación del repositorio.
+"""Arma las fuentes del sitio web de Nervi, una carpeta por idioma, en build/sitio/.
 
 El sitio es para el público: quien quiere usar Nervi, aprender con él o sumarse.
 Publica las páginas propias de sitio/ y una selección de la documentación técnica
@@ -7,24 +7,38 @@ y de comunidad, y la bitácora de aportes. No publica las notas internas de trab
 (ESTADO.md, con pendientes y decisiones en curso, ni AGENTS.md); los enlaces a esos
 archivos y al código llevan a GitHub.
 
+Idiomas: español (completo) e inglés, portugués y ruso (ver IDIOMAS). Cada idioma
+traduce las páginas de sitio/idiomas/<idioma>/ (portada, descargar, primeros pasos,
+por qué Nervi y participar); el resto de la documentación se publica en español con
+un aviso al comienzo. Para agregar un idioma: crear sitio/idiomas/<código>/ con esas
+páginas y un config.yml, y sumarlo a IDIOMAS.
+
 El nombre anterior del proyecto no aparece en el sitio. Las entradas viejas de la
 bitácora no se editan en el repositorio, así que se adaptan solo al publicarlas
 (ver SUSTITUCIONES); el script falla si el nombre queda en alguna página.
 
-    python scripts/preparar_sitio.py && mkdocs build --strict
-    (o mkdocs serve para verlo en http://127.0.0.1:8000)
+Genera además la configuración de MkDocs de cada idioma (build/config/). Para
+armar y ver el sitio completo: python scripts/construir_sitio.py [--servir].
 """
 
 from __future__ import annotations
 
+import copy
 import posixpath
 import re
 import shutil
 import sys
 from pathlib import Path
 
+import yaml
+
 RAIZ = Path(__file__).resolve().parent.parent
 DESTINO = RAIZ / "build" / "sitio"
+CONFIG = RAIZ / "build" / "config"
+HTML = RAIZ / "build" / "html"  # una carpeta por idioma
+SALIDA = RAIZ / "build" / "salida"  # el sitio final, con todos los idiomas
+IDIOMAS = ("es", "en", "pt", "ru")  # el primero es el idioma de origen y vive en la raíz
+NOMBRES_IDIOMAS = {"es": "Español", "en": "English", "pt": "Português", "ru": "Русский"}
 GITHUB = "https://github.com/jeronimobareiro/nervi"
 
 # Ruta en el repositorio -> ruta en el sitio. Los .md se reescriben; el resto se copia.
@@ -119,7 +133,7 @@ def reescribir(texto: str, origen_repo: str, origen_sitio: str, rutas: dict) -> 
     return PATRON_SRCSET.sub(atributo, PATRON_ENLACE.sub(enlace, texto))
 
 
-def indice_bitacora(texto: str, rutas: dict) -> str:
+def indice_bitacora(texto: str, rutas: dict, destino: Path) -> str:
     """Reemplaza la tabla escrita a mano por la lista completa de entradas."""
     entradas = sorted(
         (r for r in rutas.values() if r.startswith("bitacora/") and PATRON_ENTRADA.match(r[9:])),
@@ -127,20 +141,73 @@ def indice_bitacora(texto: str, rutas: dict) -> str:
     )
     lineas = []
     for ruta in entradas:
-        titulo = (DESTINO / ruta).read_text("utf-8").splitlines()[0].lstrip("# ").strip()
+        titulo = (destino / ruta).read_text("utf-8").splitlines()[0].lstrip("# ").strip()
         lineas.append(f"- [{titulo}]({posixpath.basename(ruta)})")
     tabla = re.compile(r"\n\| Entrada \|.*?(?=\n\n|\Z)", re.S)
     lista = "\n## Entradas\n\nDe la más reciente a la más antigua.\n\n" + "\n".join(lineas)
     return tabla.sub(lambda _: lista, texto) if tabla.search(texto) else texto + "\n" + lista
 
 
-def main() -> int:
-    if DESTINO.exists():
-        shutil.rmtree(DESTINO)
-    shutil.copytree(RAIZ / "sitio", DESTINO, ignore=shutil.ignore_patterns("requirements.txt"))
-    rutas = mapa()
+def aviso_solo_espanol(texto: str, origen_sitio: str, aviso: dict) -> str:
+    """Agrega, debajo del título, el aviso de que la página solo existe en español."""
+    partes = origen_sitio.removesuffix(".md").split("/")
+    if partes[-1] == "index":
+        partes = partes[:-1]
+    # La página vive en <idioma>/<partes>/; el original en español, un nivel más arriba.
+    destino = "../" * (len(partes) + 1) + "/".join(partes) + ("/" if partes else "")
+    bloque = (
+        f'\n!!! info "{aviso["titulo"]}"\n'
+        f'    {aviso["texto"]} <a href="{destino}">{aviso["enlace"]}</a>.\n'
+    )
+    return re.sub(r"^(# [^\n]*\n)", lambda m: m[1] + bloque, texto, count=1, flags=re.M)
+
+
+def leer_idioma(idioma: str) -> dict:
+    return yaml.safe_load((RAIZ / "sitio" / "idiomas" / idioma / "config.yml").read_text("utf-8"))
+
+
+def paginas_propias(idioma: str) -> list[Path]:
+    carpeta = RAIZ / "sitio" / "idiomas" / idioma
+    return sorted(p for p in carpeta.rglob("*.md"))
+
+
+def creditos(idioma: str) -> str:
+    """Créditos de las fotos de 'Por qué Nervi', traducidos desde la versión en español."""
+    texto = (RAIZ / "sitio" / "por-que-nervi.md").read_text("utf-8")
+    lineas = [ln for ln in texto.splitlines() if ln.startswith("    - ") and "Commons" in ln]
+    if idioma == "es":
+        return "\n".join(lineas)
+    t = leer_idioma(idioma)["creditos"]
+    resultado = []
+    for linea in lineas:
+        for original, traducido in t.items():
+            linea = linea.replace(original, traducido)
+        resultado.append(linea)
+    return "\n".join(resultado)
+
+
+def preparar_idioma(idioma: str, rutas: dict) -> int:
+    destino = DESTINO / idioma
+    ignorar = shutil.ignore_patterns("requirements.txt", "idiomas")
+    shutil.copytree(RAIZ / "sitio", destino, ignore=ignorar)
+    config = None if idioma == "es" else leer_idioma(idioma)
+    if config:
+        # Páginas traducidas: reemplazan a las de sitio/.
+        traducidas = set()
+        for origen in paginas_propias(idioma):
+            relativa = origen.relative_to(RAIZ / "sitio" / "idiomas" / idioma).as_posix()
+            texto = origen.read_text("utf-8").replace("{{CREDITOS}}", creditos(idioma))
+            archivo = destino / relativa
+            archivo.parent.mkdir(parents=True, exist_ok=True)
+            archivo.write_text(texto, "utf-8")
+            traducidas.add(relativa)
+        esperadas = {p.name for p in (RAIZ / "sitio").glob("*.md")} | {"participar/index.md"}
+        faltan = sorted(esperadas - traducidas)
+        if faltan:
+            print(f"{idioma}: faltan páginas traducidas: {faltan}", file=sys.stderr)
+            return 1
     for origen_repo, origen_sitio in rutas.items():
-        archivo = DESTINO / origen_sitio
+        archivo = destino / origen_sitio
         archivo.parent.mkdir(parents=True, exist_ok=True)
         if origen_repo.endswith(".md"):
             texto = (RAIZ / origen_repo).read_text("utf-8")
@@ -152,11 +219,49 @@ def main() -> int:
             if PATRON_ENTRADA.match(posixpath.basename(origen_repo)):
                 for patron, reemplazo in SUSTITUCIONES:
                     texto = re.sub(patron, reemplazo, texto)
-            archivo.write_text(reescribir(texto, origen_repo, origen_sitio, rutas), "utf-8")
+            texto = reescribir(texto, origen_repo, origen_sitio, rutas)
+            if config:
+                texto = aviso_solo_espanol(texto, origen_sitio, config["aviso"])
+            archivo.write_text(texto, "utf-8")
         else:
             shutil.copyfile(RAIZ / origen_repo, archivo)
-    indice = DESTINO / "bitacora" / "index.md"
-    indice.write_text(indice_bitacora(indice.read_text("utf-8"), rutas), "utf-8")
+    indice = destino / "bitacora" / "index.md"
+    indice.write_text(indice_bitacora(indice.read_text("utf-8"), rutas, destino), "utf-8")
+    return 0
+
+
+def escribir_configuracion(idioma: str) -> None:
+    """Escribe build/config/mkdocs-<idioma>.yml a partir de mkdocs.yml (español) y del idioma."""
+    cfg = copy.deepcopy(yaml.safe_load((RAIZ / "mkdocs.yml").read_text("utf-8")))
+    cfg["docs_dir"] = str(DESTINO / idioma)
+    cfg["site_dir"] = str(HTML / idioma)
+    if idioma != "es":
+        t = leer_idioma(idioma)
+        cfg["site_description"] = t["descripcion"]
+        cfg["copyright"] = t["copyright"]
+        cfg["site_url"] = cfg["site_url"].rstrip("/") + f"/{idioma}/"
+        cfg["theme"]["language"] = t["tema"]
+        claro, oscuro = cfg["theme"]["palette"]
+        claro["toggle"]["name"] = t["modo_oscuro"]
+        oscuro["toggle"]["name"] = t["modo_claro"]
+        for plugin in cfg["plugins"]:
+            if isinstance(plugin, dict) and "search" in plugin:
+                plugin["search"]["lang"] = t["busqueda"]
+        cfg["nav"] = t["nav"]
+    CONFIG.mkdir(parents=True, exist_ok=True)
+    (CONFIG / f"mkdocs-{idioma}.yml").write_text(
+        yaml.safe_dump(cfg, allow_unicode=True, sort_keys=False), "utf-8"
+    )
+
+
+def main() -> int:
+    if DESTINO.exists():
+        shutil.rmtree(DESTINO)
+    rutas = mapa()
+    for idioma in IDIOMAS:
+        if (codigo := preparar_idioma(idioma, rutas)) != 0:
+            return codigo
+        escribir_configuracion(idioma)
     errores = [
         f"{md.relative_to(DESTINO)}: contiene {m[0]!r}"
         for md in sorted(DESTINO.rglob("*.md"))
@@ -166,7 +271,7 @@ def main() -> int:
         print(error, file=sys.stderr)
     if errores:
         return 1
-    print(f"Sitio preparado en {DESTINO.relative_to(RAIZ)} ({len(rutas)} archivos de docs).")
+    print(f"Sitio preparado en {DESTINO.relative_to(RAIZ)}: {', '.join(IDIOMAS)}.")
     return 0
 
 
