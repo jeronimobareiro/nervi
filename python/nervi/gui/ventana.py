@@ -556,13 +556,20 @@ class Ventana(QMainWindow):
         except (formato.FormatoError, OSError) as e:
             QMessageBox.warning(self, "No se pudo abrir el proyecto", str(e))
             return False
-        if self.sesion.doc.migrado_desde is not None:
+        doc = self.sesion.doc
+        if doc.migrado_desde:
+            partes = ", ".join(
+                f"{nombre} {v} → {formato.MODULOS[nombre].version}"
+                for nombre, v in doc.migrado_desde.items()
+            )
             QMessageBox.information(
                 self,
                 "Formato actualizado",
-                f"El archivo era del formato {self.sesion.doc.migrado_desde}. Al guardarlo se "
-                f"actualiza al formato {formato.VERSION_ESQUEMA} y se deja una copia .bak.",
+                f"El archivo usaba versiones anteriores del formato ({partes}). Al guardarlo "
+                "se actualiza y se deja una copia .bak.",
             )
+        if doc.avisos:
+            QMessageBox.information(self, "Partes del proyecto sin leer", "\n\n".join(doc.avisos))
         return True
 
     def guardar(self) -> bool:

@@ -23,6 +23,7 @@ Este archivo es para cualquier IA que trabaje en Nervi (Claude, Gemini, ChatGPT/
   python scripts/verificar_bitacora.py origin/main
   ```
 - No cambies la convención de signos ni el contrato de datos sin subir `VERSION_CONTRATO` y documentarlo.
+- **Formato `.nrv`:** cualquier cambio en lo que se guarda de un módulo (`modelo`, `diseno`…) sube la versión de ese módulo, trae su migración y agrega su archivo de referencia en `tests/datos/nrv/` ([`docs/formato-nrv.md`](docs/formato-nrv.md) §6.3). Lo que agrega una fase nueva va en un módulo propio, no dentro de `modelo.json`.
 - Idioma del proyecto: español (código, comentarios, documentación técnica). En issues y PR respondé en el idioma de quien escribe (español, inglés, portugués o ruso). Si agregás un término nuevo al código, sumalo a [`docs/glosario.md`](docs/glosario.md). Los `README.*.md` traducidos se actualizan junto con `README.md` cuando cambia lo que Nervi hace.
 - Todo archivo nuevo de código empieza con `// SPDX-License-Identifier: GPL-3.0-or-later` (Rust) o `# SPDX-License-Identifier: GPL-3.0-or-later` (Python).
 - Si tu aporte cambia lo que un usuario puede hacer (funciones, instalación, interfaz), actualizá también las páginas públicas de [`sitio/`](sitio/) (portada, descargar, primeros pasos). El sitio es para el público: no publiques ahí pendientes internos ni notas de trabajo.
@@ -42,6 +43,7 @@ El control **"Bitácora de aportes"** del CI (`scripts/verificar_bitacora.py`) d
 ## 4. Lo que no se hace
 
 - No borrar ni desactivar pruebas para que algo pase.
+- No borrar, regenerar ni editar los archivos de referencia de `tests/datos/nrv/`, ni borrar o cambiar una migración publicada del formato `.nrv`: un proyecto guardado con cualquier versión de Nervi se tiene que poder abrir siempre.
 - No subir credenciales, datos de clientes ni modelos de proyectos reales.
 - No copiar código de programas comerciales ni de proyectos con licencias incompatibles con GPL-3.0.
 - No transcribir textos, tablas ni figuras de normas: implementar el método y citar el artículo. No subir PDFs de normas.

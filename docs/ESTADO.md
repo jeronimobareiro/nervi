@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-12 · entradas [2026-11-12-01](bitacora/2026-11-12-01-momentos-en-tramo.md) y [2026-11-12-02](bitacora/2026-11-12-02-gui-nudo-inestable.md)_
+_Última actualización: 2026-11-12 · entrada [2026-11-12-03](bitacora/2026-11-12-03-formato-nrv-modular.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
@@ -17,7 +17,7 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 - Análisis de pórticos planos desde Python (`import nervi`): cargas nodales, uniformes, puntuales, trapezoidales o uniformes parciales en un tramo `[a, b]` (#2) térmicas, uniformes y con gradiente (#4), y momentos concentrados en el tramo (#3); articulaciones y cerchas; apoyos rígidos y elásticos; asentamientos; varios casos y combinaciones.
 - Reacciones, fuerzas de extremo, diagramas N/V/M y deformada.
 - Si el modelo es un mecanismo, el error dice qué nudo y qué GDL se mueven sin rigidez y da el modo de mecanismo (#9); en Python, `MecanismoError.nudo`, `.gdl` y `.modos`. La interfaz marca ese nudo en el dibujo, junto con los demás nudos del modo.
-- Formato de proyecto `.nrv` (`nervi.formato`): abrir, guardar, validar y migrar según [`formato-nrv.md`](formato-nrv.md), con cargas uniformes, puntuales, trapezoidales, térmicas y momentos en el tramo.
+- Formato de proyecto `.nrv` (`nervi.formato`): abrir, guardar, validar y migrar según [`formato-nrv.md`](formato-nrv.md), con cargas uniformes, puntuales, trapezoidales, térmicas y momentos en el tramo. El proyecto se arma con módulos versionados por separado (hoy solo `modelo`, versión 1), y los archivos de referencia de `tests/datos/nrv/` garantizan que los proyectos viejos se sigan abriendo con los mismos resultados (§6.3).
 - Interfaz de escritorio `nervi.gui` (PySide6, `nervi-gui`): una sola ventana con tablas editables del modelo, cálculo, diagramas N/V/M y deformada, lectura de esfuerzos con el cursor, revisión del modelo, consola Python y buscador de comandos (Ctrl+K). Aviso permanente de versión preliminar.
 - Workflow de publicación: con una etiqueta `v*` genera el instalador `.exe` de Windows (Inno Setup, asocia `.nrv`) y el AppImage de Linux, sin firma, como versión preliminar en Releases.
 - 47 casos de verificación analítica en Rust (6 de mecanismos y 6 de momentos en el tramo) y 110 pruebas en Python (formato e interfaz incluidos), en verde. Contrato de datos Rust ↔ Python en la versión 2.
@@ -32,7 +32,7 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 
 ## En curso o bloqueado
 
-- **Instaladores**: el workflow de publicación ya genera el `.exe` de Windows y el AppImage de Linux (la descarga de `appimagetool` se arregló en la entrada 2026-11-10-05). Falta probarlos en equipos reales antes de la primera etiqueta `v0.1.0`. El formato `.nrv` (esquema 1) se congela con esa etiqueta.
+- **Instaladores**: el workflow de publicación ya genera el `.exe` de Windows y el AppImage de Linux (la descarga de `appimagetool` se arregló en la entrada 2026-11-10-05). Falta probarlos en equipos reales antes de la primera etiqueta `v0.1.0`. El formato `.nrv` (contenedor 1, módulo `modelo` 1) se congela con esa etiqueta.
 - Firma de código de los instaladores: pendiente (SignPath Foundation o certificado).
 - **Hitos de GitHub**: se crean al integrar el PR de la hoja de ruta (flujo `.github/workflows/hoja-de-ruta.yml`). Hay que confirmar en Actions que corrió bien.
 - Firma DCO: la firma el usuario o, con su autorización explícita para cada trabajo, el agente en su nombre (AGENTS.md §3.4).

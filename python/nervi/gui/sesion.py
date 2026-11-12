@@ -129,7 +129,7 @@ class Sesion(QObject):
             raise ValueError("falta la ruta del archivo")
         if ruta.suffix.lower() != ".nrv":
             ruta = ruta.with_suffix(".nrv")
-        formato.guardar(self.doc, ruta, copia_bak=self.doc.migrado_desde is not None)
+        formato.guardar(self.doc, ruta, copia_bak=bool(self.doc.migrado_desde))
         self.doc.migrado_desde = None
         self.ruta = ruta
         self.modificado = False
