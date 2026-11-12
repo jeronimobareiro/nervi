@@ -50,7 +50,7 @@ Etiquetas de tamaño: **BPA** = `buen-primer-aporte`, **PA** = `proyecto-academi
 | Issue | Tarea | Tamaño | Área |
 |---|---|---|---|
 | [#2](https://github.com/jeronimobareiro/nervi/issues/2) | Cargas trapezoidales y parciales en barras (hecho) | PA | motor |
-| [#3](https://github.com/jeronimobareiro/nervi/issues/3) | Momentos puntuales en el tramo | BPA | motor |
+| [#3](https://github.com/jeronimobareiro/nervi/issues/3) | Momentos puntuales en el tramo (hecho) | BPA | motor |
 | [#4](https://github.com/jeronimobareiro/nervi/issues/4) | Cargas térmicas (uniforme y gradiente) | PA | motor |
 | [#5](https://github.com/jeronimobareiro/nervi/issues/5) | Biblioteca `verification/` ejecutada en el CI | PA | verificación |
 | [#6](https://github.com/jeronimobareiro/nervi/issues/6) | Ejemplos resueltos de libros como casos de verificación | BPA | verificación |

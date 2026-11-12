@@ -66,6 +66,7 @@ Cualquier número puede escribirse como expresión entre comillas: `+ - * / **`,
 | `uniforme` | `barra`, `qx`, `qy`, `ejes` | En toda la luz |
 | `puntual` | `barra`, `a`, `px`, `py`, `ejes` | A la distancia `a` del nudo i |
 | `trapezoidal` | `barra`, `a`, `b`, `qx1`, `qy1`, `qx2`, `qy2`, `ejes` | Lineal de `a` a `b` (sin `a` = 0, sin `b` = hasta el nudo j) |
+| `momento` | `barra`, `a`, `mz` | Momento concentrado antihorario a la distancia `a` del nudo i |
 | `termica` | `barra`, `alfa`, `dt`, `gradiente`, `h` | `ΔT` uniforme y `T(cara -y) - T(cara +y)` en una sección de canto `h` |
 | `desplazamiento_impuesto` | `nudo`, `ux`, `uy`, `rz` | Asentamiento de un apoyo |
 
@@ -79,8 +80,8 @@ Cualquier número puede escribirse como expresión entre comillas: `+ - * / **`,
 | `reaccion` | `nudo` | `Rx`, `Ry`, `Mz` |
 | `seccion` | `barra` y `x` (distancia desde el nudo i) **o** `extremo = "max"` / `"min"` | `N`, `V`, `M`, `u`, `v` (`u`, `v` en ejes locales) |
 
-- `x` tiene que caer en una estación del diagrama: los extremos de la barra, las `estaciones` equidistantes, los puntos de cargas puntuales, los extremos de las trapezoidales y los de cortante nulo. Si no cae, el ejecutor lo dice; ajustá `estaciones`.
-- Bajo una carga puntual hay dos valores; `lado = "izquierda"` (por defecto) o `lado = "derecha"` elige cuál.
+- `x` tiene que caer en una estación del diagrama: los extremos de la barra, las `estaciones` equidistantes, los puntos de cargas puntuales y momentos, los extremos de las trapezoidales y los de cortante nulo. Si no cae, el ejecutor lo dice; ajustá `estaciones`.
+- Bajo una carga puntual o un momento concentrado hay dos valores; `lado = "izquierda"` (por defecto) o `lado = "derecha"` elige cuál.
 - `extremo` toma el máximo o el mínimo del diagrama de la barra, útil para `M_máx` y flechas máximas.
 - Cada valor esperado puede tener su propia `tolerancia`, `tolerancia_abs` y una `descripcion` que aparece si falla.
 

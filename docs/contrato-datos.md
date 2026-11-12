@@ -24,7 +24,7 @@ Reglas:
 | `despl_impuestos` | float64 | `(n_casos, n_nudos, 3)` | asentamientos; solo se usan en GDL restringidos |
 | `combinaciones` (opcional) | float64 | `(n_comb, n_casos)` | factores de cada combinación lineal de casos |
 
-`cargas_barra`: `tipo` 0 = uniforme en toda la luz (`vx, vy` = `qx, qy`, `a` se ignora), 1 = puntual a la distancia `a` del nudo `i` (`vx, vy` = `px, py`), 2 = trapezoidal entre `a` y `b` (distancias desde el nudo `i`, `0 ≤ a < b ≤ L`), que vale `vx, vy` = `qx1, qy1` en `a` y `vx2, vy2` = `qx2, qy2` en `b`. 3 = térmica en toda la barra: `a` = `α` (coeficiente de dilatación), `vx` = `ΔT` uniforme, `vy` = `ΔT_g` = `T(cara -y) - T(cara +y)`, `b` = `h` (canto; puede ser 0 si `ΔT_g = 0`); `ejes` se ignora. Las columnas que un tipo no usa se ignoran (conviene dejarlas en 0). `ejes` 0 = local, 1 = global.
+`cargas_barra`: `tipo` 0 = uniforme en toda la luz (`vx, vy` = `qx, qy`, `a` se ignora), 1 = puntual a la distancia `a` del nudo `i` (`vx, vy` = `px, py`), 2 = trapezoidal entre `a` y `b` (distancias desde el nudo `i`, `0 ≤ a < b ≤ L`), que vale `vx, vy` = `qx1, qy1` en `a` y `vx2, vy2` = `qx2, qy2` en `b`. 3 = térmica en toda la barra: `a` = `α` (coeficiente de dilatación), `vx` = `ΔT` uniforme, `vy` = `ΔT_g` = `T(cara -y) - T(cara +y)`, `b` = `h` (canto; puede ser 0 si `ΔT_g = 0`); `ejes` se ignora. 4 = momento concentrado a la distancia `a` del nudo `i` (`0 ≤ a ≤ L`): `vx` = `Mz`, antihorario positivo; `ejes` se ignora. Las columnas que un tipo no usa se ignoran (conviene dejarlas en 0). `ejes` 0 = local, 1 = global.
 
 ### Historial de versiones
 
@@ -34,6 +34,7 @@ Reglas:
 | 2 | `cargas_barra` pasa a 10 columnas (`b, vx2, vy2`) y se agrega el tipo 2, carga trapezoidal o uniforme parcial (issue #2). Un arreglo de 7 columnas se rechaza con `ValueError`. |
 | 2 (ampliación compatible) | Argumento opcional `combinaciones` y salida `diagramas_combinaciones` (issue #21). |
 | 2 (ampliación compatible) | Tipo 3, acción térmica (issue #4). No cambia la forma de ningún arreglo: los datos válidos de antes siguen valiendo, por eso no se sube la versión. |
+| 2 (ampliación compatible) | Tipo 4, momento concentrado en el tramo (issue #3). Tampoco cambia la forma de ningún arreglo. |
 
 ## Salida
 

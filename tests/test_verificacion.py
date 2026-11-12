@@ -161,6 +161,8 @@ def construir(caso: dict, p: dict[str, float]) -> nervi.Modelo:
                 g.get("qx2", 0.0),
                 ejes=ejes,
             )
+        elif tipo == "momento":
+            m.carga_momento(nombre, c["barra"], g["a"], g.get("mz", 0.0))
         elif tipo == "termica":
             m.carga_termica(
                 nombre,

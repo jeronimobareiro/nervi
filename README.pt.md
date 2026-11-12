@@ -31,7 +31,7 @@ Veja o [guia de contribuição](CONTRIBUTING.md#contributing-from-other-countrie
 ## O que faz hoje
 
 - Pórticos planos com barras de Euler-Bernoulli (3 graus de liberdade por nó).
-- Cargas nodais e cargas em barras uniformes, concentradas, trapezoidais ou parciais, em eixos locais ou globais; ações térmicas.
+- Cargas nodais e cargas em barras uniformes, concentradas, trapezoidais ou parciais, em eixos locais ou globais; momentos concentrados no vão; ações térmicas.
 - Articulações e liberações de extremidade; treliças.
 - Apoios rígidos e elásticos, e recalques impostos.
 - Vários casos de carga com uma única fatoração, e combinações lineares (combinações e envoltórias da ACI 318-19, experimentais).

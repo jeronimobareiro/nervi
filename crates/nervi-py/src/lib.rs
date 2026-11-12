@@ -226,10 +226,12 @@ fn resolver_portico_2d<'py>(
                 gradiente: v(6),
                 h: v(7),
             }
+        } else if v(2) == 4.0 {
+            TipoCargaBarra::Momento { a: v(4), mz: v(5) }
         } else {
             return Err(PyValueError::new_err(format!(
                 "cargas_barra fila {fila}: tipo {} desconocido \
-                 (0 = uniforme, 1 = puntual, 2 = trapezoidal, 3 = térmica)",
+                 (0 = uniforme, 1 = puntual, 2 = trapezoidal, 3 = térmica, 4 = momento)",
                 v(2)
             )));
         };

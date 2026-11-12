@@ -165,3 +165,30 @@ def test_carga_termica_en_la_tabla(ventana):
     assert tabla.setData(tabla.index(0, cols.index("b")), "0.5")
     assert ventana.sesion.modelo["cargas_barra"][0]["h"] == 0.5
     assert ventana.calcular()
+
+
+def test_carga_momento_en_la_tabla_y_el_inspector(ventana):
+    tabla = ventana.tabs_modelo.widget(5).modelo
+    cols = [c.clave for c in tabla.columnas]
+    assert tabla.setData(tabla.index(0, cols.index("tipo")), "momento")
+    assert not tabla.flags(tabla.index(0, cols.index("qy"))) & Qt.ItemIsEditable
+    assert tabla.setData(tabla.index(0, cols.index("a")), "2")
+    assert tabla.setData(tabla.index(0, cols.index("qx")), "-15")
+    carga = ventana.sesion.modelo["cargas_barra"][0]
+    assert set(carga) == {"caso", "barra", "tipo", "ejes", "a", "mz"}
+    assert carga["a"] == 2.0 and carga["mz"] == -15.0
+    assert ventana.calcular()
+    ventana.sesion.seleccionar(Seleccion("barra", carga["barra"]))
+    assert ventana.lbl_sel.text() == f"B{carga['barra']}"
+
+
+def test_inspector_con_carga_termica(ventana):
+    tabla = ventana.tabs_modelo.widget(5).modelo
+    cols = [c.clave for c in tabla.columnas]
+    assert tabla.setData(tabla.index(0, cols.index("tipo")), "termica")
+    assert tabla.setData(tabla.index(0, cols.index("a")), "1.2e-5")
+    assert tabla.setData(tabla.index(0, cols.index("qy")), "0")
+    carga = ventana.sesion.modelo["cargas_barra"][0]
+    # Antes el inspector buscaba "a" en la carga térmica y fallaba.
+    ventana.sesion.seleccionar(Seleccion("barra", carga["barra"]))
+    assert ventana.lbl_sel.text() == f"B{carga['barra']}"

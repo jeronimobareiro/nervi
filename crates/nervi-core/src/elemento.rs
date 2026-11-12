@@ -29,6 +29,11 @@ pub enum CargaLocal {
         qx2: f64,
         qy2: f64,
     },
+    /// Momento concentrado `mz` (antihorario positivo) a la distancia `a`.
+    Momento {
+        a: f64,
+        mz: f64,
+    },
     /// Deformaciones térmicas libres: axial `eps0` y curvatura `kappa0`
     /// (positiva como la que produce un momento positivo).
     Termica {
@@ -62,9 +67,11 @@ fn intensidad_trapezoidal(a: f64, b: f64, q1: (f64, f64), q2: (f64, f64), x: f64
 }
 
 /// Resultantes de la carga en el tramo `[0, x]` de la barra, para los diagramas:
-/// `(Σ px, Σ py, Σ py·(x - s))`, es decir fuerza axial, fuerza transversal y
-/// momento respecto de la sección `x`. En una carga puntual ubicada exactamente en
-/// `x`, `incluir_en_x` indica si se cuenta (lado derecho del salto).
+/// `(Σ px, Σ py, Σ py·(x - s) - Σ mz)`, es decir fuerza axial, fuerza transversal
+/// y lo que la carga suma al momento flector en la sección `x` (convención de
+/// `docs/convenciones.md`: un momento concentrado antihorario a la izquierda de
+/// `x` resta). En una carga puntual o un momento ubicados exactamente en `x`,
+/// `incluir_en_x` indica si se cuenta (lado derecho del salto).
 pub fn resultantes_hasta(carga: &CargaLocal, x: f64, incluir_en_x: bool) -> (f64, f64, f64) {
     match *carga {
         CargaLocal::Uniforme { qx, qy } => (qx * x, qy * x, 0.5 * qy * x * x),
@@ -95,6 +102,13 @@ pub fn resultantes_hasta(carga: &CargaLocal, x: f64, incluir_en_x: bool) -> (f64
                 r.2 += w * qy * (x - s);
             }
             r
+        }
+        CargaLocal::Momento { a, mz } => {
+            if x > a || (incluir_en_x && x == a) {
+                (0.0, 0.0, -mz)
+            } else {
+                (0.0, 0.0, 0.0)
+            }
         }
         // La acción térmica no aplica fuerzas en el tramo.
         CargaLocal::Termica { .. } => (0.0, 0.0, 0.0),
@@ -210,6 +224,8 @@ pub fn carga_a_local(c: f64, s: f64, carga: &CargaBarra) -> CargaLocal {
                 qy2,
             }
         }
+        // Un momento en el plano no cambia al rotar los ejes.
+        TipoCargaBarra::Momento { a, mz } => CargaLocal::Momento { a, mz },
         TipoCargaBarra::Termica {
             alfa,
             dt,
@@ -235,6 +251,16 @@ pub fn carga_a_local(c: f64, s: f64, carga: &CargaBarra) -> CargaLocal {
 /// §5.5 y §11.1; McGuire, Gallagher y Ziemian, Matrix Structural Analysis,
 /// 2.ª ed., §5.6). Para la barra prismática de Euler-Bernoulli coincide con las
 /// reacciones de empotramiento exactas.
+///
+/// Para el momento concentrado `mz` en `a` el vector consistente es
+/// `F = mz · dN/dx (a)`: el trabajo de un par es `mz·θ(a) = mz·v'(a)`
+/// (Przemieniecki, op. cit., §5.5; Cook, Malkus, Plesha y Witt, Concepts and
+/// Applications of Finite Element Analysis, 4.ª ed., §2.10). Con `ξ = a/L`, los
+/// momentos de empotramiento resultan `mz·(1 - 4ξ + 3ξ²)` y `mz·(3ξ² - 2ξ)` y los
+/// cortantes `∓6·mz·ξ(1 - ξ)/L`, que son las fórmulas cerradas de la viga
+/// biempotrada con momento concentrado (Ghali, Neville y Brown, Structural
+/// Analysis: A Unified Classical and Matrix Approach, 6.ª ed., apéndice D,
+/// caso 4; con `ξ = 1/2`, `M/4` en cada extremo y `3M/(2L)` de cortante).
 ///
 /// Para la acción térmica, la barra biempotrada no puede deformarse, así que
 /// aparecen `N = -EA·ε₀` y `M = -EI·κ₀` constantes y ningún cortante; las cargas
@@ -285,6 +311,18 @@ pub fn cargas_equivalentes(l: f64, ea: f64, ei: f64, carga: &CargaLocal) -> Vec6
                 f[5] += w * qy * l * (-xi2 + xi3);
             }
             f
+        }
+        CargaLocal::Momento { a, mz } => {
+            let xi = a / l;
+            let corte = mz * 6.0 * xi * (1.0 - xi) / l;
+            [
+                0.0,
+                -corte,
+                mz * (1.0 - 4.0 * xi + 3.0 * xi * xi),
+                0.0,
+                corte,
+                mz * (3.0 * xi * xi - 2.0 * xi),
+            ]
         }
         CargaLocal::Termica { eps0, kappa0 } => {
             let (n, m) = (ea * eps0, ei * kappa0);
@@ -354,6 +392,19 @@ pub fn flecha_biempotrada(l: f64, ea: f64, ei: f64, carga: &CargaLocal, x: f64) 
                 }
             }
             (u, v)
+        }
+        CargaLocal::Momento { a, mz } => {
+            // Integración de EI·v'' = M(x) desde el extremo i empotrado (método de
+            // Macaulay): M(x) = -Mi + Vi·x - mz·<x - a>⁰, con Vi y Mi las fuerzas
+            // de extremo en i de la barra biempotrada (las cargas equivalentes
+            // cambiadas de signo). Las condiciones en j se cumplen por construcción.
+            let f = cargas_equivalentes(l, ea, ei, carga);
+            let (vi, mi) = (-f[1], -f[2]);
+            let mut v = -mi * x * x / 2.0 + vi * x * x * x / 6.0;
+            if x > a {
+                v -= mz * (x - a) * (x - a) / 2.0;
+            }
+            (0.0, v / ei)
         }
         // En la barra biempotrada la deformación térmica libre queda impedida por
         // completo: el campo de desplazamientos es nulo (la deformación total es

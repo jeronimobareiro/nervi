@@ -496,6 +496,13 @@ fn equilibrio_global_en_portico_de_varios_pisos() {
                     py: -30.0,
                 },
             });
+        } else {
+            // Momento concentrado en el tramo de cada columna (issue #3).
+            caso.en_barras.push(CargaBarra {
+                barra: b,
+                ejes: Ejes::Local,
+                tipo: TipoCargaBarra::Momento { a: 1.0, mz: 8.0 },
+            });
         }
     }
     for p in 1..4 {
@@ -545,6 +552,7 @@ fn equilibrio_global_en_portico_de_varios_pisos() {
                     }
                 }
             }
+            TipoCargaBarra::Momento { mz, .. } => suma(xi, yi, [0.0, 0.0, mz]),
             TipoCargaBarra::Termica { .. } => {}
         }
     }

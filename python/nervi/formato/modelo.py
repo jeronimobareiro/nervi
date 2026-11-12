@@ -20,7 +20,7 @@ _UNIDADES = {"fuerza": ("N", "kN", "kgf", "tf"), "longitud": ("mm", "cm", "m")}
 
 _CLAVES_NUMERICAS_CARGA = (
     *("a", "b", "qx", "qy", "px", "py", "qx1", "qy1", "qx2", "qy2"),
-    *("alfa", "dt", "gradiente", "h"),
+    *("alfa", "dt", "gradiente", "h", "mz"),
 )
 
 # lista -> (claves obligatorias, claves opcionales numéricas, claves opcionales booleanas)
@@ -50,8 +50,10 @@ _CLAVES_CARGA: dict[str, tuple[str, ...]] = {
     "puntual": ("a", "px", "py"),
     "trapezoidal": ("a", "b", "qx1", "qy1", "qx2", "qy2"),
     "termica": ("alfa", "dt", "gradiente", "h"),
+    "momento": ("a", "mz"),
 }
-_TIPOS_CARGA = ("uniforme", "puntual", "trapezoidal", "termica")  # índice = tipo del contrato v2
+# índice = tipo del contrato v2
+_TIPOS_CARGA = ("uniforme", "puntual", "trapezoidal", "termica", "momento")
 _CLAVES_CARGA_TODAS = (
     "a",
     "b",
@@ -67,6 +69,7 @@ _CLAVES_CARGA_TODAS = (
     "dt",
     "gradiente",
     "h",
+    "mz",
 )
 
 
@@ -214,7 +217,8 @@ def validar(modelo: object) -> None:
         ruta = f"cargas_barra[{k}]"
         if c["tipo"] not in _CLAVES_CARGA:
             raise _err(
-                f"= {c['tipo']!r}: tiene que ser 'uniforme', 'puntual', 'trapezoidal' o 'termica'",
+                f"= {c['tipo']!r}: tiene que ser 'uniforme', 'puntual', 'trapezoidal', "
+                "'termica' o 'momento'",
                 f"{ruta}.tipo",
             )
         if c["ejes"] not in ("local", "global"):
@@ -224,9 +228,9 @@ def validar(modelo: object) -> None:
         if sobran:
             raise _err(f"una carga {c['tipo']} usa {_lista(permitidas)}, no {_lista(sobran)}", ruta)
         largo = longitudes[c["barra"]]
-        if c["tipo"] == "puntual":
+        if c["tipo"] in ("puntual", "momento"):
             if "a" not in c:
-                raise _err("una carga puntual necesita 'a'", ruta)
+                raise _err(f"una carga {c['tipo']} necesita 'a'", ruta)
             if not 0 <= c["a"] <= largo:
                 raise _err(
                     f"= {c['a']}: tiene que estar entre 0 y la longitud de la barra ({largo:g})",
@@ -337,6 +341,8 @@ def construir_modelo(modelo: dict) -> tuple[Modelo, Indices]:
                 qx2=c.get("qx2", 0.0),
                 ejes=c["ejes"],
             )
+        elif c["tipo"] == "momento":
+            m.carga_momento(caso, barra, c["a"], c.get("mz", 0.0))
         elif c["tipo"] == "termica":
             m.carga_termica(
                 caso,
@@ -405,6 +411,8 @@ def desde_modelo(
             carga.update(qx=float(vx), qy=float(vy))
         elif tipo == 1:
             carga.update(a=float(a), px=float(vx), py=float(vy))
+        elif tipo == 4:
+            carga.update(a=float(a), mz=float(vx))
         elif tipo == 3:
             carga.update(alfa=float(a), dt=float(vx), gradiente=float(vy))
             if b > 0:

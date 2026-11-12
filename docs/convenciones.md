@@ -23,6 +23,7 @@ El motor no impone unidades: hay que usar un sistema **consistente**. Recomendad
   - Uniforme en toda la luz `(qx, qy)`. En ejes globales se entiende **por unidad de longitud de barra** (no proyectada). Para una carga de nieve o de cubierta dada por metro de proyección horizontal, multiplicar por `cos α` antes de cargarla.
   - Puntual `(px, py)` a la distancia `a` del nudo `i`.
   - Trapezoidal entre `a` y `b` (`0 ≤ a < b ≤ L`): vale `(qx1, qy1)` en `a` y `(qx2, qy2)` en `b` y varía linealmente entre ambos. Con intensidades iguales es una uniforme parcial; con `a = 0`, `b = L` y `q1 = 0`, una triangular. En ejes globales vale lo mismo que para la uniforme (por unidad de longitud de barra).
+  - Momento concentrado `Mz` (antihorario positivo, igual que los momentos nodales) a la distancia `a` del nudo `i`, con `0 ≤ a ≤ L`. Es el mismo en ejes locales y globales. Con `a = 0` o `a = L` equivale a un momento nodal en el nudo de ese extremo de la barra.
   - Térmica en toda la barra: variación uniforme `ΔT` y diferencia `ΔT_g = T(cara -y) - T(cara +y)` entre caras de una sección de canto `h`, con coeficiente de dilatación `α`. Deformaciones libres `ε₀ = α·ΔT` y `κ₀ = α·ΔT_g/h`. Con `ΔT_g > 0` la cara `-y` (abajo en una viga de izquierda a derecha) está más caliente y la barra se curva como con momento positivo. Las cargas equivalentes son `[-EAε₀, 0, -EIκ₀, EAε₀, 0, EIκ₀]` (ejes locales) y no hay fuerzas en el tramo, así que los diagramas `N, V, M` muestran solo los esfuerzos mecánicos; una barra libre de deformarse queda sin esfuerzos.
 - Una carga gravitatoria en una viga horizontal es `qy < 0`.
 
@@ -43,6 +44,8 @@ M(x) = -f3 + f2·x + qy·x²/2
 ```
 
 Con una carga puntual en `a`, para `x > a` se suman `-px`, `+py` y `+py·(x - a)` respectivamente. En `x = a` los diagramas tienen dos estaciones (izquierda y derecha del salto).
+
+Con un momento concentrado `Mz` en `a`, para `x > a` se suma `-Mz` al momento flector: un par antihorario a la izquierda del corte resta, igual que el momento de extremo `f3`. El diagrama de `M` salta en `-Mz` en `a` (dos estaciones, como bajo una carga puntual) y `N` y `V` no cambian. Las cargas equivalentes son `Mz·dN/dx(a)` con las funciones de Hermite: con `ξ = a/L`, `[0, -6Mz·ξ(1-ξ)/L, Mz·(1 - 4ξ + 3ξ²), 0, 6Mz·ξ(1-ξ)/L, Mz·(3ξ² - 2ξ)]`.
 
 Con una carga trapezoidal se suman las resultantes de la parte de la carga que está en `[a, min(x, b)]`: `-∫qx ds`, `+∫qy ds` y `+∫qy·(x - s) ds`. Los diagramas tienen estaciones en `a` y en `b`, y como entre ellos `V` es cuadrático el punto de cortante nulo (momento extremo) se calcula exactamente.
 

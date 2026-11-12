@@ -46,7 +46,7 @@ O Nervi analisa pórticos pelo método dos elementos finitos e mostra reações,
 ## O que faz hoje
 
 - **Pórticos planos** com barras, rótulas, treliças, apoios fixos ou elásticos e recalques.
-- **Cargas** em nós e em barras: uniformes, pontuais e trapezoidais ou parciais.
+- **Cargas** em nós e em barras: uniformes, pontuais, trapezoidais ou parciais e momentos concentrados no vão.
 - **Casos e combinações** de carga, por exemplo 1.2D + 1.6L.
 - **Resultados**: reações, diagramas de esforço normal, cortante e momento, e a deformada. Ao passar o cursor sobre uma barra, os valores naquele ponto aparecem.
 - **Interface de desktop** em uma única janela, com tabelas para montar o modelo, ou uso a partir do Python para quem programa.

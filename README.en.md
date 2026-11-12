@@ -31,7 +31,7 @@ See the [contributing guide](CONTRIBUTING.md#contributing-from-other-countries).
 ## What it does today
 
 - Plane frames with Euler-Bernoulli members (3 DOF per node).
-- Nodal loads and uniform, point, trapezoidal or partial member loads, in local or global axes; thermal loads.
+- Nodal loads and uniform, point, trapezoidal or partial member loads, in local or global axes; concentrated moments within a member; thermal loads.
 - Hinges and end releases; trusses.
 - Rigid and elastic supports, and prescribed settlements.
 - Several load cases with a single factorization, and linear combinations (ACI 318-19 combinations and envelopes, experimental).

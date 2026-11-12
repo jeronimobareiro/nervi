@@ -20,7 +20,7 @@ Documentación: **[jeronimobareiro.github.io/nervi](https://jeronimobareiro.gith
 ## Qué hace hoy
 
 - Pórticos planos con barras Euler-Bernoulli (3 GDL por nudo).
-- Cargas nodales, uniformes, puntuales y trapezoidales o parciales en barras, en ejes locales o globales.
+- Cargas nodales, uniformes, puntuales y trapezoidales o parciales en barras, en ejes locales o globales, y momentos concentrados en el tramo.
 - Articulaciones y liberaciones de extremo; cerchas.
 - Apoyos rígidos, apoyos elásticos y asentamientos impuestos.
 - Varios casos de carga con una sola factorización, y combinaciones lineales.
@@ -96,8 +96,8 @@ Cada caso de `crates/nervi-core/tests/verificacion.rs` compara contra una fórmu
 
 ## Pendiente de la Fase 1
 
-- Momentos puntuales en el tramo.
-- Cargas térmicas.
+- Ejemplos resueltos de libros en `verification/` ([#6](https://github.com/jeronimobareiro/nervi/issues/6)).
+- Material didáctico para usar Nervi en clase ([#10](https://github.com/jeronimobareiro/nervi/issues/10)).
 
 ## Contribuir
 

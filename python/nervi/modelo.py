@@ -182,6 +182,19 @@ class Modelo:
             (self._indice_caso(caso), barra, 3, 0, alfa, dt, gradiente, canto, 0.0, 0.0)
         )
 
+    def carga_momento(
+        self,
+        caso: str | int,
+        barra: int,
+        a: float,
+        mz: float,
+    ) -> None:
+        """Momento concentrado ``mz`` a la distancia ``a`` del nudo i
+        (``0 <= a <= L``), antihorario positivo como los momentos nodales. Es el
+        mismo en ejes locales y globales. El diagrama de momentos salta en ``a``
+        en ``-mz`` (ver ``docs/convenciones.md``)."""
+        self._cargas_barra.append((self._indice_caso(caso), barra, 4, 0, a, mz, 0.0, 0.0, 0.0, 0.0))
+
     def desplazamiento_impuesto(
         self, caso: str | int, nudo: int, ux: float = 0.0, uy: float = 0.0, rz: float = 0.0
     ) -> None:

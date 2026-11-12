@@ -461,7 +461,7 @@ impl Resultados {
             }
             for carga in &self.casos[c].cargas_locales[barra] {
                 match *carga {
-                    CargaLocal::Puntual { a, .. } => {
+                    CargaLocal::Puntual { a, .. } | CargaLocal::Momento { a, .. } => {
                         xs.push((a, false));
                         xs.push((a, true));
                         quiebres.push(a);
