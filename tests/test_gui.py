@@ -72,6 +72,39 @@ def test_mecanismo_avisa_sin_romper(ventana):
     ventana.sesion.editar(modelo)
     assert not ventana.calcular()
     assert ventana.panel_inferior.currentWidget() is ventana.revision
+    # Sin apoyos todos los nudos se mueven; el motor señala uno y la vista lo marca.
+    ines = ventana.sesion.inestabilidad
+    assert ines is not None and ines.nudo in {n["id"] for n in modelo["nudos"]}
+    assert ventana.sesion.seleccion == Seleccion("nudo", ines.nudo)
+    ventana.vista.grab()
+    # Al editar el modelo la marca desaparece.
+    ventana.sesion.editar(ventana.sesion.copia_modelo())
+    assert ventana.sesion.inestabilidad is None
+
+
+def test_mecanismo_marca_el_nudo_con_su_id(ventana):
+    # Viga articulada en el centro: los id no coinciden con los índices del motor.
+    modelo = ventana.sesion.copia_modelo()
+    modelo["nudos"] = [
+        {"id": 10, "x": 0.0, "y": 0.0},
+        {"id": 20, "x": 3.0, "y": 0.0},
+        {"id": 30, "x": 6.0, "y": 0.0},
+    ]
+    barra = dict(modelo["barras"][0])
+    modelo["barras"] = [
+        {**barra, "id": 1, "i": 10, "j": 20, "liberaciones": [False] * 5 + [True]},
+        {**barra, "id": 2, "i": 20, "j": 30, "liberaciones": [False, False, True] + [False] * 3},
+    ]
+    modelo["apoyos"] = [{"nudo": 10, "ux": True, "uy": True}, {"nudo": 30, "uy": True}]
+    modelo["cargas_nodales"] = [{"caso": 1, "nudo": 20, "fy": -10.0}]
+    modelo["cargas_barra"] = []
+    modelo["desplazamientos_impuestos"] = []
+    ventana.sesion.editar(modelo)
+    assert not ventana.calcular()
+    ines = ventana.sesion.inestabilidad
+    assert (ines.nudo, ines.gdl) == (20, "uy")
+    assert ines.nudos == {10, 20, 30}
+    assert "N20 se puede mover en uy" in ventana.sesion.avisos[0].texto
 
 
 def test_guardar_y_abrir(ventana, tmp_path):

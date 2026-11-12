@@ -591,7 +591,10 @@ class Ventana(QMainWindow):
             self._error_calculo(f"El modelo tiene un error: {e}")
             return False
         except MecanismoError as e:
-            self._error_calculo(f"La estructura es inestable (mecanismo): {e}")
+            # El mensaje del motor usa índices internos; la sesión lo traduce a los
+            # id de los nudos que ve el usuario.
+            ines = self.sesion.inestabilidad
+            self._error_calculo(ines.texto() if ines else f"La estructura es inestable: {e}")
             return False
         except ValueError as e:
             self._error_calculo(str(e))
