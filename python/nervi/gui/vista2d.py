@@ -132,6 +132,7 @@ class Vista2D(QWidget):
         p.setFont(QFont(self.font().family(), 8))
         nudos = self._nudos()
         apoyos = {a["nudo"]: a for a in self.sesion.modelo.get("apoyos", [])}
+        self._inestabilidad(p, a_pantalla, nudos)
         for nid, (x, y) in nudos.items():
             q = a_pantalla(x, y)
             if nid in apoyos:
@@ -143,6 +144,25 @@ class Vista2D(QWidget):
             p.setPen(QColor(estilo.TEXTO_3))
             p.drawText(q + QPointF(8, -8), f"N{nid}")
         p.setBrush(Qt.NoBrush)
+
+    def _inestabilidad(self, p: QPainter, a_pantalla, nudos: dict) -> None:
+        """Marca en rojo los nudos del mecanismo y, con un aro y una etiqueta, el
+        nudo y el GDL que se mueven sin rigidez."""
+        ines = self.sesion.inestabilidad
+        if ines is None:
+            return
+        color = QColor(estilo.NEGATIVO)
+        p.setBrush(Qt.NoBrush)
+        for nid in ines.nudos:
+            if nid in nudos and nid != ines.nudo:
+                q = a_pantalla(*nudos[nid])
+                p.setPen(QPen(color, 1.5, Qt.DashLine))
+                p.drawEllipse(q, 9.0, 9.0)
+        if ines.nudo in nudos:
+            q = a_pantalla(*nudos[ines.nudo])
+            p.setPen(QPen(color, 2.5))
+            p.drawEllipse(q, 13.0, 13.0)
+            p.drawText(q + QPointF(16, 18), f"inestable en {ines.gdl}")
 
     def _apoyo(self, p: QPainter, q: QPointF, apoyo: dict) -> None:
         p.setPen(QPen(QColor(estilo.TEXTO_2), 1.5))

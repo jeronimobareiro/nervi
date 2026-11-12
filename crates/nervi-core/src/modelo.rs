@@ -74,6 +74,9 @@ pub enum TipoCargaBarra {
         qx2: f64,
         qy2: f64,
     },
+    /// Momento concentrado `mz` (antihorario positivo) a la distancia `a` del nudo
+    /// `i`, con `0 <= a <= L`. Es el mismo en ejes locales y globales.
+    Momento { a: f64, mz: f64 },
     /// Acción térmica en toda la barra (ejes ignorados): variación uniforme de
     /// temperatura `dt` y diferencia `gradiente = T(cara -y) - T(cara +y)` entre
     /// las caras de una sección de canto `h`, con coeficiente de dilatación
@@ -310,6 +313,15 @@ impl Modelo {
                             ));
                         }
                         vec![qx1, qy1, qx2, qy2]
+                    }
+                    TipoCargaBarra::Momento { a, mz } => {
+                        if !(a.is_finite() && a >= 0.0 && a <= l * (1.0 + 1e-12)) {
+                            return inv(format!(
+                                "caso {c}: momento en la barra {} fuera de la luz (a = {a}, L = {l})",
+                                cb.barra
+                            ));
+                        }
+                        vec![mz]
                     }
                     TipoCargaBarra::Termica {
                         alfa,

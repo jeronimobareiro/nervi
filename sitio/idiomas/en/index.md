@@ -46,7 +46,7 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 ## What it does today
 
 - **Plane frames** with members, hinges, trusses, fixed or elastic supports and support settlements.
-- **Loads** on nodes and members: uniform, point, and trapezoidal or partial.
+- **Loads** on nodes and members: uniform, point, trapezoidal or partial, and concentrated moments within a member.
 - **Load cases and combinations**, for example 1.2D + 1.6L.
 - **Results**: reactions, axial force, shear and moment diagrams, and the deformed shape. Hovering over a member shows the values at that point.
 - **Desktop interface** in a single window, with tables to enter the model, or use from Python for those who program.

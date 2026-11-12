@@ -1,0 +1,77 @@
+titulo = "Viga biempotrada con momento concentrado en el tramo"
+fuente = "Ghali, Neville y Brown, Structural Analysis: A Unified Classical and Matrix Approach, 6.ª ed., apéndice D (viga empotrada con par concentrado); flecha por integración de EI v'' = M"
+descripcion = "R_A = 6·M0·a·b/L³, M_A = -M0·b·(b - 2a)/L², M_B = -M0·a·(a - 2b)/L², v(a) = M0·a²·b²·(b - a)/(2EI·L³); salto de M igual a -M0 en a"
+unidades = "kN, m"
+
+[parametros]
+E = 2.0e8
+A = 0.01
+I = 1.0e-4
+L = 6.0
+M0 = 30.0
+a = 2.0
+b = "L - a"
+
+[modelo]
+nudos = [[0, 0], ["L", 0]]
+barras = [{ i = 0, j = 1, E = "E", A = "A", I = "I" }]
+apoyos = [
+    { nudo = 0, ux = true, uy = true, rz = true },
+    { nudo = 1, ux = true, uy = true, rz = true },
+]
+
+[[cargas]]
+caso = "M"
+tipo = "momento"
+barra = 0
+a = "a"
+mz = "M0"
+
+[[esperado]]
+caso = "M"
+que = "reaccion"
+nudo = 0
+componente = "Ry"
+valor = "6*M0*a*b/L**3"
+
+[[esperado]]
+caso = "M"
+que = "reaccion"
+nudo = 0
+componente = "Mz"
+valor = "-M0*b*(b - 2*a)/L**2"
+
+[[esperado]]
+caso = "M"
+que = "reaccion"
+nudo = 1
+componente = "Mz"
+valor = "-M0*a*(a - 2*b)/L**2"
+
+[[esperado]]
+caso = "M"
+que = "seccion"
+barra = 0
+x = "a"
+componente = "v"
+valor = "M0*a**2*b**2*(b - a)/(2*E*I*L**3)"
+
+[[esperado]]
+descripcion = "M a la izquierda del par: -M_A + R_A·a"
+caso = "M"
+que = "seccion"
+barra = 0
+x = "a"
+lado = "izquierda"
+componente = "M"
+valor = "M0*b*(b - 2*a)/L**2 + 6*M0*a**2*b/L**3"
+
+[[esperado]]
+descripcion = "M a la derecha del par: salta en -M0"
+caso = "M"
+que = "seccion"
+barra = 0
+x = "a"
+lado = "derecha"
+componente = "M"
+valor = "M0*b*(b - 2*a)/L**2 + 6*M0*a**2*b/L**3 - M0"

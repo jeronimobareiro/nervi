@@ -117,7 +117,7 @@
         "properties": {
           "caso": {"$ref": "#/$defs/id"},
           "barra": {"$ref": "#/$defs/id"},
-          "tipo": {"enum": ["uniforme", "puntual", "trapezoidal", "termica"]},
+          "tipo": {"enum": ["uniforme", "puntual", "trapezoidal", "termica", "momento"]},
           "ejes": {"enum": ["local", "global"]},
           "a": {"type": "number", "minimum": 0},
           "qx": {"type": "number"},
@@ -132,7 +132,8 @@
           "alfa": {"type": "number"},
           "dt": {"type": "number"},
           "gradiente": {"type": "number"},
-          "h": {"type": "number", "exclusiveMinimum": 0}
+          "h": {"type": "number", "exclusiveMinimum": 0},
+          "mz": {"type": "number"}
         },
         "allOf": [
           {
@@ -150,6 +151,13 @@
           {
             "if": {"properties": {"tipo": {"const": "trapezoidal"}}},
             "then": {"propertyNames": {"enum": ["caso", "barra", "tipo", "ejes", "a", "b", "qx1", "qy1", "qx2", "qy2"]}}
+          },
+          {
+            "if": {"properties": {"tipo": {"const": "momento"}}},
+            "then": {
+              "required": ["a"],
+              "propertyNames": {"enum": ["caso", "barra", "tipo", "ejes", "a", "mz"]}
+            }
           },
           {
             "if": {"properties": {"tipo": {"const": "termica"}}},

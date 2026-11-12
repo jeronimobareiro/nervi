@@ -464,6 +464,13 @@ class Ventana(QMainWindow):
                         f"q = {_num(c.get('qy1', 0.0))} → {_num(c.get('qy2', 0.0))} {f}/{l} "
                         f"en [{c.get('a', 0.0):g}, {fin}] ({c['ejes']})"
                     )
+                elif c["tipo"] == "momento":
+                    texto = f"M = {_num(c.get('mz', 0.0))} {f}·{l} en a = {c['a']:g}"
+                elif c["tipo"] == "termica":
+                    texto = (
+                        f"ΔT = {_num(c.get('dt', 0.0))}, ΔTg = {_num(c.get('gradiente', 0.0))} "
+                        f"(α = {c['alfa']:g})"
+                    )
                 else:
                     texto = f"P = {_num(c.get('py', 0.0))} {f} en a = {c['a']:g} ({c['ejes']})"
                 self.form.addRow(casos.get(c["caso"], "?"), _valor(texto))
@@ -584,7 +591,10 @@ class Ventana(QMainWindow):
             self._error_calculo(f"El modelo tiene un error: {e}")
             return False
         except MecanismoError as e:
-            self._error_calculo(f"La estructura es inestable (mecanismo): {e}")
+            # El mensaje del motor usa índices internos; la sesión lo traduce a los
+            # id de los nudos que ve el usuario.
+            ines = self.sesion.inestabilidad
+            self._error_calculo(ines.texto() if ines else f"La estructura es inestable: {e}")
             return False
         except ValueError as e:
             self._error_calculo(str(e))

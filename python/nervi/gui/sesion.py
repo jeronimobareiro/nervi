@@ -24,6 +24,32 @@ class Seleccion:
     id: int
 
 
+@dataclass(frozen=True)
+class Inestabilidad:
+    """Dónde es inestable el modelo, con los ``id`` de ``modelo.json``.
+
+    ``nudo`` y ``gdl`` son el nudo y el grado de libertad que se mueven sin
+    rigidez (``None`` si el motor no pudo localizarlo) y ``nudos`` todos los
+    nudos que se mueven en los modos de mecanismo (issue #9).
+    """
+
+    nudo: int | None
+    gdl: str | None
+    nudos: frozenset[int]
+
+    def texto(self) -> str:
+        if self.nudo is None:
+            return "Estructura inestable (mecanismo): revisá apoyos y articulaciones."
+        texto = (
+            f"Estructura inestable: N{self.nudo} se puede mover en {self.gdl} "
+            "sin que nada lo impida"
+        )
+        otros = sorted(self.nudos - {self.nudo})
+        if otros:
+            texto += " (también se mueven " + ", ".join(f"N{n}" for n in otros) + ")"
+        return texto + "."
+
+
 @dataclass
 class Aviso:
     nivel: str  # "ok", "info", "error"
@@ -77,6 +103,7 @@ class Sesion(QObject):
         self.combinacion = ""
         self.seleccion: Seleccion | None = None
         self.avisos: list[Aviso] = []
+        self.inestabilidad: Inestabilidad | None = None
         self.revisar()
 
     # --- Archivo ---------------------------------------------------------------
@@ -115,6 +142,7 @@ class Sesion(QObject):
         self.al_dia = False
         self.combinacion = ""
         self.seleccion = None
+        self.inestabilidad = None
         self.revisar()
         self.archivo_cambiado.emit()
         self.modelo_cambiado.emit()
@@ -132,6 +160,7 @@ class Sesion(QObject):
         self.doc.modelo = nuevo_modelo
         self.modificado = True
         self.al_dia = False
+        self.inestabilidad = None
         self.revisar()
         self.archivo_cambiado.emit()
         self.modelo_cambiado.emit()
@@ -195,9 +224,13 @@ class Sesion(QObject):
             modelo, indices = formato.construir_modelo(self.modelo)
             resultados = modelo.resolver()
         except MecanismoError as e:
-            self.avisos = [Aviso("error", f"Estructura inestable: {e}")]
+            self.inestabilidad = _inestabilidad(e, indices)
+            self.avisos = [Aviso("error", self.inestabilidad.texto())]
             self.resultados_cambiados.emit()
+            if self.inestabilidad.nudo is not None:
+                self.seleccionar(Seleccion("nudo", self.inestabilidad.nudo))
             raise
+        self.inestabilidad = None
         self.resultados = resultados
         self.indices = indices
         self.al_dia = True
@@ -226,3 +259,20 @@ class Sesion(QObject):
         if nombre != self.combinacion:
             self.combinacion = nombre
             self.resultados_cambiados.emit()
+
+
+def _inestabilidad(e: MecanismoError, indices: formato.modelo.Indices) -> Inestabilidad:
+    """Traduce los índices del motor que trae ``MecanismoError`` a ``id`` de nudos."""
+    a_id = {k: i for i, k in indices.nudos.items()}
+    nudo = getattr(e, "nudo", None)
+    nudos = {
+        a_id[n] for modo in (getattr(e, "modos", None) or []) for n, _g, _v in modo if n in a_id
+    }
+    if nudo is not None and nudo in a_id:
+        nudo = a_id[nudo]
+        nudos.add(nudo)
+    else:
+        nudo = None
+    return Inestabilidad(
+        nudo, getattr(e, "gdl", None) if nudo is not None else None, frozenset(nudos)
+    )

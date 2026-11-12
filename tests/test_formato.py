@@ -243,3 +243,32 @@ def test_carga_termica_invalida():
         d["cargas_barra"] = [carga]
         with pytest.raises(formato.FormatoError, match=motivo):
             formato.validar(d)
+
+
+def test_carga_momento_ida_y_vuelta(tmp_path):
+    """Tipo 4 del contrato: se guarda como "momento" y da los mismos resultados."""
+    m = _portico()
+    m.carga_momento("W", 1, a=2.0, mz=-8.0)
+    doc = formato.Documento.nuevo()
+    doc.modelo = formato.desde_modelo(m)
+    momentos = [c for c in doc.modelo["cargas_barra"] if c["tipo"] == "momento"]
+    assert momentos == [
+        {"caso": 3, "barra": 2, "tipo": "momento", "ejes": "local", "a": 2.0, "mz": -8.0}
+    ]
+    ruta = _guardar(tmp_path, doc)
+    m2, _ = formato.construir_modelo(formato.abrir(ruta).modelo)
+    r1, r2 = m.resolver()["W"], m2.resolver()["W"]
+    np.testing.assert_allclose(r2.reacciones, r1.reacciones, rtol=1e-12, atol=1e-9)
+
+
+def test_carga_momento_invalida():
+    d = formato.desde_modelo(_portico())
+    base = {"caso": 1, "barra": 1, "tipo": "momento", "ejes": "local"}
+    for carga, motivo in (
+        ({**base, "mz": 5.0}, "necesita 'a'"),
+        ({**base, "a": 9.0, "mz": 5.0}, "entre 0 y la longitud"),
+        ({**base, "a": 1.0, "py": 1.0}, "momento usa"),
+    ):
+        d["cargas_barra"] = [carga]
+        with pytest.raises(formato.FormatoError, match=motivo):
+            formato.validar(d)

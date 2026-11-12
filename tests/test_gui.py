@@ -72,6 +72,39 @@ def test_mecanismo_avisa_sin_romper(ventana):
     ventana.sesion.editar(modelo)
     assert not ventana.calcular()
     assert ventana.panel_inferior.currentWidget() is ventana.revision
+    # Sin apoyos todos los nudos se mueven; el motor señala uno y la vista lo marca.
+    ines = ventana.sesion.inestabilidad
+    assert ines is not None and ines.nudo in {n["id"] for n in modelo["nudos"]}
+    assert ventana.sesion.seleccion == Seleccion("nudo", ines.nudo)
+    ventana.vista.grab()
+    # Al editar el modelo la marca desaparece.
+    ventana.sesion.editar(ventana.sesion.copia_modelo())
+    assert ventana.sesion.inestabilidad is None
+
+
+def test_mecanismo_marca_el_nudo_con_su_id(ventana):
+    # Viga articulada en el centro: los id no coinciden con los índices del motor.
+    modelo = ventana.sesion.copia_modelo()
+    modelo["nudos"] = [
+        {"id": 10, "x": 0.0, "y": 0.0},
+        {"id": 20, "x": 3.0, "y": 0.0},
+        {"id": 30, "x": 6.0, "y": 0.0},
+    ]
+    barra = dict(modelo["barras"][0])
+    modelo["barras"] = [
+        {**barra, "id": 1, "i": 10, "j": 20, "liberaciones": [False] * 5 + [True]},
+        {**barra, "id": 2, "i": 20, "j": 30, "liberaciones": [False, False, True] + [False] * 3},
+    ]
+    modelo["apoyos"] = [{"nudo": 10, "ux": True, "uy": True}, {"nudo": 30, "uy": True}]
+    modelo["cargas_nodales"] = [{"caso": 1, "nudo": 20, "fy": -10.0}]
+    modelo["cargas_barra"] = []
+    modelo["desplazamientos_impuestos"] = []
+    ventana.sesion.editar(modelo)
+    assert not ventana.calcular()
+    ines = ventana.sesion.inestabilidad
+    assert (ines.nudo, ines.gdl) == (20, "uy")
+    assert ines.nudos == {10, 20, 30}
+    assert "N20 se puede mover en uy" in ventana.sesion.avisos[0].texto
 
 
 def test_guardar_y_abrir(ventana, tmp_path):
@@ -165,3 +198,30 @@ def test_carga_termica_en_la_tabla(ventana):
     assert tabla.setData(tabla.index(0, cols.index("b")), "0.5")
     assert ventana.sesion.modelo["cargas_barra"][0]["h"] == 0.5
     assert ventana.calcular()
+
+
+def test_carga_momento_en_la_tabla_y_el_inspector(ventana):
+    tabla = ventana.tabs_modelo.widget(5).modelo
+    cols = [c.clave for c in tabla.columnas]
+    assert tabla.setData(tabla.index(0, cols.index("tipo")), "momento")
+    assert not tabla.flags(tabla.index(0, cols.index("qy"))) & Qt.ItemIsEditable
+    assert tabla.setData(tabla.index(0, cols.index("a")), "2")
+    assert tabla.setData(tabla.index(0, cols.index("qx")), "-15")
+    carga = ventana.sesion.modelo["cargas_barra"][0]
+    assert set(carga) == {"caso", "barra", "tipo", "ejes", "a", "mz"}
+    assert carga["a"] == 2.0 and carga["mz"] == -15.0
+    assert ventana.calcular()
+    ventana.sesion.seleccionar(Seleccion("barra", carga["barra"]))
+    assert ventana.lbl_sel.text() == f"B{carga['barra']}"
+
+
+def test_inspector_con_carga_termica(ventana):
+    tabla = ventana.tabs_modelo.widget(5).modelo
+    cols = [c.clave for c in tabla.columnas]
+    assert tabla.setData(tabla.index(0, cols.index("tipo")), "termica")
+    assert tabla.setData(tabla.index(0, cols.index("a")), "1.2e-5")
+    assert tabla.setData(tabla.index(0, cols.index("qy")), "0")
+    carga = ventana.sesion.modelo["cargas_barra"][0]
+    # Antes el inspector buscaba "a" en la carga térmica y fallaba.
+    ventana.sesion.seleccionar(Seleccion("barra", carga["barra"]))
+    assert ventana.lbl_sel.text() == f"B{carga['barra']}"

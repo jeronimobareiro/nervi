@@ -60,6 +60,7 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | carga puntual (`carga_puntual`) | point load | carga concentrada | сосредоточенная сила |
 | carga trapezoidal (`carga_trapezoidal`) | trapezoidal load | carga trapezoidal | трапециевидная нагрузка |
 | carga parcial (`carga_parcial`) | partial load | carga parcial | нагрузка на части пролёта |
+| momento concentrado (`carga_momento`) | concentrated moment | momento concentrado | сосредоточенный момент |
 | carga térmica (`carga_termica`) | thermal load | ação térmica | температурное воздействие |
 | caso de carga (`caso`, `CasoCarga`) | load case | caso de carga | загружение |
 | combinación (`combinar`, `Combinacion`) | load combination | combinação de ações | сочетание нагрузок |

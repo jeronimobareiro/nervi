@@ -79,13 +79,13 @@ LISTAS: dict[str, tuple[str, tuple[Columna, ...]]] = {
                 "tipo",
                 "Tipo",
                 "opcion",
-                ("uniforme", "puntual", "trapezoidal", "termica"),
+                ("uniforme", "puntual", "trapezoidal", "termica", "momento"),
                 "uniforme",
             ),
             Columna("ejes", "Ejes", "opcion", ("local", "global"), "local"),
             Columna("a", "a / α"),
             Columna("b", "b (vacío = L) / h"),
-            Columna("qx", "qx / px / qx1 / ΔT"),
+            Columna("qx", "qx / px / qx1 / ΔT / Mz"),
             Columna("qy", "qy / py / qy1 / ΔTg"),
             Columna("qx2", "qx2"),
             Columna("qy2", "qy2"),
@@ -115,6 +115,8 @@ _CLAVES_CARGA: dict[str, dict[str, str]] = {
     "trapezoidal": {"a": "a", "b": "b", "qx": "qx1", "qy": "qy1", "qx2": "qx2", "qy2": "qy2"},
     # dt uniforme y gradiente = T(cara -y) - T(cara +y); alfa: coef. de dilatación; h: canto.
     "termica": {"a": "alfa", "b": "h", "qx": "dt", "qy": "gradiente"},
+    # Momento concentrado antihorario Mz a la distancia a del nudo i.
+    "momento": {"a": "a", "qx": "mz"},
 }
 _COLUMNAS_CARGA = ("a", "b", "qx", "qy", "qx2", "qy2")
 
