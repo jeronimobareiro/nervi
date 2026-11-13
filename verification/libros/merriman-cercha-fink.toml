@@ -1,0 +1,141 @@
+titulo = "Cercha de techo tipo Fink por el método de los momentos (Merriman y Jacoby, art. 5)"
+fuente = "Merriman y Jacoby, A Text-Book on Roofs and Bridges, Part I: Stresses in Simple Trusses, 6.ª ed., 1907, art. 5, pp. 10-12, fig. 5"
+descripcion = "Luz 36 pies, flecha 14 pies; 2000 lb en cada apoyo y 4000 lb en el centro de cada par y en la cumbrera; montante normal al par en su punto medio."
+unidades = "lb, pies"
+# El libro redondea los esfuerzos a 5 o 10 libras (3 o 4 cifras): la mayor
+# diferencia con el valor exacto es 8e-4 (3160 contra 3157,4), de ahí la tolerancia.
+tolerancia = 1e-3
+
+[referencia]
+libro = "Merriman, M. y Jacoby, H. S., A Text-Book on Roofs and Bridges, Part I: Stresses in Simple Trusses"
+edicion = "6.ª, John Wiley & Sons, 1907"
+seccion = "cap. I, art. 5, método de los momentos"
+datos = "libro"
+pagina = "10-12"
+ejemplo = "art. 5, fig. 5"
+derechos = "dominio público: publicado en 1907 y autores fallecidos en 1925 (Merriman) y 1955 (Jacoby)"
+consulta = "https://archive.org/details/textbookonroofsb0000mans_p2v0"
+
+[parametros]
+E = 4.32e9      # lb/pie² (30 000 ksi); la cercha es isostática y los axiles no dependen de E ni de A
+A = 0.1
+I = 1.0e-3
+# Pie del montante normal al par trazado desde su punto medio (9, 7).
+xa = "9 + 7*14/18"
+
+[modelo]
+# 0: apoyo izquierdo, 1: centro del par izquierdo, 2: cumbrera, 3: centro del par derecho,
+# 4: apoyo derecho, 5 y 6: nudos del cordón inferior (el "a" del libro y su simétrico).
+# La figura no se transcribe: la geometría se reconstruyó de los brazos de palanca impresos
+# (18, 14, 9, 7, 14,44, 5,44, 8,87 y 11,4 pies), que coinciden con esta disposición.
+nudos = [[0, 0], [9, 7], [18, 14], [27, 7], [36, 0], ["xa", 0], ["36 - xa", 0]]
+barras = [
+    { i = 0, j = 1, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 0: par, mitad inferior
+    { i = 1, j = 2, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 1: par, mitad superior
+    { i = 2, j = 3, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 2
+    { i = 3, j = 4, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 3
+    { i = 1, j = 5, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 4: montante normal al par
+    { i = 3, j = 6, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 5
+    { i = 5, j = 2, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 6: diagonal a la cumbrera
+    { i = 6, j = 2, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 7
+    { i = 0, j = 5, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 8: cordón inferior extremo
+    { i = 5, j = 6, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 9: cordón inferior central
+    { i = 6, j = 4, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 10
+]
+apoyos = [
+    { nudo = 0, ux = true, uy = true },
+    { nudo = 4, uy = true },
+]
+
+[[cargas]]
+caso = "D"
+tipo = "nodal"
+nudo = 0
+fy = -2000
+
+[[cargas]]
+caso = "D"
+tipo = "nodal"
+nudo = 1
+fy = -4000
+
+[[cargas]]
+caso = "D"
+tipo = "nodal"
+nudo = 2
+fy = -4000
+
+[[cargas]]
+caso = "D"
+tipo = "nodal"
+nudo = 3
+fy = -4000
+
+[[cargas]]
+caso = "D"
+tipo = "nodal"
+nudo = 4
+fy = -2000
+
+# Valores impresos en el libro, con su signo: + tracción, - compresión.
+
+[[esperado]]
+caso = "D"
+que = "reaccion"
+nudo = 0
+componente = "Ry"
+valor = 8000
+
+[[esperado]]
+caso = "D"
+que = "seccion"
+barra = 9
+x = 0
+componente = "N"
+valor = 5140
+descripcion = "cordón inferior central, momentos respecto de la cumbrera (p. 10)"
+
+[[esperado]]
+caso = "D"
+que = "seccion"
+barra = 8
+x = 0
+componente = "N"
+valor = 7710
+descripcion = "cordón inferior extremo, momentos respecto del centro del par (p. 11)"
+
+[[esperado]]
+caso = "D"
+que = "seccion"
+barra = 1
+x = 0
+componente = "N"
+valor = -7315
+descripcion = "par, mitad superior, momentos respecto de a (p. 11)"
+
+[[esperado]]
+caso = "D"
+que = "seccion"
+barra = 0
+x = 0
+componente = "N"
+valor = -9770
+descripcion = "par, mitad inferior, momentos respecto de a (p. 11)"
+
+[[esperado]]
+caso = "D"
+que = "seccion"
+barra = 4
+x = 0
+componente = "N"
+valor = -3160
+descripcion = "montante normal al par (p. 11)"
+
+[[esperado]]
+caso = "D"
+que = "seccion"
+barra = 6
+x = 0
+componente = "N"
+valor = 2570
+descripcion = "diagonal a la cumbrera (p. 12)"

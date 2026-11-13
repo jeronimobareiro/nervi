@@ -327,9 +327,12 @@ def test_caso(ruta: Path):
 @pytest.mark.parametrize("ruta", CASOS[:3], ids=lambda r: r.stem)
 def test_un_valor_alterado_falla(ruta: Path):
     # Control del propio ejecutor: si se altera un valor esperado, el caso falla.
+    # La alteración supera la tolerancia del caso, para que también valga en los
+    # ejemplos de libros con tolerancia de 1e-3.
     caso = leer_caso(ruta)
     for e in caso["esperado"]:
-        e["valor"] = f"({e['valor']}) * 1.001 + 1e-6"
+        factor = 1 + 10 * max(1e-4, e.get("tolerancia", caso.get("tolerancia", TOL_REL)))
+        e["valor"] = f"({e['valor']}) * {factor} + 1e-6"
     assert not any(c.ok for c in comparar(caso))
 
 
