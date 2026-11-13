@@ -35,7 +35,7 @@ Seguir con lo que queda de la Fase 1. Según `ESTADO.md` y los issues abiertos, 
 ## Pendiente y problemas conocidos
 
 - El issue #6 queda abierto: faltan ejemplos transcriptos de libros con `datos = "libro"` (página y número de ejemplo), cotejados con un ejemplar. Es un buen primer aporte para estudiantes.
-- Firma DCO: pendiente. La firma la hace el usuario (`git rebase --signoff origin/main`) o el agente con su autorización escrita para este trabajo.
+- Firma DCO: el usuario autorizó por escrito, el 2026-11-13 a las 19:04 UTC ("Apruebo firmar los PR"), que el agente firme este aporte en su nombre como `bareirojero <345933350+bareirojero@users.noreply.github.com>`.
 
 ## Para quien siga
 
