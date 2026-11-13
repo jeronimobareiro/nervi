@@ -1,0 +1,99 @@
+titulo = "Viga continua con asentamiento del apoyo central y voladizo"
+fuente = "Hibbeler, Structural Analysis, 10.ª ed., cap. 11 (pendiente-deflexión con asentamiento de apoyos)"
+descripcion = "Tramos de 7 y 7 m con 18 kN/m, voladizo de 2 m con 25 kN en la punta; el apoyo B asienta 12 mm."
+unidades = "kN, m"
+
+[referencia]
+libro = "Hibbeler, R. C., Structural Analysis"
+edicion = "10.ª"
+seccion = "cap. 11, pendiente-deflexión en vigas con asentamiento de apoyos"
+datos = "propios"
+derivacion = "derivaciones.py, viga_asentamiento_voladizo()"
+
+[parametros]
+E = 2.0e8
+A = 0.01
+I = 2.5e-4
+
+[modelo]
+nudos = [[0, 0], [7, 0], [14, 0], [16, 0]]
+barras = [
+    { i = 0, j = 1, E = "E", A = "A", I = "I" },
+    { i = 1, j = 2, E = "E", A = "A", I = "I" },
+    { i = 2, j = 3, E = "E", A = "A", I = "I" },
+]
+apoyos = [
+    { nudo = 0, ux = true, uy = true },
+    { nudo = 1, uy = true },
+    { nudo = 2, uy = true },
+]
+
+[[cargas]]
+caso = "total"
+tipo = "uniforme"
+barra = 0
+qy = -18
+
+[[cargas]]
+caso = "total"
+tipo = "uniforme"
+barra = 1
+qy = -18
+
+[[cargas]]
+caso = "total"
+tipo = "nodal"
+nudo = 3
+fy = -25
+
+[[cargas]]
+caso = "total"
+tipo = "desplazamiento_impuesto"
+nudo = 1
+uy = -0.012
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 0
+x = 7
+componente = "M"
+valor = "-11959/196"
+descripcion = "momento sobre el apoyo B"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 1
+x = 7
+componente = "M"
+valor = -50
+descripcion = "momento sobre el apoyo C (lo fija el voladizo)"
+
+[[esperado]]
+caso = "total"
+que = "reaccion"
+nudo = 0
+componente = "Ry"
+valor = "74477/1372"
+
+[[esperado]]
+caso = "total"
+que = "reaccion"
+nudo = 1
+componente = "Ry"
+valor = "93495/686"
+
+[[esperado]]
+caso = "total"
+que = "reaccion"
+nudo = 2
+componente = "Ry"
+valor = "118577/1372"
+
+[[esperado]]
+caso = "total"
+que = "desplazamiento"
+nudo = 0
+componente = "rz"
+valor = "-45659/8400000"

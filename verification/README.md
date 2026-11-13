@@ -13,6 +13,28 @@ Para aportar un caso **no hace falta saber Rust ni tocar el motor**: alcanza con
 
 Si el ejemplo es de un libro, citá autor, título, edición, página y número de ejemplo, y escribí los datos y resultados con tus palabras y números: **no copies el enunciado ni las figuras** (derechos de autor). Si el libro da resultados redondeados, poné la tolerancia que corresponda (por ejemplo `tolerancia = 1e-3`).
 
+## Ejemplos de libros
+
+La carpeta [`libros/`](libros/) junta problemas de los libros de Análisis Estructural que se usan en las cátedras (issue [#6](https://github.com/jeronimobareiro/nervi/issues/6)). Cada caso lleva, además de `fuente`, una tabla `[referencia]` que el CI revisa:
+
+```toml
+[referencia]               # valores ilustrativos
+libro = "Apellido, N., Título del libro"
+edicion = "3.ª"
+seccion = "cap. 4, método de las fuerzas"
+datos = "libro"          # o "propios"
+pagina = 123             # obligatorio si datos = "libro"
+ejemplo = "4.2"          # obligatorio si datos = "libro"
+# derivacion = "derivaciones.py, viga_tres_tramos()"   # obligatorio si datos = "propios"
+```
+
+- **`datos = "libro"`**: el ejemplo resuelto del libro, con sus datos y los resultados que publica. Citá página y número de ejemplo, y poné una `tolerancia` acorde a las cifras que da el libro (por ejemplo `1e-3`).
+- **`datos = "propios"`**: un problema del mismo tipo con datos elegidos por quien lo aporta, resuelto a mano con el método de la sección citada. La solución va como función en [`libros/derivaciones.py`](libros/derivaciones.py), con aritmética exacta (`sympy`), sin usar el motor de Nervi. Así el resultado esperado se puede revisar y reproducir aunque no se tenga el libro.
+
+Hoy hay cinco casos con datos propios: viga continua de tres tramos, viga con asentamiento y voladizo, pórtico con columnas desiguales y desplazamiento lateral, pórtico de dos pisos y cercha Pratt (con su flecha por trabajo virtual). Si tenés el libro a mano, transcribir un ejemplo resuelto con `datos = "libro"` es un muy buen primer aporte.
+
+Cuando la solución a mano supone barras axialmente rígidas (pendiente-deflexión, distribución de momentos), usá `A = 1.0e4` y `tolerancia = 1e-6`: con áreas menores pesa el acortamiento de las barras y con áreas mucho mayores aparece error de redondeo.
+
 ## Formato
 
 ```toml

@@ -1,0 +1,199 @@
+titulo = "Cercha Pratt de cuatro paneles con cargas en el cordón inferior"
+fuente = "Hibbeler, Structural Analysis, 10.ª ed., cap. 3 (método de los nudos) y cap. 9 (trabajo virtual en cerchas)"
+descripcion = "Paneles de 3 m, altura 4 m; 30, 40 y 20 kN en L1, L2 y L3. Esfuerzos por equilibrio de nudos, flecha en L2 por Σ N·n·L/(EA)."
+unidades = "kN, m"
+# Isostática: los esfuerzos no dependen de E ni de A y la flecha es exacta, sin hipótesis
+# de rigidez axial; vale la tolerancia por defecto.
+
+[referencia]
+libro = "Hibbeler, R. C., Structural Analysis"
+edicion = "10.ª"
+seccion = "cap. 3, método de los nudos; cap. 9, trabajo virtual en cerchas"
+datos = "propios"
+derivacion = "derivaciones.py, cercha_pratt()"
+
+[parametros]
+E = 2.0e8
+A = 3.0e-3
+I = 1.0e-4
+
+[modelo]
+# 0-4: cordón inferior L0..L4; 5-7: cordón superior U1..U3.
+nudos = [[0, 0], [3, 0], [6, 0], [9, 0], [12, 0], [3, 4], [6, 4], [9, 4]]
+barras = [
+    { i = 0, j = 1, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 0: L0-L1
+    { i = 1, j = 2, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 1: L1-L2
+    { i = 2, j = 3, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 2: L2-L3
+    { i = 3, j = 4, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 3: L3-L4
+    { i = 5, j = 6, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 4: U1-U2
+    { i = 6, j = 7, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 5: U2-U3
+    { i = 0, j = 5, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 6: L0-U1
+    { i = 7, j = 4, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 7: U3-L4
+    { i = 1, j = 5, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 8: L1-U1
+    { i = 2, j = 6, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 9: L2-U2
+    { i = 3, j = 7, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 10: L3-U3
+    { i = 5, j = 2, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 11: U1-L2
+    { i = 2, j = 7, E = "E", A = "A", I = "I", articulada_i = true, articulada_j = true },  # 12: L2-U3
+]
+apoyos = [
+    { nudo = 0, ux = true, uy = true },
+    { nudo = 4, uy = true },
+]
+
+[[cargas]]
+caso = "total"
+tipo = "nodal"
+nudo = 1
+fy = -30
+
+[[cargas]]
+caso = "total"
+tipo = "nodal"
+nudo = 2
+fy = -40
+
+[[cargas]]
+caso = "total"
+tipo = "nodal"
+nudo = 3
+fy = -20
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 0
+x = 0
+componente = "N"
+valor = "285/8"
+descripcion = "axil L0-L1"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 1
+x = 0
+componente = "N"
+valor = "285/8"
+descripcion = "axil L1-L2"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 2
+x = 0
+componente = "N"
+valor = "255/8"
+descripcion = "axil L2-L3"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 3
+x = 0
+componente = "N"
+valor = "255/8"
+descripcion = "axil L3-L4"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 4
+x = 0
+componente = "N"
+valor = "-195/4"
+descripcion = "axil U1-U2"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 5
+x = 0
+componente = "N"
+valor = "-195/4"
+descripcion = "axil U2-U3"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 6
+x = 0
+componente = "N"
+valor = "-475/8"
+descripcion = "axil L0-U1"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 7
+x = 0
+componente = "N"
+valor = "-425/8"
+descripcion = "axil U3-L4"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 8
+x = 0
+componente = "N"
+valor = "30"
+descripcion = "axil L1-U1"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 9
+x = 0
+componente = "N"
+valor = "0"
+descripcion = "axil L2-U2"
+tolerancia_abs = 1e-9
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 10
+x = 0
+componente = "N"
+valor = "20"
+descripcion = "axil L3-U3"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 11
+x = 0
+componente = "N"
+valor = "175/8"
+descripcion = "axil U1-L2"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 12
+x = 0
+componente = "N"
+valor = "225/8"
+descripcion = "axil L2-U3"
+
+[[esperado]]
+caso = "total"
+que = "reaccion"
+nudo = 0
+componente = "Ry"
+valor = "95/2"
+
+[[esperado]]
+caso = "total"
+que = "reaccion"
+nudo = 4
+componente = "Ry"
+valor = "85/2"
+
+[[esperado]]
+caso = "total"
+que = "desplazamiento"
+nudo = 2
+componente = "uy"
+valor = "-2813/1920000"
+descripcion = "flecha en L2 por trabajo virtual"

@@ -1,0 +1,129 @@
+titulo = "Pórtico de dos pisos con cargas laterales y gravitatorias"
+fuente = "Hibbeler, Structural Analysis, 10.ª ed., cap. 11 (pendiente-deflexión en pórticos de varios pisos)"
+descripcion = "Una crujía de 6 m, pisos de 4 y 3,5 m, bases empotradas; 40 y 20 kN laterales, 30 y 20 kN/m en las vigas (2Ic)."
+unidades = "kN, m"
+# Barras axialmente rígidas en la solución a mano: ver portico-columnas-desiguales.toml.
+tolerancia = 1e-6
+
+[referencia]
+libro = "Hibbeler, R. C., Structural Analysis"
+edicion = "10.ª"
+seccion = "cap. 11, pórticos de varios pisos con desplazamiento lateral"
+datos = "propios"
+derivacion = "derivaciones.py, portico_dos_pisos()"
+
+[parametros]
+E = 2.0e8
+A = 1.0e4
+Ic = 3.0e-4
+
+[modelo]
+# A, B, C sobre la columna izquierda; D, E, F sobre la derecha (de arriba hacia abajo).
+nudos = [[0, 0], [0, 4], [0, 7.5], [6, 7.5], [6, 4], [6, 0]]
+barras = [
+    { i = 0, j = 1, E = "E", A = "A", I = "Ic" },    # 0: A-B
+    { i = 5, j = 4, E = "E", A = "A", I = "Ic" },    # 1: F-E
+    { i = 1, j = 2, E = "E", A = "A", I = "Ic" },    # 2: B-C
+    { i = 4, j = 3, E = "E", A = "A", I = "Ic" },    # 3: E-D
+    { i = 1, j = 4, E = "E", A = "A", I = "2*Ic" },  # 4: viga B-E
+    { i = 2, j = 3, E = "E", A = "A", I = "2*Ic" },  # 5: viga C-D
+]
+apoyos = [
+    { nudo = 0, ux = true, uy = true, rz = true },
+    { nudo = 5, ux = true, uy = true, rz = true },
+]
+
+[[cargas]]
+caso = "total"
+tipo = "nodal"
+nudo = 1
+fx = 40
+
+[[cargas]]
+caso = "total"
+tipo = "nodal"
+nudo = 2
+fx = 20
+
+[[cargas]]
+caso = "total"
+tipo = "uniforme"
+barra = 4
+qy = -30
+
+[[cargas]]
+caso = "total"
+tipo = "uniforme"
+barra = 5
+qy = -20
+
+[[esperado]]
+caso = "total"
+que = "reaccion"
+nudo = 0
+componente = "Mz"
+valor = "1827975/33568"
+
+[[esperado]]
+caso = "total"
+que = "reaccion"
+nudo = 5
+componente = "Mz"
+valor = "2735175/33568"
+
+[[esperado]]
+caso = "total"
+que = "reaccion"
+nudo = 0
+componente = "Rx"
+valor = "-83355/4196"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 4
+x = 0
+componente = "M"
+valor = "-34545/4196"
+descripcion = "viga del piso 1, extremo B"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 4
+x = 6
+componente = "M"
+valor = "-569535/4196"
+descripcion = "viga del piso 1, extremo E"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 5
+x = 0
+componente = "M"
+valor = "-681535/33568"
+descripcion = "viga del piso 2, extremo C"
+
+[[esperado]]
+caso = "total"
+que = "desplazamiento"
+nudo = 1
+componente = "ux"
+valor = "179/48000"
+descripcion = "desplazamiento lateral del piso 1"
+
+[[esperado]]
+caso = "total"
+que = "desplazamiento"
+nudo = 2
+componente = "ux"
+valor = "51553/9216000"
+descripcion = "desplazamiento lateral del piso 2"
+
+[[esperado]]
+caso = "total"
+que = "desplazamiento"
+nudo = 2
+componente = "rz"
+valor = "-19477/32225280"

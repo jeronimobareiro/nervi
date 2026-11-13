@@ -1,0 +1,100 @@
+titulo = "Pórtico con columnas de distinta altura y desplazamiento lateral"
+fuente = "Hibbeler, Structural Analysis, 10.ª ed., cap. 11 (pendiente-deflexión en pórticos con desplazamiento lateral)"
+descripcion = "Columna izquierda de 4 m empotrada, derecha de 6 m articulada; viga de 8 m (2Ic) con 24 kN/m; 30 kN horizontal en B."
+unidades = "kN, m"
+# La pendiente-deflexión supone barras axialmente rígidas. Se simula con A = 1e4 m²:
+# con áreas más chicas pesa el acortamiento de las barras y con áreas mucho más grandes
+# (1e6) la rigidez axial ahoga a la de flexión y aparece error de redondeo del orden
+# de 1e-6. Con 1e4 la diferencia queda en ~5e-8; la tolerancia es 1e-6.
+tolerancia = 1e-6
+
+[referencia]
+libro = "Hibbeler, R. C., Structural Analysis"
+edicion = "10.ª"
+seccion = "cap. 11, pórticos con desplazamiento lateral"
+datos = "propios"
+derivacion = "derivaciones.py, portico_columnas_desiguales()"
+
+[parametros]
+E = 2.0e8
+A = 1.0e4
+Ic = 2.0e-4
+
+[modelo]
+nudos = [[0, 0], [0, 4], [8, 4], [8, -2]]
+barras = [
+    { i = 0, j = 1, E = "E", A = "A", I = "Ic" },
+    { i = 1, j = 2, E = "E", A = "A", I = "2*Ic" },
+    { i = 3, j = 2, E = "E", A = "A", I = "Ic" },
+]
+apoyos = [
+    { nudo = 0, ux = true, uy = true, rz = true },
+    { nudo = 3, ux = true, uy = true },
+]
+
+[[cargas]]
+caso = "total"
+tipo = "nodal"
+nudo = 1
+fx = 30
+
+[[cargas]]
+caso = "total"
+tipo = "uniforme"
+barra = 1
+qy = -24
+
+[[esperado]]
+caso = "total"
+que = "reaccion"
+nudo = 0
+componente = "Mz"
+valor = "29712/415"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 0
+x = 4
+componente = "M"
+valor = "-6168/415"
+descripcion = "momento en la cabeza de la columna izquierda"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 2
+x = 6
+componente = "M"
+valor = "39384/415"
+descripcion = "momento en la cabeza de la columna derecha"
+
+[[esperado]]
+caso = "total"
+que = "reaccion"
+nudo = 0
+componente = "Rx"
+valor = "-5886/415"
+
+[[esperado]]
+caso = "total"
+que = "reaccion"
+nudo = 3
+componente = "Rx"
+valor = "-6564/415"
+
+[[esperado]]
+caso = "total"
+que = "desplazamiento"
+nudo = 1
+componente = "ux"
+valor = "2733/259375"
+descripcion = "desplazamiento lateral de la viga"
+
+[[esperado]]
+caso = "total"
+que = "desplazamiento"
+nudo = 3
+componente = "rz"
+valor = "-8567/2075000"
+descripcion = "giro de la base articulada"

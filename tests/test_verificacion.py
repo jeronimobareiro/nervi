@@ -241,9 +241,79 @@ def comparar(caso: dict) -> list[Comparacion]:
     return salida
 
 
+# --- Ejemplos de libros ----------------------------------------------------------
+LIBROS = DIRECTORIO / "libros"
+CASOS_LIBROS = sorted(LIBROS.rglob("*.toml"))
+
+
+def errores_de_referencia(caso: dict) -> list[str]:
+    """Revisa la tabla ``[referencia]`` de un ejemplo de libro (``verification/README.md``).
+
+    ``datos = "libro"``: el ejemplo está tomado del libro y lleva ``pagina`` y
+    ``ejemplo``. ``datos = "propios"``: los datos los eligió quien aportó el caso, se
+    resolvió con el método de la sección citada y lleva ``derivacion``, la función de
+    ``verification/libros/derivaciones.py`` que lo resuelve a mano.
+    """
+    ref = caso.get("referencia")
+    if not isinstance(ref, dict):
+        return ["falta la tabla [referencia]"]
+    errores = [f"falta {c!r}" for c in ("libro", "edicion", "seccion", "datos") if c not in ref]
+    datos = ref.get("datos")
+    if datos == "libro":
+        errores += [f"falta {c!r}" for c in ("pagina", "ejemplo") if c not in ref]
+    elif datos == "propios":
+        if "derivacion" not in ref:
+            errores.append("falta 'derivacion'")
+        else:
+            funcion = ref["derivacion"].split(",")[-1].strip().removesuffix("()")
+            if funcion not in _funciones_de_derivaciones():
+                errores.append(f"derivaciones.py no define {funcion}()")
+    elif datos is not None:
+        errores.append(f'\'datos\' tiene que ser "libro" o "propios", no {datos!r}')
+    return errores
+
+
+def _funciones_de_derivaciones() -> set[str]:
+    ruta = LIBROS / "derivaciones.py"
+    if not ruta.exists():
+        return set()
+    arbol = ast.parse(ruta.read_text(encoding="utf-8"))
+    return {n.name for n in arbol.body if isinstance(n, ast.FunctionDef)}
+
+
 # --- Pruebas -------------------------------------------------------------------
 def test_hay_casos():
     assert len(CASOS) >= 5
+
+
+def test_hay_ejemplos_de_libros():
+    assert len(CASOS_LIBROS) >= 5
+
+
+@pytest.mark.parametrize("ruta", CASOS_LIBROS, ids=lambda r: r.stem)
+def test_referencia_de_libro(ruta: Path):
+    errores = errores_de_referencia(leer_caso(ruta))
+    assert not errores, f"{ruta.name}: " + "; ".join(errores)
+
+
+def test_referencia_incompleta_falla():
+    base = {"libro": "Autor, Título", "edicion": "3.ª", "seccion": "cap. 4"}
+    assert errores_de_referencia({}) == ["falta la tabla [referencia]"]
+    assert errores_de_referencia({"referencia": {**base, "datos": "libro"}}) == [
+        "falta 'pagina'",
+        "falta 'ejemplo'",
+    ]
+    assert (
+        errores_de_referencia(
+            {"referencia": {**base, "datos": "libro", "pagina": 120, "ejemplo": "4.2"}}
+        )
+        == []
+    )
+    propios = {**base, "datos": "propios", "derivacion": "derivaciones.py, no_existe()"}
+    assert errores_de_referencia({"referencia": propios}) == [
+        "derivaciones.py no define no_existe()"
+    ]
+    assert errores_de_referencia({"referencia": {**base, "datos": "otro"}})
 
 
 @pytest.mark.parametrize("ruta", CASOS, ids=lambda r: str(r.relative_to(DIRECTORIO)))
