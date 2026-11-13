@@ -1,0 +1,116 @@
+titulo = "Viga continua de tres tramos con extremo empotrado y cargas mixtas"
+fuente = "Hibbeler, Structural Analysis, 10.ª ed., cap. 11 (pendiente-deflexión en vigas)"
+descripcion = "Tramos de 6, 8 y 5 m; 20 kN/m en AB, 60 kN a 3 m de B, 15 kN/m en CD. Incógnitas θB, θC, θD."
+unidades = "kN, m"
+
+[referencia]
+libro = "Hibbeler, R. C., Structural Analysis"
+edicion = "10.ª"
+seccion = "cap. 11, pendiente-deflexión en vigas"
+datos = "propios"
+derivacion = "derivaciones.py, viga_tres_tramos()"
+
+[parametros]
+E = 2.0e8
+A = 0.01
+I = 3.0e-4
+
+[modelo]
+nudos = [[0, 0], [6, 0], [14, 0], [19, 0]]
+barras = [
+    { i = 0, j = 1, E = "E", A = "A", I = "I" },
+    { i = 1, j = 2, E = "E", A = "A", I = "I" },
+    { i = 2, j = 3, E = "E", A = "A", I = "I" },
+]
+apoyos = [
+    { nudo = 0, ux = true, uy = true, rz = true },
+    { nudo = 1, uy = true },
+    { nudo = 2, uy = true },
+    { nudo = 3, uy = true },
+]
+
+[[cargas]]
+caso = "total"
+tipo = "uniforme"
+barra = 0
+qy = -20
+
+[[cargas]]
+caso = "total"
+tipo = "puntual"
+barra = 1
+a = 3
+py = -60
+
+[[cargas]]
+caso = "total"
+tipo = "uniforme"
+barra = 2
+qy = -15
+
+[[esperado]]
+caso = "total"
+que = "reaccion"
+nudo = 0
+componente = "Mz"
+valor = "67065/1172"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 0
+x = 6
+componente = "M"
+valor = "-38415/586"
+descripcion = "momento sobre el apoyo B"
+
+[[esperado]]
+caso = "total"
+que = "seccion"
+barra = 1
+x = 8
+componente = "M"
+valor = "-106545/2344"
+descripcion = "momento sobre el apoyo C"
+
+[[esperado]]
+caso = "total"
+que = "reaccion"
+nudo = 0
+componente = "Ry"
+valor = "137385/2344"
+
+[[esperado]]
+caso = "total"
+que = "reaccion"
+nudo = 1
+componente = "Ry"
+valor = "1901475/18752"
+
+[[esperado]]
+caso = "total"
+que = "reaccion"
+nudo = 2
+componente = "Ry"
+valor = "1248477/18752"
+
+[[esperado]]
+caso = "total"
+que = "reaccion"
+nudo = 3
+componente = "Ry"
+valor = "66591/2344"
+
+[[esperado]]
+caso = "total"
+que = "desplazamiento"
+nudo = 1
+componente = "rz"
+valor = "-651/4688000"
+
+[[esperado]]
+caso = "total"
+que = "desplazamiento"
+nudo = 3
+componente = "rz"
+valor = "7547/11251200"
