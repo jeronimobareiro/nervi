@@ -95,9 +95,9 @@ fn barra_libre_de_dilatarse_no_tiene_esfuerzos() {
         nulo(s.v, E * I * k0, "V");
         nulo(s.m, E * I * k0, "M");
     }
-    for n in 0..2 {
-        for d in 0..3 {
-            nulo(r.casos[0].reacciones[n][d], E * A * ALFA * dt, "reacción");
+    for reaccion in r.casos[0].reacciones.iter().take(2) {
+        for &valor in reaccion.iter() {
+            nulo(valor, E * A * ALFA * dt, "reacción");
         }
     }
     let d = &r.casos[0].desplazamientos;

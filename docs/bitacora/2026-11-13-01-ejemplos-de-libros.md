@@ -20,6 +20,7 @@ Seguir con lo que queda de la Fase 1. Según `ESTADO.md` y los issues abiertos, 
 - `verification/libros/derivaciones.py`: la solución a mano de cada caso, escrita barra por barra (pendiente-deflexión con desplazamiento lateral, equilibrio de nudos y trabajo virtual) y resuelta con aritmética exacta en `sympy`, sin usar el motor. Los valores esperados de los `.toml` son las fracciones exactas que imprime.
 - Tabla `[referencia]` obligatoria en `verification/libros/` (libro, edición, sección y `datos`): con `datos = "libro"` exige página y número de ejemplo; con `datos = "propios"` exige la función de `derivaciones.py` que lo resuelve, y el CI comprueba que exista. Pruebas nuevas en `tests/test_verificacion.py`.
 - `verification/README.md`: sección "Ejemplos de libros" con cómo aportar un caso de cada tipo.
+- `crates/nervi-core/tests/cargas_termicas.rs`: el clippy de Rust 1.100 del CI marcó `needless_range_loop` en una prueba existente; el bucle ahora recorre las reacciones con un iterador. No cambia lo que se comprueba.
 
 ## Cómo se verificó
 
