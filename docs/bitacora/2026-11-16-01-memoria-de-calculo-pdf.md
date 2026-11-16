@@ -47,7 +47,7 @@ Implementar el issue #28: memoria de cálculo en PDF, en español, para el anál
 - Figura de cargas (flechas sobre la estructura): hoy las cargas van solo en tablas.
 - Incrustar una fuente libre con más alfabetos, y opción de logo o membrete en la portada.
 - El instalador con la memoria no se probó: el workflow de publicación instala ReportLab y agrega `nervi.memoria.pdf` como importación oculta, pero hay que comprobarlo en la próxima etiqueta.
-- Firma DCO: los commits no están firmados. El usuario tiene que revisarlos y firmarlos (`git rebase --signoff origin/main`) o autorizar por escrito que el agente firme este trabajo en su nombre.
+- Firma DCO: el usuario autorizó por escrito, el 2026-11-16 a las 23:58 UTC ("Firmalos por mi, apruebo"), que el agente firme este aporte en su nombre como `bareirojero <345933350+bareirojero@users.noreply.github.com>`.
 
 ## Para quien siga
 
