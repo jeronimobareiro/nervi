@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-13 · entrada [2026-11-13-01](bitacora/2026-11-13-01-ejemplos-de-libros.md)_
+_Última actualización: 2026-11-16 · entrada [2026-11-16-01](bitacora/2026-11-16-01-memoria-de-calculo-pdf.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
@@ -20,10 +20,11 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 - Formato de proyecto `.nrv` (`nervi.formato`): abrir, guardar, validar y migrar según [`formato-nrv.md`](formato-nrv.md), con cargas uniformes, puntuales, trapezoidales, térmicas y momentos en el tramo. El proyecto se arma con módulos versionados por separado (hoy solo `modelo`, versión 1), y los archivos de referencia de `tests/datos/nrv/` garantizan que los proyectos viejos se sigan abriendo con los mismos resultados (§6.3).
 - Interfaz de escritorio `nervi.gui` (PySide6, `nervi-gui`): una sola ventana con tablas editables del modelo, cálculo, diagramas N/V/M y deformada, lectura de esfuerzos con el cursor, revisión del modelo, consola Python y buscador de comandos (Ctrl+K). Aviso permanente de versión preliminar.
 - Workflow de publicación: con una etiqueta `v*` genera el instalador `.exe` de Windows (Inno Setup, asocia `.nrv`) y el AppImage de Linux, sin firma, como versión preliminar en Releases.
-- 47 casos de verificación analítica en Rust (6 de mecanismos y 6 de momentos en el tramo) y 122 pruebas en Python (formato e interfaz incluidos), en verde. Contrato de datos Rust ↔ Python en la versión 2.
+- 47 casos de verificación analítica en Rust (6 de mecanismos y 6 de momentos en el tramo) y 160 pruebas en Python (formato, interfaz y memoria incluidos), en verde. Contrato de datos Rust ↔ Python en la versión 2.
 - Biblioteca de casos de verificación en `verification/` (#5): 19 casos en TOML con su fuente, que corren en el CI y se pueden aportar sin saber Rust (`verification/README.md`).
 - Ejemplos de libros en `verification/libros/` (#6, en curso): un ejemplo transcripto de dominio público (Merriman y Jacoby, 1907, cercha Fink) y 5 casos de Análisis Estructural (vigas continuas con asentamiento y voladizo, pórticos con desplazamiento lateral de uno y dos pisos, cercha Pratt) resueltos a mano con aritmética exacta en `derivaciones.py`. Cada caso declara su referencia bibliográfica y el CI la revisa. Faltan más ejemplos transcriptos, sobre todo de estructuras hiperestáticas.
 - Combinaciones de carga ACI 318-19 y envolventes por sección en `nervi.design` (#21), **experimental** hasta la revisión de un ingeniero. Las combinaciones se resuelven junto con el modelo y sus diagramas son exactos.
+- Memoria de cálculo en PDF (`nervi.memoria`, #28, adelantado de la Fase 4): portada, índice, geometría, secciones, cargas, combinaciones, resultados con diagramas M/V/N y deformada por caso y combinación, y envolventes; textos en una plantilla TOML editable; ReportLab (BSD) como dependencia opcional `nervi[memoria]`. Desde la interfaz con Ctrl+P. El CI genera la del pórtico de ejemplo y la sube como artefacto. Los módulos de diseño suman su capítulo con `Memoria.agregar` y `tabla_verificaciones`.
 - Registro de aportes: `AGENTS.md`, esta foto y `bitacora/`, con control automático en el CI.
 - Colaboradores de otros idiomas: README en inglés, portugués y ruso (`README.en.md`, `README.pt.md`, `README.ru.md`), glosario es/en/pt/ru en [`glosario.md`](glosario.md) y sección multilingüe en `CONTRIBUTING.md`. El código sigue en español; issues y PR se aceptan en esos cuatro idiomas.
 - Apertura a la comunidad: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `SECURITY.md`, `CITATION.cff`, plantillas de issues y PR, encabezados SPDX.
@@ -35,6 +36,7 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 
 - **Instaladores**: el workflow de publicación ya genera el `.exe` de Windows y el AppImage de Linux (la descarga de `appimagetool` se arregló en la entrada 2026-11-10-05). Falta probarlos en equipos reales antes de la primera etiqueta `v0.1.0`. El formato `.nrv` (contenedor 1, módulo `modelo` 1) se congela con esa etiqueta.
 - Firma de código de los instaladores: pendiente (SignPath Foundation o certificado).
+- **Memoria de cálculo** (#28): falta la revisión de formato por un docente o profesional, la figura de cargas y comprobar que el instalador la incluya. El capítulo de verificaciones de diseño lo agrega el módulo de hormigón armado cuando esté.
 - **Hitos de GitHub**: se crean al integrar el PR de la hoja de ruta (flujo `.github/workflows/hoja-de-ruta.yml`). Hay que confirmar en Actions que corrió bien.
 - Firma DCO: la firma el usuario o, con su autorización explícita para cada trabajo, el agente en su nombre (AGENTS.md §3.4).
 - Confirmar el correo de contacto de `CODE_OF_CONDUCT.md` y `SECURITY.md`.
@@ -45,7 +47,7 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 0. Interfaz: dibujar cargas, crear barras con el mouse y deshacer/rehacer; después, visor 3D con la Fase 2a.
 1. Cerrar la Fase 1: material didáctico (#10) y ejemplos transcriptos de libros con página (#6, `datos = "libro"`). Ya están todos los tipos de carga (trapezoidales #2, térmicas #4 y momentos en el tramo #3), también en `.nrv` y la GUI, igual que la biblioteca de verificación (#5) y el diagnóstico de mecanismos (#9).
 2. Difundir los issues `buen-primer-aporte` y `proyecto-academico` entre cátedras (ver `hoja-de-ruta.md` §Colaboración con universidades).
-3. Fase 2a: barra 3D 12×12 (#11), que destraba casi todo lo demás. En paralelo, Fase 3: revisión de ingeniería de `nervi.design` y diseño de vigas a flexión y cortante (#22, #23) sobre las envolventes.
+3. Fase 2a: barra 3D 12×12 (#11), que destraba casi todo lo demás. En paralelo, Fase 3: revisión de ingeniería de `nervi.design` y diseño de vigas a flexión y cortante (#22, #23) sobre las envolventes, con sus verificaciones en la memoria de cálculo.
 4. Decidir la norma regional (#20) para ordenar la Fase 3 y el espectro sísmico.
 5. Registrar la marca Nervi en Paraguay (DINAPI, clases 9 y 42), con abogado.
 
