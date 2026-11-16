@@ -5,6 +5,9 @@
 revisado por un ingeniero estructural (ver ``AGENTS.md`` y la bitácora). Los
 resultados no deben usarse para dimensionar estructuras reales sin verificarlos.
 
+El diseño de vigas de hormigón armado (flexión y cortante, ACI 318-19) está en
+:mod:`nervi.design.aci318`.
+
 >>> import nervi
 >>> from nervi import design
 >>> m = nervi.Modelo()
@@ -21,6 +24,7 @@ resultados no deben usarse para dimensionar estructuras reales sin verificarlos.
 (62.5, '5.3.1b: 1.2·D + 1.6·L')
 """
 
+from . import aci318  # vigas de hormigón, #22 y #23
 from .combinaciones import (
     TIPOS_CARGA,
     Combinacion,
@@ -35,6 +39,7 @@ __all__ = [
     "TIPOS_CARGA",
     "Combinacion",
     "ModuloExperimentalWarning",
+    "aci318",
     "como_diccionario",
     "envolvente",
     "envolvente_reacciones",

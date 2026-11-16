@@ -97,6 +97,17 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | verificación | verification | verificação | верификация |
 | hormigón armado | reinforced concrete | concreto armado | железобетон |
 | acero | steel | aço | сталь |
+| armadura (`As`, `As_comp`) | reinforcement (tension / compression steel) | armadura | арматура |
+| barra de armadura, diámetro (`diametros`) | reinforcing bar, bar size | barra, bitola | арматурный стержень, диаметр |
+| estribo (`Estribos`, `elegir_estribos`) | stirrup | estribo | хомут |
+| recubrimiento | concrete cover | cobrimento | защитный слой бетона |
+| altura útil (`d`) | effective depth | altura útil | рабочая высота сечения |
+| separación libre (`s_libre`) | clear spacing | espaçamento livre | расстояние в свету |
+| capa de barras (`capas`) | bar layer | camada | ряд арматуры |
+| flexión (`armadura_flexion`) | flexure, bending | flexão | изгиб |
+| resistencia de diseño (`phiMn`) | design strength | resistência de cálculo | расчётная прочность |
+| factor de reducción (`phi`) | strength reduction factor | coeficiente de minoração | коэффициент снижения прочности |
+| sección crítica | critical section | seção crítica | расчётное сечение |
 
 ## Verbos y palabras frecuentes en el código · Common words in the code
 
