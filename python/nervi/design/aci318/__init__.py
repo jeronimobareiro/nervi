@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Diseño de vigas de hormigón armado según ACI 318-19: flexión (#22) y cortante (#23).
+"""Hormigón armado según ACI 318-19: vigas (flexión #22, cortante #23) y columnas (#24).
 
 **Experimental.** Implementa métodos de la norma y todavía no fue revisado por un
 ingeniero estructural (ver ``AGENTS.md`` y la bitácora). Los resultados no deben
@@ -17,8 +17,37 @@ Unidades: MPa y mm en secciones y materiales; kN·m y kN en esfuerzos.
 '3Ø20 + 2Ø12'
 >>> aci318.elegir_estribos(250, b=300, d=500, mat=mat, diametros=(10,)).descripcion
 'eØ10 c/150 mm (2 ramas)'
+>>> col = aci318.SeccionColumna.rectangular(400, 400, 3, 3, 20)
+>>> col.descripcion
+'8Ø20 (ρ = 1.57 %)'
+>>> v = aci318.verificar_columna(col, mat, Pu=1000, Mz=150, My=60)
+>>> round(float(v.phiMn[0]), 1), round(float(v.razon[0]), 3)
+(166.8, 0.969)
 """
 
+from .columna import (
+    DIAMETROS_COLUMNA,
+    DemandaColumna,
+    DisenoColumna,
+    MagnificacionEje,
+    ResistenciaAxial,
+    SeccionColumna,
+    VerificacionColumna,
+    carga_critica,
+    coeficiente_cm,
+    diagrama_interaccion,
+    disenar_columna,
+    elegir_armadura_columna,
+    factor_magnificacion,
+    limite_esbeltez,
+    modulo_hormigon,
+    phi_compresion,
+    resistencia_axial,
+    rigidez_efectiva,
+    separacion_libre_minima_columna,
+    solicitaciones_columna,
+    verificar_columna,
+)
 from .cortante import (
     PHI_CORTANTE,
     Estribos,
@@ -52,30 +81,51 @@ from .materiales import (
 from .viga import DisenoViga, disenar_viga
 
 __all__ = [
+    "DIAMETROS_COLUMNA",
     "DIAMETROS_COMERCIALES",
     "DIAMETROS_ESTRIBO",
     "ES",
     "PHI_CORTANTE",
+    "DemandaColumna",
+    "DisenoColumna",
     "DisenoViga",
     "DisposicionBarras",
     "Estribos",
+    "MagnificacionEje",
     "Materiales",
+    "ResistenciaAxial",
     "ResistenciaFlexion",
     "ResultadoCortante",
     "ResultadoFlexion",
+    "SeccionColumna",
     "SeccionRectangular",
+    "VerificacionColumna",
     "ancho_necesario",
     "area_barra",
     "armadura_cortante",
     "armadura_flexion",
     "armadura_minima",
     "beta1",
+    "carga_critica",
+    "coeficiente_cm",
+    "diagrama_interaccion",
+    "disenar_columna",
     "disenar_viga",
+    "elegir_armadura_columna",
     "elegir_barras",
     "elegir_estribos",
+    "factor_magnificacion",
     "factor_tamano",
+    "limite_esbeltez",
+    "modulo_hormigon",
+    "phi_compresion",
     "phi_flexion",
+    "resistencia_axial",
     "resistencia_flexion",
+    "rigidez_efectiva",
     "separacion_libre_minima",
+    "separacion_libre_minima_columna",
     "separacion_maxima",
+    "solicitaciones_columna",
+    "verificar_columna",
 ]

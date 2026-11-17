@@ -118,6 +118,15 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | resistencia de diseño (`phiMn`) | design strength | resistência de cálculo | расчётная прочность |
 | factor de reducción (`phi`) | strength reduction factor | coeficiente de minoração | коэффициент снижения прочности |
 | sección crítica | critical section | seção crítica | расчётное сечение |
+| flexocompresión biaxial | biaxial bending with axial load | flexo-compressão oblíqua | косое внецентренное сжатие |
+| diagrama de interacción (`diagrama_interaccion`) | interaction diagram | diagrama de interação | диаграмма взаимодействия |
+| cuantía (`cuantia`, `ρ`) | reinforcement ratio | taxa de armadura | коэффициент армирования |
+| esbeltez (`esbeltez`, `k·lu/r`) | slenderness (ratio) | esbeltez | гибкость |
+| magnificación de momentos (`factor_magnificacion`, `δ`) | moment magnification | amplificação de momentos | увеличение моментов (учёт продольного изгиба) |
+| longitud libre (`lu`) | unsupported length | comprimento livre | свободная длина |
+| pórtico desplazable / no desplazable (`desplazable`) | sway / nonsway frame | pórtico deslocável / indeslocável | рама со смещаемыми / несмещаемыми узлами |
+| razón demanda/capacidad (`razon`) | demand/capacity ratio | razão solicitação/resistência | коэффициент использования |
+| zuncho (`zunchada`) | spiral reinforcement | cinta helicoidal, espiral | спиральная арматура |
 
 ## Verbos y palabras frecuentes en el código · Common words in the code
 
