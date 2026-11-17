@@ -45,6 +45,31 @@ print(u.diagrama(viga)["M"].max())         # 0.125 · 40 · 6² = 180 kN·m
 
 Un ejemplo más completo, un pórtico con cargas de viento y combinaciones, está en [`examples/portico_simple.py`](https://github.com/jeronimobareiro/nervi/blob/main/examples/portico_simple.py).
 
+### Pórtico espacial (preliminar)
+
+En 3D el eje Z es vertical hacia arriba y cada nudo tiene seis grados de libertad. Este emparrillado en L está empotrado en un extremo y cargado en el otro; la barra que sale del empotramiento trabaja a flexión y a torsión:
+
+```python
+import nervi
+from nervi.secciones import rectangular
+
+m = nervi.Modelo3D()
+a = m.agregar_nudo(0, 0, 0)
+b = m.agregar_nudo(3, 0, 0)
+c = m.agregar_nudo(3, 2, 0)
+sec = rectangular(b=0.25, h=0.50)              # h sobre el eje y local (hacia arriba)
+m.agregar_barra(a, b, E=2.5e7, G=1.04e7, seccion=sec)
+m.agregar_barra(b, c, E=2.5e7, G=1.04e7, seccion=sec)
+m.apoyar(a)                                    # empotramiento (6 GDL)
+m.carga_nodal("P", c, fz=-10)                  # 10 kN hacia abajo
+
+r = m.resolver()["P"]
+print(r.desplazamientos[c, 2])                 # -0.00825 m (8.25 mm hacia abajo)
+print(r.diagrama(0)["T"][0])                   # torsor en la primera barra: -20 kN·m
+```
+
+Las convenciones de ejes y signos en 3D están en la [documentación técnica](https://github.com/jeronimobareiro/nervi/blob/main/docs/convenciones.md). Un pórtico de un piso con vigas y columnas está en [`examples/portico_espacial.py`](https://github.com/jeronimobareiro/nervi/blob/main/examples/portico_espacial.py).
+
 ## Si un resultado no te cierra
 
 Verificá siempre con un cálculo a mano o con otro método. Si encontrás un resultado que creés incorrecto, [abrí un reporte](https://github.com/jeronimobareiro/nervi/issues/new/choose) con el modelo y el valor que esperabas. Si el error puede afectar una estructura real, seguí la [política de seguridad](participar/seguridad.md).

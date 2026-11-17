@@ -2,7 +2,8 @@
 //! # nervi-core
 //!
 //! Núcleo de análisis estructural de Nervi. Fase 1: pórtico plano lineal
-//! elástico (barras Euler-Bernoulli, 3 GDL por nudo).
+//! elástico (barras Euler-Bernoulli, 3 GDL por nudo). Fase 2a: pórtico espacial
+//! (módulo [`espacial`], 6 GDL por nudo).
 //!
 //! ```
 //! use nervi_core::{analizar, Barra, CasoCarga, Modelo};
@@ -29,6 +30,7 @@
 pub mod analisis;
 pub mod elemento;
 pub mod error;
+pub mod espacial;
 mod mecanismo;
 pub mod modelo;
 

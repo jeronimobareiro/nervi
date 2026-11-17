@@ -44,12 +44,14 @@ const COMPONENTE_MINIMA: f64 = 1e-6;
 /// Busca los modos de mecanismo de `K_ff`.
 ///
 /// `tripletas` es el triángulo inferior de `K_ff` (con posibles repetidos, que se
-/// suman) y `gdl_global[i]` el GDL global (`3·nudo + d`) del GDL libre `i`.
+/// suman) y `gdl_global[i]` el GDL global (`g·nudo + d`, con `g` =
+/// `gdl_por_nudo`: 3 en el pórtico plano, 6 en el espacial) del GDL libre `i`.
 /// Devuelve `None` si no se pudo hacer el diagnóstico.
 pub(crate) fn diagnosticar(
     n: usize,
     tripletas: &[Triplet<usize, usize, f64>],
     gdl_global: &[usize],
+    gdl_por_nudo: usize,
 ) -> Option<DiagnosticoMecanismo> {
     if n == 0 {
         return None;
@@ -142,7 +144,7 @@ pub(crate) fn diagnosticar(
         let fisico: Vec<f64> = (0..n)
             .map(|i| s[i] * (0..b).map(|j| columnas[j][i] * v[j][k]).sum::<f64>())
             .collect();
-        let (modo, principal) = describir_modo(&fisico, gdl_global);
+        let (modo, principal) = describir_modo(&fisico, gdl_global, gdl_por_nudo);
         if ubicacion.is_none() {
             ubicacion = principal;
         }
@@ -171,10 +173,21 @@ pub(crate) fn diagnosticar(
 /// El GDL principal es la traslación de mayor valor absoluto (las traslaciones
 /// son lo que el usuario ve moverse); si el modo no tiene traslaciones, el giro
 /// de mayor valor absoluto.
-fn describir_modo(x: &[f64], gdl_global: &[usize]) -> (Vec<ComponenteModo>, Option<(usize, Gdl)>) {
+fn describir_modo(
+    x: &[f64],
+    gdl_global: &[usize],
+    gdl_por_nudo: usize,
+) -> (Vec<ComponenteModo>, Option<(usize, Gdl)>) {
+    let gdl = |g: usize| {
+        if gdl_por_nudo == 6 {
+            Gdl::desde_indice_3d(g)
+        } else {
+            Gdl::desde_indice(g)
+        }
+    };
     let mayor = |traslacion: bool| -> Option<usize> {
         (0..x.len())
-            .filter(|&i| (gdl_global[i] % 3 != 2) == traslacion)
+            .filter(|&i| gdl(gdl_global[i]).es_traslacion() == traslacion)
             .filter(|&i| x[i] != 0.0)
             // Ante empates (dentro del redondeo) gana el GDL de menor índice.
             .fold(None, |m: Option<usize>, i| match m {
@@ -191,18 +204,20 @@ fn describir_modo(x: &[f64], gdl_global: &[usize]) -> (Vec<ComponenteModo>, Opti
         return (Vec::new(), None);
     };
     let escala = x[p];
-    let mut componentes: Vec<ComponenteModo> = (0..x.len())
+    let mut orden: Vec<usize> = (0..x.len()).collect();
+    orden.sort_by_key(|&i| gdl_global[i]);
+    let componentes: Vec<ComponenteModo> = orden
+        .into_iter()
         .filter_map(|i| {
             let valor = x[i] / escala;
             (valor.abs() >= COMPONENTE_MINIMA).then(|| ComponenteModo {
-                nudo: gdl_global[i] / 3,
-                gdl: Gdl::desde_indice(gdl_global[i]),
+                nudo: gdl_global[i] / gdl_por_nudo,
+                gdl: gdl(gdl_global[i]),
                 valor,
             })
         })
         .collect();
-    componentes.sort_by_key(|c| (c.nudo, c.gdl as usize));
-    let ubicacion = (gdl_global[p] / 3, Gdl::desde_indice(gdl_global[p]));
+    let ubicacion = (gdl_global[p] / gdl_por_nudo, gdl(gdl_global[p]));
     (componentes, Some(ubicacion))
 }
 

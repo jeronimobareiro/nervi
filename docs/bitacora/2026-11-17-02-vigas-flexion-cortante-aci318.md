@@ -1,4 +1,4 @@
-# 2026-11-16-02 · Flexión y cortante de vigas de hormigón según ACI 318-19
+# 2026-11-17-02 · Flexión y cortante de vigas de hormigón según ACI 318-19
 
 - **Agente:** Claude (Claude Code)
 - **Pedido por:** Jerónimo Bareiro
@@ -22,7 +22,7 @@ Implementar las combinaciones y envolventes (#21) y el diseño a flexión (#22) 
 ## Cómo se verificó
 
 - `tests/test_design_vigas_aci318.py` (20 pruebas), con los valores esperados calculados a mano en la propia prueba: `β1` y `φ`; `As,min` con cada término gobernando; resistencia de una sección simple (bloque rectangular); la armadura simple es la inversa exacta de la resistencia (despeje cerrado); excepción de 4/3; doble armadura con acero comprimido sin fluir contra el cálculo paso a paso y contra la compatibilidad de deformaciones; zona de transición con `εt = 0.004`; ancho necesario y separaciones; elección de barras en una y dos capas con su `d`; cortante con estribos, separación máxima reducida, límite de la sección, sección sin estribos con `λs` y `ρw`, límite de `fyt`; viga simple (`Mu = wL²/8`, `Vu = wL/2 − w·d`, con y sin ancho de apoyo) y viga continua (`M_B = −wL²/8`) diseñadas desde el modelo; aviso de axil; doctest.
-- `cargo fmt`, `cargo clippy -D warnings`, `cargo test -p nervi-core`, `pytest` (156 en verde; 180 después de traer la memoria de cálculo de `main`), `ruff check` y `ruff format --check`.
+- `cargo fmt`, `cargo clippy -D warnings`, `cargo test -p nervi-core`, `pytest` (156 en verde; 187 después de traer de `main` la memoria de cálculo y el pórtico espacial), `ruff check` y `ruff format --check`.
 
 ## Decisiones tomadas
 
