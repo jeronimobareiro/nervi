@@ -31,7 +31,7 @@ python -m nervi.gui                # opens the interface
 
 If you will only use Nervi from Python, you do not need to install `PySide6-Essentials`.
 
-To see the model and the results in 3D, add the viewer (PyVista and VTK, free software): `pip install pyvista pyvistaqt`. Without it the interface works the same and the **3D** button explains how to install it. The installers do not include it yet.
+To see the model and the results in 3D, add the viewer (PyVista and VTK, free software): `pip install pyvista pyvistaqt`. Without it the interface works the same and the **3D** button explains how to install it. The Windows and Linux installers already include it.
 
 ## Requirements
 

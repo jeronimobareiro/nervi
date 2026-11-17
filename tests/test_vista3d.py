@@ -248,3 +248,13 @@ def test_ventana_con_visor_3d(pv, qtbot):
 
 def test_documento_de_ejemplo_valido():
     formato.validar(documento_ejemplo().modelo)
+
+
+def test_comprobacion_del_ejecutable(pv, tmp_path):
+    """``nervi-gui --comprobar-visor3d img.png``: la prueba que corre el workflow de
+    publicación sobre el ejecutable empaquetado."""
+    from nervi.gui.app import main
+
+    ruta = tmp_path / "visor.png"
+    assert main(["nervi-gui", "--comprobar-visor3d", str(ruta)]) == 0
+    assert ruta.stat().st_size > 0
