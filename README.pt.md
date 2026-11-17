@@ -37,6 +37,7 @@ Veja o [guia de contribuição](CONTRIBUTING.md#contributing-from-other-countrie
 - Vários casos de carga com uma única fatoração, e combinações lineares (combinações e envoltórias da ACI 318-19, experimentais).
 - Reações, esforços nas extremidades, diagramas `N`, `V`, `M` e deformada, incluindo os pontos de momento máximo.
 - Detecção de mecanismos e validação de dados com mensagens claras.
+- Memória de cálculo em PDF (em espanhol, com modelo editável): dados do modelo, seções, cargas, combinações, tabelas de resultados, diagramas e envoltórias (`nervi.memoria`, `pip install "nervi[memoria]"` ou Ctrl+P na interface).
 
 Os apoios são tratados por partição dos graus de liberdade (sem penalização) e o sistema é resolvido com Cholesky esparso do [`faer`](https://github.com/sarah-quinones/faer-rs). Um pórtico de 8 100 barras é resolvido em cerca de 45 ms (release).
 

@@ -87,6 +87,9 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | deformada | deflected shape | deformada | деформированная схема |
 | flecha | deflection | flecha | прогиб |
 | envolvente (`envolvente`) | envelope | envoltória | огибающая |
+| memoria de cálculo (`memoria`, `memoria_de_calculo`) | calculation report, design report | memória de cálculo | расчётная записка |
+| plantilla (`plantilla.toml`) | template | modelo, template | шаблон |
+| capítulo de la memoria (`Capitulo`) | report chapter, section | capítulo | раздел, глава |
 
 ## Diseño y normas · Design and codes
 

@@ -14,6 +14,7 @@ Todo el trabajo se hace en una sola ventana. Arriba está el recorrido **Geometr
 4. **Calcular.** Presioná **F5** o el botón **Calcular**. Si al modelo le falta algo, como un apoyo, la pestaña **Revisión del modelo** te dice qué es.
 5. **Resultados.** Elegí el diagrama de **Momento**. Al pasar el cursor por la barra ves M, V y N en cada punto, y en el centro aparece el máximo de 90 kN·m. Las reacciones están en la tabla de abajo.
 6. **Guardar.** Ctrl+S guarda el proyecto como archivo `.nrv`.
+7. **Memoria de cálculo.** Ctrl+P (o **Exportar memoria de cálculo** en el menú) genera un PDF con el modelo, las cargas, las combinaciones, las tablas de resultados y los diagramas de cada caso y combinación.
 
 Con **Ctrl+K** abrís un buscador para encontrar cualquier comando o elemento del modelo por su nombre.
 
