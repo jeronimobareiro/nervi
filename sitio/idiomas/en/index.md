@@ -51,6 +51,7 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 - **Results**: reactions, axial force, shear and moment diagrams, and the deformed shape. Hovering over a member shows the values at that point.
 - **Desktop interface** in a single window, with tables to enter the model, or use from Python for those who program.
 - **Projects** saved as `.nrv` files.
+- **Calculation report in PDF** (in Spanish), with model data, loads, combinations, result tables and diagrams, from an editable template.
 - **Space frames (3D)**, for now only from Python and as a preview: members with bending in two planes and torsion, space trusses, and rectangular and circular sections.
 
 ## What is coming

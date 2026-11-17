@@ -38,6 +38,7 @@ See the [contributing guide](CONTRIBUTING.md#contributing-from-other-countries).
 - Several load cases with a single factorization, and linear combinations (ACI 318-19 combinations and envelopes, experimental).
 - Reactions, member end forces, `N`, `V`, `M` diagrams and deflected shape, including the points of maximum moment.
 - Mechanism detection and input validation with clear messages.
+- Calculation report in PDF (in Spanish, with an editable template): model data, sections, loads, combinations, result tables, diagrams and envelopes (`nervi.memoria`, `pip install "nervi[memoria]"`, or Ctrl+P in the desktop interface).
 
 Supports are handled by partitioning degrees of freedom (no penalty method), and the system is solved with sparse Cholesky from [`faer`](https://github.com/sarah-quinones/faer-rs). A frame with 8,100 members solves in about 45 ms (release build).
 

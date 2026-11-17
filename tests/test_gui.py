@@ -140,7 +140,13 @@ def test_clic_en_la_vista_selecciona_la_barra(ventana, qtbot):
 
 def test_paleta_de_comandos(ventana):
     entradas = ventana.entradas_paleta()
-    assert [e.texto for e in filtrar(entradas, "calcul")] == ["Calcular"]
+    assert [e.texto for e in filtrar(entradas, "calcul")] == [
+        "Calcular",
+        "Exportar memoria de cálculo (PDF)…",
+    ]
+    assert [e.texto for e in filtrar(entradas, "memoria pdf")] == [
+        "Exportar memoria de cálculo (PDF)…"
+    ]
     assert any(e.texto.startswith("B2") for e in filtrar(entradas, "b2"))
     assert filtrar(entradas, "geometria")  # sin tilde también encuentra
     paleta = ventana.abrir_paleta()
@@ -225,3 +231,17 @@ def test_inspector_con_carga_termica(ventana):
     # Antes el inspector buscaba "a" en la carga térmica y fallaba.
     ventana.sesion.seleccionar(Seleccion("barra", carga["barra"]))
     assert ventana.lbl_sel.text() == f"B{carga['barra']}"
+
+
+def test_exportar_memoria_de_calculo(ventana, tmp_path):
+    pytest.importorskip("reportlab")
+    ruta = tmp_path / "memoria.pdf"
+    assert ventana.exportar_memoria(ruta)
+    assert ruta.read_bytes().startswith(b"%PDF")
+    # Los rótulos usan los id de modelo.json que ve el usuario.
+    doc = ventana.sesion.memoria()
+    nudos = next(
+        b for b in doc.capitulos[1].bloques if getattr(b, "titulo", "") == "Nudos y apoyos"
+    )
+    ids = [n["id"] for n in ventana.sesion.modelo["nudos"]]
+    assert [f[0] for f in nudos.filas] == [f"N{i}" for i in ids]

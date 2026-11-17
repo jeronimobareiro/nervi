@@ -14,6 +14,7 @@ All the work is done in a single window. At the top is the path **Geometry › L
 4. **Calculate.** Press **F5** or the **Calculate** button. If something is missing from the model, such as a support, the **Model review** tab tells you what.
 5. **Results.** Choose the **Moment** diagram. Hovering over the member shows M, V and N at each point, and at mid-span the maximum of 90 kN·m appears. The reactions are in the table below.
 6. **Save.** Ctrl+S saves the project as an `.nrv` file.
+7. **Calculation report.** Ctrl+P (or **Export calculation report** in the menu) creates a PDF, in Spanish, with the model, loads, combinations, result tables and the diagrams of every case and combination.
 
 With **Ctrl+K** you open a search box to find any command or model element by name.
 
