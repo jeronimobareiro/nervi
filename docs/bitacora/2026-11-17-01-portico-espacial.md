@@ -48,7 +48,7 @@
 - No hay módulo `.nrv` para modelos 3D ni visor 3D en la interfaz (#30).
 - Verificación contra ejemplos 3D **publicados** (#15): los casos de esta entrada son soluciones cerradas y estática, no ejemplos transcriptos de un libro.
 - Torsión de Saint-Venant sin alabeo: para perfiles abiertos de pared delgada (I, U) la rigidez torsional real es mayor; queda para la Fase 2.
-- Firma DCO: pendiente. Este trabajo no tiene autorización escrita del usuario para que el agente firme; la firma la agrega el usuario con `git rebase --signoff origin/main` (o autoriza por escrito).
+- Firma DCO: el usuario autorizó por escrito, el 2026-11-17 a las 00:02 UTC ("Autorizo, hazlo", en respuesta al pedido de firmar el PR #52), que el agente firme este aporte en su nombre como `bareirojero <345933350+bareirojero@users.noreply.github.com>`.
 
 ## Para quien siga
 
