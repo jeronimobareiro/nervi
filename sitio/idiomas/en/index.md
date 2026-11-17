@@ -48,7 +48,7 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 - **Plane frames** with members, hinges, trusses, fixed or elastic supports and support settlements.
 - **Loads** on nodes and members: uniform, point, trapezoidal or partial, and concentrated moments within a member.
 - **Load cases and combinations**, for example 1.2D + 1.6L.
-- **Results**: reactions, axial force, shear and moment diagrams, and the deformed shape. Hovering over a member shows the values at that point.
+- **Results**: reactions, axial force, shear and moment diagrams, and the deformed shape. Hovering over a member shows the values at that point. The optional 3D viewer shows the model, loads and diagrams in perspective.
 - **Desktop interface** in a single window, with tables to enter the model, or use from Python for those who program.
 - **Projects** saved as `.nrv` files.
 

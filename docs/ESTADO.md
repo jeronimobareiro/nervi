@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-13 · entrada [2026-11-13-01](bitacora/2026-11-13-01-ejemplos-de-libros.md)_
+_Última actualización: 2026-11-16 · entrada [2026-11-16-03](bitacora/2026-11-16-03-visor-3d.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
@@ -17,10 +17,11 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 - Análisis de pórticos planos desde Python (`import nervi`): cargas nodales, uniformes, puntuales, trapezoidales o uniformes parciales en un tramo `[a, b]` (#2) térmicas, uniformes y con gradiente (#4), y momentos concentrados en el tramo (#3); articulaciones y cerchas; apoyos rígidos y elásticos; asentamientos; varios casos y combinaciones.
 - Reacciones, fuerzas de extremo, diagramas N/V/M y deformada.
 - Si el modelo es un mecanismo, el error dice qué nudo y qué GDL se mueven sin rigidez y da el modo de mecanismo (#9); en Python, `MecanismoError.nudo`, `.gdl` y `.modos`. La interfaz marca ese nudo en el dibujo, junto con los demás nudos del modo.
+- Visor 3D del modelo y de los resultados (#30), opcional con `pip install nervi[visor3d]` (PyVista y VTK). Muestra barras, apoyos, cargas factorizadas, diagramas N/V/M y deformada. Se gira con el mouse y un clic elige una barra. Comparte diagrama, combinación y selección con la vista 2D, y `vista3d.capturar()` renderiza a PNG sin pantalla. Ya dibuja nudos con `z`. Faltan los diagramas en el segundo plano local, que llegan con la barra 3D (#11).
 - Formato de proyecto `.nrv` (`nervi.formato`): abrir, guardar, validar y migrar según [`formato-nrv.md`](formato-nrv.md), con cargas uniformes, puntuales, trapezoidales, térmicas y momentos en el tramo. El proyecto se arma con módulos versionados por separado (hoy solo `modelo`, versión 1), y los archivos de referencia de `tests/datos/nrv/` garantizan que los proyectos viejos se sigan abriendo con los mismos resultados (§6.3).
 - Interfaz de escritorio `nervi.gui` (PySide6, `nervi-gui`): una sola ventana con tablas editables del modelo, cálculo, diagramas N/V/M y deformada, lectura de esfuerzos con el cursor, revisión del modelo, consola Python y buscador de comandos (Ctrl+K). Aviso permanente de versión preliminar.
 - Workflow de publicación: con una etiqueta `v*` genera el instalador `.exe` de Windows (Inno Setup, asocia `.nrv`) y el AppImage de Linux, sin firma, como versión preliminar en Releases.
-- 47 casos de verificación analítica en Rust (6 de mecanismos y 6 de momentos en el tramo) y 122 pruebas en Python (formato e interfaz incluidos), en verde. Contrato de datos Rust ↔ Python en la versión 2.
+- 47 casos de verificación analítica en Rust (6 de mecanismos y 6 de momentos en el tramo) y 149 pruebas en Python (formato, interfaz y visor 3D incluidos), en verde. Contrato de datos Rust ↔ Python en la versión 2.
 - Biblioteca de casos de verificación en `verification/` (#5): 19 casos en TOML con su fuente, que corren en el CI y se pueden aportar sin saber Rust (`verification/README.md`).
 - Ejemplos de libros en `verification/libros/` (#6, en curso): un ejemplo transcripto de dominio público (Merriman y Jacoby, 1907, cercha Fink) y 5 casos de Análisis Estructural (vigas continuas con asentamiento y voladizo, pórticos con desplazamiento lateral de uno y dos pisos, cercha Pratt) resueltos a mano con aritmética exacta en `derivaciones.py`. Cada caso declara su referencia bibliográfica y el CI la revisa. Faltan más ejemplos transcriptos, sobre todo de estructuras hiperestáticas.
 - Combinaciones de carga ACI 318-19 y envolventes por sección en `nervi.design` (#21), **experimental** hasta la revisión de un ingeniero. Las combinaciones se resuelven junto con el modelo y sus diagramas son exactos.
@@ -42,7 +43,7 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 
 ## Próximos pasos sugeridos
 
-0. Interfaz: dibujar cargas, crear barras con el mouse y deshacer/rehacer; después, visor 3D con la Fase 2a.
+0. Interfaz: dibujar cargas en la vista 2D, crear barras con el mouse y deshacer/rehacer. Visor 3D: diagramas en los dos planos locales cuando llegue la barra 3D (#11, #12) y decidir si los instaladores lo traen (agrega unos 100 MB).
 1. Cerrar la Fase 1: material didáctico (#10) y ejemplos transcriptos de libros con página (#6, `datos = "libro"`). Ya están todos los tipos de carga (trapezoidales #2, térmicas #4 y momentos en el tramo #3), también en `.nrv` y la GUI, igual que la biblioteca de verificación (#5) y el diagnóstico de mecanismos (#9).
 2. Difundir los issues `buen-primer-aporte` y `proyecto-academico` entre cátedras (ver `hoja-de-ruta.md` §Colaboración con universidades).
 3. Fase 2a: barra 3D 12×12 (#11), que destraba casi todo lo demás. En paralelo, Fase 3: revisión de ingeniería de `nervi.design` y diseño de vigas a flexión y cortante (#22, #23) sobre las envolventes.

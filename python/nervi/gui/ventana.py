@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSplitter,
+    QStackedWidget,
     QTabWidget,
     QToolButton,
     QTreeWidget,
@@ -36,12 +37,13 @@ from PySide6.QtWidgets import (
 )
 
 from .. import MecanismoError, formato
-from . import estilo
+from . import estilo, vista3d
 from .consola import Consola
 from .paleta import Entrada, Paleta
 from .sesion import Seleccion, Sesion, documento_ejemplo
 from .tablas import LISTAS, EditorLista, TablaResultados, vista_tabla
 from .vista2d import DIAGRAMAS, Vista2D
+from .vista3d import Vista3D
 
 RECURSOS = Path(__file__).resolve().parent / "recursos"
 ETAPAS = ("Geometría", "Cargas", "Análisis", "Resultados", "Diseño", "Memoria")
@@ -69,9 +71,14 @@ class Ventana(QMainWindow):
         capa.addWidget(self._barra_contextual())
 
         self.vista = Vista2D(self.sesion)
+        # El visor 3D se crea la primera vez que se lo pide: VTK tarda en arrancar
+        # y es una dependencia opcional (nervi[visor3d]).
+        self.vista3d: QWidget | None = None
+        self.vistas = QStackedWidget()
+        self.vistas.addWidget(self.vista)
         self.panel_inferior = self._panel_inferior()
         centro = QSplitter(Qt.Vertical)
-        centro.addWidget(self.vista)
+        centro.addWidget(self.vistas)
         centro.addWidget(self.panel_inferior)
         centro.setStretchFactor(0, 3)
         centro.setStretchFactor(1, 1)
@@ -119,10 +126,12 @@ class Ventana(QMainWindow):
             atajo = {"M": "M", "V": "V", "N": "N", "D": "D"}[clave]
             self.a_diagramas[clave] = self._accion(
                 f"Mostrar {nombre.lower()}",
-                lambda _=False, c=clave: self.vista.elegir_diagrama(c),
+                lambda _=False, c=clave: self.elegir_diagrama(c),
                 atajo,
             )
             self.a_diagramas[clave].setShortcutContext(Qt.WidgetWithChildrenShortcut)
+        self.a_vista2d = self._accion("Vista 2D", lambda: self.mostrar_vista("2D"))
+        self.a_vista3d = self._accion("Vista 3D", lambda: self.mostrar_vista("3D"))
 
     def _barra_superior(self) -> QWidget:
         barra = QWidget(objectName="barra")
@@ -183,6 +192,22 @@ class Ventana(QMainWindow):
         capa = QHBoxLayout(barra)
         capa.setContentsMargins(12, 5, 12, 5)
         capa.setSpacing(10)
+        vistas = QWidget(objectName="grupo")
+        v = QHBoxLayout(vistas)
+        v.setContentsMargins(2, 2, 2, 2)
+        v.setSpacing(2)
+        self.grupo_vistas = QButtonGroup(self)
+        self.botones_vista: dict[str, QPushButton] = {}
+        for nombre in ("2D", "3D"):
+            b = QPushButton(nombre, objectName="segmento", checkable=True)
+            b.setToolTip(f"Vista {nombre}")
+            b.clicked.connect(lambda _=False, n=nombre: self.mostrar_vista(n))
+            self.grupo_vistas.addButton(b)
+            self.botones_vista[nombre] = b
+            v.addWidget(b)
+        self.botones_vista["2D"].setChecked(True)
+        capa.addWidget(vistas)
+        capa.addSpacing(8)
         capa.addWidget(QLabel("Diagrama", objectName="tenue"))
         grupo = QWidget(objectName="grupo")
         g = QHBoxLayout(grupo)
@@ -193,7 +218,7 @@ class Ventana(QMainWindow):
         for clave, nombre in DIAGRAMAS.items():
             b = QPushButton(nombre, objectName="segmento", checkable=True)
             b.setToolTip(f"Atajo: {clave}")
-            b.clicked.connect(lambda _=False, c=clave: self.vista.elegir_diagrama(c))
+            b.clicked.connect(lambda _=False, c=clave: self.elegir_diagrama(c))
             self.segmentos.addButton(b)
             self.botones_diagrama[clave] = b
             g.addWidget(b)
@@ -491,6 +516,29 @@ class Ventana(QMainWindow):
     def _valores(self, activo: bool) -> None:
         self.vista.mostrar_valores = activo
         self.vista.update()
+        if isinstance(self.vista3d, Vista3D):
+            self.vista3d.mostrar_valores = activo
+            self.vista3d.actualizar()
+
+    def elegir_diagrama(self, clave: str) -> None:
+        """Mismo diagrama en la vista 2D y en la 3D."""
+        self.vista.elegir_diagrama(clave)
+        if isinstance(self.vista3d, Vista3D):
+            self.vista3d.elegir_diagrama(clave)
+
+    def mostrar_vista(self, nombre: str) -> None:
+        """Muestra la vista ``"2D"`` o ``"3D"`` en el centro de la ventana."""
+        if nombre == "3D":
+            if self.vista3d is None:
+                self.vista3d = vista3d.crear(self.sesion)
+                if isinstance(self.vista3d, Vista3D):
+                    self.vista3d.mostrar_valores = self.vista.mostrar_valores
+                    self.vista3d.elegir_diagrama(self.vista.diagrama)
+                self.vistas.addWidget(self.vista3d)
+            self.vistas.setCurrentWidget(self.vista3d)
+        else:
+            self.vistas.setCurrentWidget(self.vista)
+        self.botones_vista[nombre].setChecked(True)
 
     def _item_explorador(self, item: QTreeWidgetItem) -> None:
         dato = item.data(0, Qt.UserRole)
@@ -667,6 +715,8 @@ class Ventana(QMainWindow):
 
     def closeEvent(self, evento) -> None:
         if self._seguir_si_hay_cambios():
+            if isinstance(self.vista3d, Vista3D):
+                self.vista3d.plotter.close()
             evento.accept()
         else:
             evento.ignore()

@@ -12,7 +12,7 @@ Todo o trabalho é feito em uma única janela. No alto está o percurso **Geomet
 2. **Apoios.** N1 com deslocamentos X e Y impedidos (apoio fixo) e N2 apenas com Y impedido (apoio móvel).
 3. **Cargas.** Crie o caso D e adicione à barra uma carga uniforme qy = −20 (para baixo).
 4. **Calcular.** Pressione **F5** ou o botão **Calcular**. Se o modelo estiver incompleto, por exemplo sem um apoio, a aba **Revisão do modelo** diz o que falta.
-5. **Resultados.** Escolha o diagrama de **Momento**. Ao passar o cursor pela barra você vê M, V e N em cada ponto, e no centro aparece o máximo de 90 kN·m. As reações estão na tabela de baixo.
+5. **Resultados.** Escolha o diagrama de **Momento**. Ao passar o cursor pela barra você vê M, V e N em cada ponto, e no centro aparece o máximo de 90 kN·m. As reações estão na tabela de baixo. Com o botão **3D**, à esquerda dos diagramas, você vê a mesma viga com suas cargas em 3D: arraste com o mouse para girar e clique em uma barra para selecioná-la.
 6. **Salvar.** Ctrl+S salva o projeto como arquivo `.nrv`.
 
 Com **Ctrl+K** você abre uma busca para encontrar qualquer comando ou elemento do modelo pelo nome.

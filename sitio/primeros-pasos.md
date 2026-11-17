@@ -12,7 +12,7 @@ Todo el trabajo se hace en una sola ventana. Arriba está el recorrido **Geometr
 2. **Apoyos.** N1 con desplazamientos X e Y impedidos (articulado fijo) y N2 solo con Y impedido (carrito).
 3. **Cargas.** Creá el caso D y agregá a la barra una carga uniforme qy = −20 (hacia abajo).
 4. **Calcular.** Presioná **F5** o el botón **Calcular**. Si al modelo le falta algo, como un apoyo, la pestaña **Revisión del modelo** te dice qué es.
-5. **Resultados.** Elegí el diagrama de **Momento**. Al pasar el cursor por la barra ves M, V y N en cada punto, y en el centro aparece el máximo de 90 kN·m. Las reacciones están en la tabla de abajo.
+5. **Resultados.** Elegí el diagrama de **Momento**. Al pasar el cursor por la barra ves M, V y N en cada punto, y en el centro aparece el máximo de 90 kN·m. Las reacciones están en la tabla de abajo. Con el botón **3D**, a la izquierda de los diagramas, ves la misma viga con sus cargas en 3D: se gira arrastrando con el mouse y un clic en una barra la selecciona.
 6. **Guardar.** Ctrl+S guarda el proyecto como archivo `.nrv`.
 
 Con **Ctrl+K** abrís un buscador para encontrar cualquier comando o elemento del modelo por su nombre.

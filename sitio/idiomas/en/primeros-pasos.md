@@ -12,7 +12,7 @@ All the work is done in a single window. At the top is the path **Geometry › L
 2. **Supports.** N1 with X and Y displacements restrained (pinned) and N2 with only Y restrained (roller).
 3. **Loads.** Create case D and add a uniform load qy = −20 (downwards) to the member.
 4. **Calculate.** Press **F5** or the **Calculate** button. If something is missing from the model, such as a support, the **Model review** tab tells you what.
-5. **Results.** Choose the **Moment** diagram. Hovering over the member shows M, V and N at each point, and at mid-span the maximum of 90 kN·m appears. The reactions are in the table below.
+5. **Results.** Choose the **Moment** diagram. Hovering over the member shows M, V and N at each point, and at mid-span the maximum of 90 kN·m appears. The reactions are in the table below. The **3D** button, left of the diagrams, shows the same beam with its loads in 3D: drag with the mouse to rotate it, and click a member to select it.
 6. **Save.** Ctrl+S saves the project as an `.nrv` file.
 
 With **Ctrl+K** you open a search box to find any command or model element by name.

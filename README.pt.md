@@ -68,10 +68,11 @@ Mais exemplos em [`examples/`](examples/). Convenções de sinais em [`docs/conv
 
 ```
 pip install "nervi[gui]"       # ou, a partir do código-fonte: pip install PySide6-Essentials
+pip install "nervi[visor3d]"   # opcional: visualizador 3D (PyVista e VTK)
 nervi-gui                      # ou: python -m nervi.gui projeto.nrv
 ```
 
-Tudo acontece em uma única janela: tabelas de nós, barras, apoios, cargas e combinações, cálculo com F5, diagramas N, V, M e deformada com leitura de esforços sob o cursor, propriedades da seleção, revisão do modelo, console Python e paleta de comandos (Ctrl+K). Os projetos são salvos no formato [`.nrv`](docs/formato-nrv.md). Os instaladores para Windows (`.exe`) e Linux (AppImage) são gerados em [Releases](https://github.com/jeronimobareiro/nervi/releases) ao publicar uma tag `v*`; não são assinados. Por enquanto a interface está em espanhol.
+Tudo acontece em uma única janela: tabelas de nós, barras, apoios, cargas e combinações, cálculo com F5, diagramas N, V, M e deformada com leitura de esforços sob o cursor, visualizador 3D opcional do modelo, das cargas e dos diagramas, propriedades da seleção, revisão do modelo, console Python e paleta de comandos (Ctrl+K). Os projetos são salvos no formato [`.nrv`](docs/formato-nrv.md). Os instaladores para Windows (`.exe`) e Linux (AppImage) são gerados em [Releases](https://github.com/jeronimobareiro/nervi/releases) ao publicar uma tag `v*`; não são assinados. Por enquanto a interface está em espanhol.
 
 > **Versão preliminar, não apta para projetos reais.** A análise linear elástica está verificada contra soluções analíticas; o dimensionamento segundo normas ainda não existe.
 
