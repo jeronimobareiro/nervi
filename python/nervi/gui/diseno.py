@@ -14,6 +14,7 @@ from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QApplication,
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
@@ -251,12 +252,16 @@ class PanelDiseno(QWidget):
 
     def disenar(self) -> bool:
         """Calcula si hace falta y diseña todas las barras."""
+        # La búsqueda de armadura de cada columna tarda uno o dos segundos.
+        QApplication.setOverrideCursor(Qt.WaitCursor)
         try:
             self.sesion.disenar()
         except Exception as e:  # el error se muestra en el panel, no se pierde
             self.lbl_mensaje.setText(f"No se pudo diseñar: {e}")
             self.lbl_mensaje.setStyleSheet(f"color: {estilo.NEGATIVO};")
             return False
+        finally:
+            QApplication.restoreOverrideCursor()
         self.disenado.emit()
         return True
 
@@ -336,7 +341,11 @@ class PanelDiseno(QWidget):
             texto = f"{texto[0]} {rel:.2f}"
         estado = celda(7, texto, color=color)
         estado.setToolTip("Relación solicitación / resistencia de la verificación que gobierna")
-        if res.armadura:
+        if "Longitudinal" in res.armadura:
+            # Columnas: la armadura longitudinal ocupa las tres columnas de armadura.
+            celda(4, f"Longitudinal: {res.armadura['Longitudinal']}")
+            self.tabla.setSpan(fila, 4, 1, 3)
+        elif res.armadura:
             a = res.armadura
             celda(4, a.get("Inferior", ""))
             celda(5, a.get("Superior", ""))

@@ -265,7 +265,9 @@ def test_etapa_diseno_habilitada_y_disena(ventana):
     assert t.item(1, 4).text() == viga.armadura["Inferior"]
     assert t.item(1, 6).text() == viga.armadura["Estribos"]
     assert t.item(1, 7).text() == f"✓ {viga.relacion:.2f}"
-    assert "#24" in t.item(0, 4).text()  # columnas pendientes hasta el issue #24
+    col = s.resultado_diseno(1)
+    assert t.item(0, 4).text() == f"Longitudinal: {col.armadura['Longitudinal']}"
+    assert t.item(0, 7).text() == f"✓ {col.relacion:.2f}"
     assert "experimental" in panel.aviso.text().lower()
     # La vista 2D colorea cada barra según su estado.
     assert set(ventana.vista.colores_barra) == {1, 2, 3}

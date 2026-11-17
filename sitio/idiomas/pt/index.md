@@ -48,7 +48,9 @@ O Nervi analisa pórticos pelo método dos elementos finitos e mostra reações,
 - **Pórticos planos** com barras, rótulas, treliças, apoios fixos ou elásticos e recalques.
 - **Cargas** em nós e em barras: uniformes, pontuais, trapezoidais ou parciais e momentos concentrados no vão.
 - **Casos e combinações** de carga, por exemplo 1.2D + 1.6L.
-- **Vigas de concreto armado** segundo a ACI 318-19, em versão experimental: armadura de flexão, barras comerciais e estribos. Na interface, a etapa **Diseño** dimensiona todas as vigas do pórtico, marca quais atendem e mostra cada verificação com o artigo da norma.
+- **Vigas de concreto armado** segundo a ACI 318-19, em versão experimental: armadura de flexão, barras comerciais e estribos.
+- **Pilares de concreto armado** segundo a ACI 318-19, em versão experimental: flexo-compressão em duas direções, esbeltez e escolha da armadura.
+- **Etapa Diseño** (dimensionamento) na interface: dimensiona todas as vigas e pilares do pórtico, marca quais atendem e mostra cada verificação com o artigo da norma.
 - **Resultados**: reações, diagramas de esforço normal, cortante e momento, e a deformada. Ao passar o cursor sobre uma barra, os valores naquele ponto aparecem. Com o visualizador 3D opcional, o modelo, as cargas e os diagramas aparecem em perspectiva.
 - **Interface de desktop** em uma única janela, com tabelas para montar o modelo, ou uso a partir do Python para quem programa.
 - **Projetos** salvos em arquivos `.nrv`.
@@ -57,7 +59,7 @@ O Nervi analisa pórticos pelo método dos elementos finitos e mostra reações,
 
 ## O que vem a seguir
 
-Pórticos 3D na interface, análise sísmica, pilares de concreto armado, flechas e detalhamento de armaduras, intercâmbio com programas BIM (IFC) e memorial de cálculo. A ordem e as tarefas estão no [roteiro](hoja-de-ruta.md).
+Pórticos 3D na interface, análise sísmica, flechas, fissuração e detalhamento de armaduras, intercâmbio com programas BIM (IFC) e memorial de cálculo. A ordem e as tarefas estão no [roteiro](hoja-de-ruta.md).
 
 ## Para continuar lendo
 

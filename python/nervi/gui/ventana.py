@@ -183,7 +183,9 @@ class Ventana(QMainWindow):
                     "Llega con la Fase 4. Mientras tanto, exportá la memoria en PDF con Ctrl+P"
                 )
             elif nombre == "Diseño":
-                b.setToolTip("Armadura de vigas de hormigón según ACI 318-19 (experimental)")
+                b.setToolTip(
+                    "Armadura de vigas y columnas de hormigón según ACI 318-19 (experimental)"
+                )
             self.etapas.addButton(b, n)
             self.botones_etapa.append(b)
             capa.addWidget(b)
@@ -331,7 +333,7 @@ class Ventana(QMainWindow):
         aviso = QLabel(AVISO_PRELIMINAR, objectName="etiqueta")
         aviso.setToolTip(
             "Análisis lineal elástico verificado contra soluciones analíticas. "
-            "El diseño de vigas según ACI 318-19 es experimental y no fue revisado "
+            "El diseño de vigas y columnas según ACI 318-19 es experimental y no fue revisado "
             "por un ingeniero estructural."
         )
         barra.addPermanentWidget(aviso)

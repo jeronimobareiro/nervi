@@ -48,7 +48,9 @@ Nervi analiza pórticos por el método de los elementos finitos y muestra reacci
 - **Pórticos planos** con barras, articulaciones, cerchas, apoyos fijos o elásticos y asentamientos.
 - **Cargas** en nudos y en barras: uniformes, puntuales, trapezoidales o parciales y momentos concentrados en el tramo.
 - **Casos y combinaciones** de carga, por ejemplo 1.2D + 1.6L.
-- **Vigas de hormigón armado** según ACI 318-19, en versión experimental: armadura a flexión, barras comerciales y estribos. En la interfaz, la etapa **Diseño** arma todas las vigas del pórtico, marca cuáles cumplen y muestra cada verificación con su artículo de la norma.
+- **Vigas de hormigón armado** según ACI 318-19, en versión experimental: armadura a flexión, barras comerciales y estribos.
+- **Columnas de hormigón armado** según ACI 318-19, en versión experimental: flexocompresión en dos direcciones, esbeltez y elección de la armadura.
+- **Etapa Diseño** en la interfaz: arma todas las vigas y columnas del pórtico, marca cuáles cumplen y muestra cada verificación con su artículo de la norma.
 - **Resultados**: reacciones, diagramas de axil, cortante y momento, y deformada. Al pasar el cursor por una barra se leen los valores en ese punto. Con el visor 3D opcional se ven el modelo, las cargas y los diagramas en perspectiva.
 - **Interfaz de escritorio** en una sola ventana, con tablas para cargar el modelo, o uso desde Python para quien programa.
 - **Proyectos** guardados en archivos `.nrv`.
@@ -57,7 +59,7 @@ Nervi analiza pórticos por el método de los elementos finitos y muestra reacci
 
 ## Qué viene
 
-Pórticos 3D en la interfaz, análisis sísmico, columnas de hormigón armado, flechas y detalle de armaduras, intercambio con programas BIM (IFC) y memoria de cálculo. El orden y las tareas están en la [hoja de ruta](hoja-de-ruta.md).
+Pórticos 3D en la interfaz, análisis sísmico, flechas, fisuración y detalle de armaduras, intercambio con programas BIM (IFC) y memoria de cálculo. El orden y las tareas están en la [hoja de ruta](hoja-de-ruta.md).
 
 ## Para seguir leyendo
 

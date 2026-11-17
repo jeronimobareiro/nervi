@@ -80,8 +80,8 @@ def test_elementos_con_datos_del_usuario():
 def test_disenar_portico_coincide_con_disenar_viga():
     doc, combs = _portico()
     res = _disenar(doc, combs)
-    assert [r.estado for r in res] == ["pendiente", "cumple", "pendiente"]
-    assert "#24" in res[0].mensajes[0]
+    assert [r.estado for r in res] == ["cumple", "cumple", "cumple"]
+    assert [r.elemento.tipo for r in res] == ["columna", "viga", "columna"]
     viga = res[1]
     # Lo mismo que llamar directamente al módulo de la norma con esos datos.
     m, idx = formato.construir_modelo(doc.modelo)
@@ -154,7 +154,7 @@ def test_seccion_imposible_da_error():
     assert r.estado == "error" and "80 × 500" in r.mensajes[0]
 
 
-def test_registro_de_disenadores_para_columnas(monkeypatch):
+def test_registro_de_disenadores(monkeypatch):
     def columna(el, ctx):
         assert ctx.fuerza == "kN" and ctx.combinaciones == ["1.4D", "1.2D+1.6L"]
         v = proyecto.Verificacion("Flexocompresión", 1.0, 2.0, "kN·m", "ACI 318-19 §22.4")
@@ -162,8 +162,52 @@ def test_registro_de_disenadores_para_columnas(monkeypatch):
 
     monkeypatch.setitem(proyecto.DISENADORES, "columna", columna)
     res = _disenar(*_portico())
-    assert [r.estado for r in res] == ["cumple", "cumple", "cumple"]
     assert res[0].armadura == {"Longitudinal": "4Ø16"} and res[0].relacion == 0.5
+    # Un tipo sin diseñador queda pendiente con el motivo.
+    monkeypatch.delitem(proyecto.DISENADORES, "columna")
+    res = _disenar(*_portico())
+    assert [r.estado for r in res] == ["pendiente", "cumple", "pendiente"]
+    assert res[0].mensajes == ["Sin diseñador."]
+
+
+def test_disenar_columna_coincide_con_aci318():
+    doc, combs = _portico()
+    col = _disenar(doc, combs)[0]
+    assert col.elemento.tipo == "columna" and (col.elemento.b, col.elemento.h) == (300.0, 300.0)
+    # Lo mismo que llamar al módulo de columnas con la sección 300 x 300 y la búsqueda
+    # de armadura: hy es el canto en el plano del pórtico.
+    m, idx = formato.construir_modelo(doc.modelo)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        directo = aci318.disenar_columna(
+            m.resolver(combinaciones=combs),
+            idx.barras[1],
+            aci318.SeccionColumna.rectangular(300, 300, 2, 2, 16.0, d_estribo=10.0),
+            aci318.Materiales(fc=25, fy=420, fyt=420),
+            ["1.4D", "1.2D+1.6L"],
+            buscar_armadura=True,
+        )
+    assert col.armadura == {"Longitudinal": directo.seccion.descripcion}
+    assert col.estado == ("cumple" if directo.cumple else "no cumple")
+    ver = {v.nombre.split(" (")[0]: v for v in col.verificaciones}
+    flexo = ver["Flexocompresión"]
+    crit = directo.critica
+    assert flexo.solicitacion == pytest.approx(math.hypot(crit.Mz, crit.My))
+    assert flexo.resistencia == pytest.approx(crit.phiMn)
+    assert flexo.relacion == pytest.approx(directo.razon)
+    assert ver["Compresión axial"].resistencia == pytest.approx(directo.axial.phiPn_max)
+    rho = 100 * directo.seccion.cuantia
+    assert ver["Cuantía mínima"].resistencia == pytest.approx(rho)
+    assert ver["Cuantía máxima"].solicitacion == pytest.approx(rho)
+    assert 1.0 <= rho <= 8.0
+    assert any("Esbeltez en el plano" in m for m in col.mensajes)
+    assert any("no desplazable" in m for m in col.mensajes)
+
+
+def test_columna_en_otras_unidades_queda_pendiente():
+    doc, combs = _portico("tf", "cm", 1 / 9.80665, 100.0)
+    col = _disenar(doc, combs)[0]
+    assert col.estado == "pendiente" and "kN y m" in col.mensajes[0]
 
 
 def test_sin_combinaciones_no_se_disena():
@@ -185,9 +229,11 @@ def test_capitulo_de_la_memoria():
     assert [t.titulo for t in tablas] == ["Armaduras", "Verificaciones"]
     assert [f[0] for f in tablas[0].filas] == ["B1", "B2", "B3"]
     assert tablas[0].filas[1][3] == res[1].armadura["Inferior"]
-    assert len(tablas[1].filas) == len(res[1].verificaciones)
     assert all(f[5] == "Cumple" for f in tablas[1].filas)
-    assert any("#24" in getattr(b, "texto", "") for b in cap.bloques)
+    # Las columnas muestran su armadura longitudinal en la misma tabla.
+    assert tablas[0].filas[0][3] == res[0].armadura["Longitudinal"]
+    n = sum(len(r.verificaciones) for r in res)
+    assert len(tablas[1].filas) == n
 
 
 # --- Módulo "diseno" del formato .nrv ------------------------------------------------

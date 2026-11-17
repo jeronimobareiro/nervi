@@ -48,7 +48,9 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 - **Plane frames** with members, hinges, trusses, fixed or elastic supports and support settlements.
 - **Loads** on nodes and members: uniform, point, trapezoidal or partial, and concentrated moments within a member.
 - **Load cases and combinations**, for example 1.2D + 1.6L.
-- **Reinforced concrete beams** per ACI 318-19, as an experimental feature: flexural reinforcement, commercial bars and stirrups. In the interface, the **Design** stage designs every beam of the frame, marks which ones pass and shows each check with its code article.
+- **Reinforced concrete beams** per ACI 318-19, as an experimental feature: flexural reinforcement, commercial bars and stirrups.
+- **Reinforced concrete columns** per ACI 318-19, as an experimental feature: axial load with bending in two directions, slenderness and choice of reinforcement.
+- **Design stage** in the interface: designs every beam and column of the frame, marks which ones pass and shows each check with its code article.
 - **Results**: reactions, axial force, shear and moment diagrams, and the deformed shape. Hovering over a member shows the values at that point. The optional 3D viewer shows the model, loads and diagrams in perspective.
 - **Desktop interface** in a single window, with tables to enter the model, or use from Python for those who program.
 - **Projects** saved as `.nrv` files.
@@ -57,7 +59,7 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 
 ## What is coming
 
-3D frames in the interface, seismic analysis, reinforced concrete columns, deflections and reinforcement detailing, exchange with BIM programs (IFC) and calculation reports. The order and the tasks are in the [roadmap](hoja-de-ruta.md).
+3D frames in the interface, seismic analysis, deflections, cracking and reinforcement detailing, exchange with BIM programs (IFC) and calculation reports. The order and the tasks are in the [roadmap](hoja-de-ruta.md).
 
 ## Keep reading
 

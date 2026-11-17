@@ -5,21 +5,21 @@ Toma ``modelo.json`` y ``diseno.json`` (``nervi.formato``), decide qué barra es
 viga y cuál columna, arma su sección y llama al diseñador de cada tipo. Es lo que
 usan la etapa *Diseño* de la interfaz y la memoria de cálculo.
 
-Cada tipo de elemento tiene su diseñador en :data:`DISENADORES`. Hoy está el de
-vigas (ACI 318-19, #22 y #23). El de columnas (#24) se registra igual::
+Cada tipo de elemento tiene su diseñador en :data:`DISENADORES`: vigas (ACI 318-19,
+#22 y #23) y columnas (#24). Otro tipo se registra igual::
 
     from nervi.design import proyecto
 
-    def disenar_columna(e: proyecto.Elemento, ctx: proyecto.Contexto) -> proyecto.ResultadoElemento:
+    def disenar_muro(e: proyecto.Elemento, ctx: proyecto.Contexto) -> proyecto.ResultadoElemento:
         ...
 
-    proyecto.DISENADORES["columna"] = disenar_columna
+    proyecto.DISENADORES["muro"] = disenar_muro
 
 Mientras un tipo no tenga diseñador, sus barras quedan como *pendientes*.
 
 >>> from nervi.design import proyecto
 >>> sorted(proyecto.DISENADORES)
-['viga']
+['columna', 'viga']
 """
 
 from __future__ import annotations
@@ -120,9 +120,7 @@ Disenador = Callable[[Elemento, Contexto], ResultadoElemento]
 #: Diseñador de cada tipo de elemento.
 DISENADORES: dict[str, Disenador] = {}
 
-_PENDIENTE = {
-    "columna": "Diseño de columnas pendiente (ACI 318-19, issue #24).",
-}
+_PENDIENTE: dict[str, str] = {}
 
 
 def seccion_equivalente(A: float, I: float, longitud: str) -> tuple[float, float]:
@@ -340,6 +338,101 @@ def _mensaje_falla(texto: str) -> str:
 DISENADORES["viga"] = disenar_viga
 
 
+# --- Columnas (ACI 318-19 §10, §22.4, §6.6.4) ---------------------------------------------
+
+
+def disenar_columna(el: Elemento, ctx: Contexto) -> ResultadoElemento:
+    """Armadura longitudinal de una columna con :func:`aci318.disenar_columna`.
+
+    La sección es el rectángulo ``h`` (en el plano del pórtico, eje ``y`` local de la
+    columna) por ``b``; se busca la armadura de menor área con barras en el
+    perímetro. Se toma ``k = 1`` y ``lu`` igual al largo de la barra, pórtico no
+    desplazable y ``βdns = 1`` (el modelo no dice qué casos son permanentes), que
+    es el lado seguro para la rigidez de §6.6.4.4.4.
+    """
+    if (ctx.fuerza, ctx.longitud) != ("kN", "m"):
+        return ResultadoElemento(
+            el,
+            "pendiente",
+            mensajes=[
+                "El diseño de columnas necesita el modelo en kN y m; este está en "
+                f"{ctx.fuerza} y {ctx.longitud}."
+            ],
+        )
+    c = ctx.diseno["criterios"]
+    mat = ctx.materiales
+    try:
+        sec = aci318.SeccionColumna.rectangular(
+            hy=el.h,
+            hz=el.b,
+            n_y=2,
+            n_z=2,
+            diametro=16.0,
+            recubrimiento=float(c["recubrimiento"]),
+            d_estribo=float(c["d_estribo"]),
+            d_agregado=float(c["d_agregado"]),
+        )
+    except ValueError as e:
+        return ResultadoElemento(el, "error", mensajes=[f"Sección {el.b:g} × {el.h:g} mm: {e}"])
+    with warnings.catch_warnings(record=True) as avisos:
+        warnings.simplefilter("always")
+        try:
+            r = aci318.disenar_columna(
+                ctx.resultados,
+                el.indice,
+                sec,
+                mat,
+                ctx.combinaciones,
+                buscar_armadura=True,
+            )
+        except ValueError as e:
+            return ResultadoElemento(el, "no cumple", mensajes=[_mensaje_falla(str(e))])
+    mensajes = list(r.avisos) + [
+        str(a.message) for a in avisos if not issubclass(a.category, ModuloExperimentalWarning)
+    ]
+    sec = r.seccion
+    crit = r.critica
+    ver: list[Verificacion] = []
+    flexo = "ACI 318-19 §10.5.1.1, §22.4"
+    mu = math.hypot(crit.Mz, crit.My)
+    if mu > 1e-9:
+        donde = "con los momentos magnificados" if crit.x is None else f"en x = {crit.x:.3g} m"
+        ver.append(Verificacion("Flexocompresión", mu, crit.phiMn, "kN·m", flexo))
+        mensajes.insert(0, f"Manda {crit.combinacion} con Pu = {crit.Pu:.4g} kN {donde}.")
+    pu_max = max(d.Pu for d in r.demandas)
+    if pu_max > 0:
+        ver.append(
+            Verificacion("Compresión axial", pu_max, r.axial.phiPn_max, "kN", "ACI 318-19 §22.4.2")
+        )
+    rho = 100.0 * sec.cuantia
+    art_rho = "ACI 318-19 §10.6.1.1"
+    ver.append(Verificacion("Cuantía mínima", 1.0, rho, "%", art_rho))
+    ver.append(Verificacion("Cuantía máxima", rho, 8.0, "%", art_rho))
+    # Esbeltez en el plano, en la combinación que manda.
+    esb = r.esbeltez.get(crit.combinacion, {}).get("z")
+    if esb is not None:
+        if esb.esbelta:
+            mensajes.append(
+                f"Esbelta en el plano: k·lu/r = {esb.esbeltez:.1f} > {esb.limite:.1f} "
+                f"(§6.2.5.1); momentos magnificados con δ = {esb.delta:.3f} (§6.6.4.5)."
+            )
+        else:
+            mensajes.append(
+                f"Esbeltez en el plano k·lu/r = {esb.esbeltez:.1f} ≤ {esb.limite:.1f} "
+                "(§6.2.5.1): no se magnifican los momentos."
+            )
+    mensajes.append(
+        "Supuestos: k = 1, lu = largo de la barra, pórtico no desplazable y βdns = 1. En el "
+        "pórtico plano no se revisan la flexión ni la esbeltez fuera del plano. Los estribos "
+        "de columnas todavía no se diseñan."
+    )
+    estado = "cumple" if r.cumple and all(v.cumple for v in ver) else "no cumple"
+    return ResultadoElemento(el, estado, {"Longitudinal": sec.descripcion}, ver, mensajes, r)
+
+
+DISENADORES["columna"] = disenar_columna
+
+
 # --- Memoria de cálculo ------------------------------------------------------------------
 
 
@@ -368,6 +461,9 @@ def capitulo_memoria(
             if c["seccion_critica_a_d"]
             else "en toda la luz."
         )
+        + " Las columnas se arman a flexocompresión con la armadura de menor área que "
+        "cumple (1 % ≤ ρ ≤ 8 %), con k = 1, lu igual al largo de la barra, pórtico no "
+        "desplazable y βdns = 1 para la esbeltez (§6.6.4)."
     )
     filas = []
     for r in resultados:
@@ -380,7 +476,7 @@ def capitulo_memoria(
                 nombre_barra(el.barra),
                 el.tipo.capitalize(),
                 f"{num(el.b)} × {num(el.h)}",
-                a.get("Inferior", "—"),
+                a.get("Inferior", a.get("Longitudinal", "—")),
                 a.get("Superior", "—"),
                 a.get("Estribos", "—"),
                 _ESTADO_TEXTO[r.estado],
@@ -389,7 +485,15 @@ def capitulo_memoria(
     if filas:
         cap.tabla(
             Tabla(
-                ["Elemento", "Tipo", "b × h (mm)", "Inferior", "Superior", "Estribos", "Estado"],
+                [
+                    "Elemento",
+                    "Tipo",
+                    "b × h (mm)",
+                    "Inferior o longitudinal",
+                    "Superior",
+                    "Estribos",
+                    "Estado",
+                ],
                 filas,
                 titulo="Armaduras",
                 anchos=[0.8, 0.8, 1.0, 1.4, 1.4, 1.7, 0.9],
@@ -418,7 +522,8 @@ def capitulo_memoria(
     for n in notas:
         cap.parrafo(n, "nota")
     cap.parrafo(
-        "No se verifican flechas, fisuración, torsión, anclajes ni corte de barras. "
+        "No se verifican flechas, fisuración, torsión, anclajes, corte de barras ni "
+        "estribos de columnas. "
         "Los artículos citados son de ACI 318-19; la memoria cita el artículo y no "
         "transcribe el texto de la norma.",
         "nota",
