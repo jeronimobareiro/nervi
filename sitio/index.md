@@ -52,6 +52,7 @@ Nervi analiza pórticos por el método de los elementos finitos y muestra reacci
 - **Resultados**: reacciones, diagramas de axil, cortante y momento, y deformada. Al pasar el cursor por una barra se leen los valores en ese punto.
 - **Interfaz de escritorio** en una sola ventana, con tablas para cargar el modelo, o uso desde Python para quien programa.
 - **Proyectos** guardados en archivos `.nrv`.
+- **Memoria de cálculo en PDF**, con los datos del modelo, las cargas, las combinaciones, las tablas de resultados y los diagramas, a partir de una plantilla editable.
 
 ## Qué viene
 
