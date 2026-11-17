@@ -119,6 +119,9 @@ class Ventana(QMainWindow):
         self.a_guardar = self._accion("Guardar", self.guardar, QKeySequence.Save)
         self.a_guardar_como = self._accion("Guardar como…", self.guardar_como, QKeySequence.SaveAs)
         self.a_calcular = self._accion("Calcular", self.calcular, "F5")
+        self.a_memoria = self._accion(
+            "Exportar memoria de cálculo (PDF)…", self.exportar_memoria, "Ctrl+P"
+        )
         self.a_buscar = self._accion("Buscar comando o elemento", self.abrir_paleta, "Ctrl+K")
         self.a_salir = self._accion("Salir", self.close, QKeySequence.Quit)
         self.a_diagramas = {}
@@ -146,6 +149,7 @@ class Ventana(QMainWindow):
             None,
             self.a_guardar,
             self.a_guardar_como,
+            self.a_memoria,
             None,
             self.a_salir,
         ):
@@ -637,6 +641,28 @@ class Ventana(QMainWindow):
         except (formato.FormatoError, OSError) as e:
             QMessageBox.warning(self, "No se pudo guardar", str(e))
             return False
+        return True
+
+    def exportar_memoria(self, ruta: str | Path | None = None) -> bool:
+        """Calcula si hace falta y guarda la memoria de cálculo en PDF."""
+        if not self.sesion.al_dia and not self.calcular():
+            return False
+        if ruta is None:
+            base = self.sesion.ruta.with_suffix(".pdf").name if self.sesion.ruta else "memoria.pdf"
+            ruta, _ = QFileDialog.getSaveFileName(
+                self, "Exportar memoria de cálculo", base, "Documentos PDF (*.pdf)"
+            )
+            if not ruta:
+                return False
+        try:
+            self.sesion.memoria().guardar_pdf(ruta)
+        except ImportError as e:
+            QMessageBox.warning(self, "Falta un componente", str(e))
+            return False
+        except (OSError, ValueError) as e:
+            QMessageBox.warning(self, "No se pudo exportar la memoria", str(e))
+            return False
+        self.statusBar().showMessage(f"Memoria de cálculo guardada en {ruta}", 6000)
         return True
 
     def calcular(self) -> bool:

@@ -527,7 +527,7 @@ impl BarraAnalisis {
 }
 
 /// Inversa de una matriz pequeña por Gauss-Jordan con pivoteo parcial.
-fn invertir(mut m: Vec<Vec<f64>>) -> Option<Vec<Vec<f64>>> {
+pub(crate) fn invertir(mut m: Vec<Vec<f64>>) -> Option<Vec<Vec<f64>>> {
     let n = m.len();
     let escala = m
         .iter()

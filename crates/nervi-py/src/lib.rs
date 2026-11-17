@@ -4,6 +4,9 @@
 //! Contrato de datos v2: ver `docs/contrato-datos.md`. Todos los arreglos son
 //! NumPy contiguos con forma fija; se validan aquí antes de llamar al núcleo.
 
+use nervi_core::espacial::{
+    analizar_3d, Barra3d, CargaBarra3d, CasoCarga3d, Modelo3d, TipoCargaBarra3d,
+};
 use nervi_core::{
     analizar, Barra, CargaBarra, CasoCarga, Ejes, ErrorNervi, Modelo, TipoCargaBarra,
 };
@@ -14,8 +17,11 @@ use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
-/// Versión del contrato de datos que entiende este módulo.
+/// Versión del contrato de datos del pórtico plano que entiende este módulo.
 const VERSION_CONTRATO: u32 = 2;
+/// Versión del contrato de datos del pórtico espacial (`resolver_portico_3d`).
+/// Se versiona aparte para no cambiar el contrato plano.
+const VERSION_CONTRATO_3D: u32 = 1;
 
 create_exception!(
     _core,
@@ -336,10 +342,223 @@ fn resolver_portico_2d<'py>(
     Ok(out)
 }
 
+/// Resuelve un pórtico espacial lineal elástico para varios casos de carga.
+///
+/// Contrato de datos 3D, versión 1 (ver `docs/contrato-datos.md`). Devuelve un
+/// diccionario con `desplazamientos (n_casos, n_nudos, 6)`, `reacciones
+/// (n_casos, n_nudos, 6)`, `fuerzas_extremo (n_casos, n_barras, 12)`, `ejes
+/// (n_barras, 3, 3)` (filas `x, y, z` locales en globales), `gdl_sin_rigidez` y
+/// `diagramas` (lista por caso de diccionarios con arreglos `barra, x, N, Vy,
+/// Vz, T, My, Mz, u, v, w, rx`).
+#[pyfunction]
+#[pyo3(signature = (
+    version, coords, conectividad, props, referencias, liberaciones, restricciones, resortes,
+    cargas_nodales, cargas_barra, despl_impuestos, n_estaciones = 11
+))]
+#[allow(clippy::too_many_arguments)]
+fn resolver_portico_3d<'py>(
+    py: Python<'py>,
+    version: u32,
+    coords: PyReadonlyArray2<'py, f64>,
+    conectividad: PyReadonlyArray2<'py, i64>,
+    props: PyReadonlyArray2<'py, f64>,
+    referencias: PyReadonlyArray2<'py, f64>,
+    liberaciones: PyReadonlyArray2<'py, u8>,
+    restricciones: PyReadonlyArray2<'py, u8>,
+    resortes: PyReadonlyArray2<'py, f64>,
+    cargas_nodales: PyReadonlyArray3<'py, f64>,
+    cargas_barra: PyReadonlyArray2<'py, f64>,
+    despl_impuestos: PyReadonlyArray3<'py, f64>,
+    n_estaciones: usize,
+) -> PyResult<Bound<'py, PyDict>> {
+    if version != VERSION_CONTRATO_3D {
+        return Err(PyValueError::new_err(format!(
+            "versión de contrato 3D {version} no soportada (este motor usa la {VERSION_CONTRATO_3D})"
+        )));
+    }
+    let coords = coords.as_array();
+    let conectividad = conectividad.as_array();
+    let props = props.as_array();
+    let referencias = referencias.as_array();
+    let liberaciones = liberaciones.as_array();
+    let restricciones = restricciones.as_array();
+    let resortes = resortes.as_array();
+    let cargas_nodales = cargas_nodales.as_array();
+    let cargas_barra = cargas_barra.as_array();
+    let despl_impuestos = despl_impuestos.as_array();
+
+    let n = coords.shape()[0];
+    let m = conectividad.shape()[0];
+    let nc = cargas_nodales.shape()[0];
+    verificar_forma("coords", coords.shape(), &[n, 3])?;
+    verificar_forma("conectividad", conectividad.shape(), &[m, 2])?;
+    verificar_forma("props", props.shape(), &[m, 6])?;
+    verificar_forma("referencias", referencias.shape(), &[m, 3])?;
+    verificar_forma("liberaciones", liberaciones.shape(), &[m, 12])?;
+    verificar_forma("restricciones", restricciones.shape(), &[n, 6])?;
+    verificar_forma("resortes", resortes.shape(), &[n, 6])?;
+    verificar_forma("cargas_nodales", cargas_nodales.shape(), &[nc, n, 6])?;
+    verificar_forma("despl_impuestos", despl_impuestos.shape(), &[nc, n, 6])?;
+    if cargas_barra.shape()[1] != 12 {
+        return Err(PyValueError::new_err(format!(
+            "'cargas_barra' tiene {} columnas; se esperaban 12 \
+             [caso, barra, tipo, ejes, a, b, qx1, qy1, qz1, qx2, qy2, qz2]",
+            cargas_barra.shape()[1]
+        )));
+    }
+
+    let mut modelo = Modelo3d::new();
+    for k in 0..n {
+        modelo.agregar_nudo(coords[[k, 0]], coords[[k, 1]], coords[[k, 2]]);
+    }
+    for k in 0..m {
+        let (i, j) = (conectividad[[k, 0]], conectividad[[k, 1]]);
+        if i < 0 || j < 0 {
+            return Err(PyValueError::new_err(format!(
+                "la barra {k} tiene un índice de nudo negativo"
+            )));
+        }
+        let p = |c: usize| props[[k, c]];
+        let mut b = Barra3d::new(i as usize, j as usize, p(0), p(1), p(2), p(3), p(4), p(5));
+        let v: [f64; 3] = std::array::from_fn(|d| referencias[[k, d]]);
+        // Una fila de ceros pide la regla por defecto.
+        if v.iter().any(|c| *c != 0.0) {
+            b.referencia = Some(v);
+        }
+        for d in 0..12 {
+            b.liberaciones[d] = liberaciones[[k, d]] != 0;
+        }
+        modelo.agregar_barra(b);
+    }
+    modelo.restricciones = (0..n)
+        .map(|k| std::array::from_fn(|d| restricciones[[k, d]] != 0))
+        .collect();
+    modelo.resortes = (0..n)
+        .map(|k| std::array::from_fn(|d| resortes[[k, d]]))
+        .collect();
+    for c in 0..nc {
+        let mut caso = CasoCarga3d::new(format!("{c}"));
+        for k in 0..n {
+            let f: [f64; 6] = std::array::from_fn(|d| cargas_nodales[[c, k, d]]);
+            if f.iter().any(|v| *v != 0.0) {
+                caso.nodales.push((k, f));
+            }
+            let u: [f64; 6] = std::array::from_fn(|d| despl_impuestos[[c, k, d]]);
+            if u.iter().any(|v| *v != 0.0) {
+                caso.desplazamientos_impuestos.push((k, u));
+            }
+        }
+        modelo.agregar_caso(caso);
+    }
+    for fila in 0..cargas_barra.shape()[0] {
+        let v = |col: usize| cargas_barra[[fila, col]];
+        let caso = indice("cargas_barra[caso]", v(0), nc)?;
+        let barra = indice("cargas_barra[barra]", v(1), m)?;
+        let q1 = [v(6), v(7), v(8)];
+        let q2 = [v(9), v(10), v(11)];
+        let tipo = if v(2) == 0.0 {
+            TipoCargaBarra3d::Uniforme { q: q1 }
+        } else if v(2) == 1.0 {
+            TipoCargaBarra3d::Puntual { a: v(4), p: q1 }
+        } else if v(2) == 2.0 {
+            TipoCargaBarra3d::Trapezoidal {
+                a: v(4),
+                b: v(5),
+                q1,
+                q2,
+            }
+        } else {
+            return Err(PyValueError::new_err(format!(
+                "cargas_barra fila {fila}: tipo {} desconocido \
+                 (0 = uniforme, 1 = puntual, 2 = trapezoidal)",
+                v(2)
+            )));
+        };
+        let ejes = if v(3) == 0.0 {
+            Ejes::Local
+        } else if v(3) == 1.0 {
+            Ejes::Global
+        } else {
+            return Err(PyValueError::new_err(format!(
+                "cargas_barra fila {fila}: ejes {} desconocidos (0 = local, 1 = global)",
+                v(3)
+            )));
+        };
+        modelo.casos[caso]
+            .en_barras
+            .push(CargaBarra3d { barra, ejes, tipo });
+    }
+
+    let res = py
+        .detach(|| analizar_3d(&modelo))
+        .map_err(|e| error_a_python(py, e))?;
+
+    let mut despl = Array3::<f64>::zeros((nc, n, 6));
+    let mut reac = Array3::<f64>::zeros((nc, n, 6));
+    let mut fext = Array3::<f64>::zeros((nc, m, 12));
+    let diagramas = PyList::empty(py);
+    for (c, rc) in res.casos.iter().enumerate() {
+        for k in 0..n {
+            for d in 0..6 {
+                despl[[c, k, d]] = rc.desplazamientos[k][d];
+                reac[[c, k, d]] = rc.reacciones[k][d];
+            }
+        }
+        let mut cols: [Vec<f64>; 11] = Default::default();
+        let mut barra_col: Vec<i64> = Vec::new();
+        for k in 0..m {
+            for d in 0..12 {
+                fext[[c, k, d]] = rc.fuerzas_extremo[k][d];
+            }
+            for s in res.diagrama(c, k, n_estaciones) {
+                barra_col.push(k as i64);
+                for (col, val) in cols
+                    .iter_mut()
+                    .zip([s.x, s.n, s.vy, s.vz, s.t, s.my, s.mz, s.u, s.v, s.w, s.rx])
+                {
+                    col.push(val);
+                }
+            }
+        }
+        let dic = PyDict::new(py);
+        dic.set_item("barra", barra_col.into_pyarray(py))?;
+        for (nombre, col) in ["x", "N", "Vy", "Vz", "T", "My", "Mz", "u", "v", "w", "rx"]
+            .iter()
+            .zip(cols)
+        {
+            dic.set_item(*nombre, col.into_pyarray(py))?;
+        }
+        diagramas.append(dic)?;
+    }
+    let mut ejes = Array3::<f64>::zeros((m, 3, 3));
+    for (k, ba) in res.barras.iter().enumerate() {
+        for i in 0..3 {
+            for j in 0..3 {
+                ejes[[k, i, j]] = ba.ejes[i][j];
+            }
+        }
+    }
+    let sin_rigidez = PyList::empty(py);
+    for (nudo, gdl) in &res.gdl_sin_rigidez {
+        sin_rigidez.append((*nudo, gdl.to_string()))?;
+    }
+
+    let out = PyDict::new(py);
+    out.set_item("desplazamientos", despl.into_pyarray(py))?;
+    out.set_item("reacciones", reac.into_pyarray(py))?;
+    out.set_item("fuerzas_extremo", fext.into_pyarray(py))?;
+    out.set_item("ejes", ejes.into_pyarray(py))?;
+    out.set_item("gdl_sin_rigidez", sin_rigidez)?;
+    out.set_item("diagramas", diagramas)?;
+    Ok(out)
+}
+
 #[pymodule]
 fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("VERSION_CONTRATO", VERSION_CONTRATO)?;
     m.add("MecanismoError", m.py().get_type::<MecanismoError>())?;
+    m.add("VERSION_CONTRATO_3D", VERSION_CONTRATO_3D)?;
     m.add_function(wrap_pyfunction!(resolver_portico_2d, m)?)?;
+    m.add_function(wrap_pyfunction!(resolver_portico_3d, m)?)?;
     Ok(())
 }

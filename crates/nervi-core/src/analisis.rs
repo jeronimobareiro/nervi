@@ -221,45 +221,9 @@ pub fn analizar(modelo: &Modelo) -> Resultado<Resultados> {
     }
 
     // Solución.
-    let mut u_libres = rhs.clone();
-    if n_libres > 0 {
-        let k_ff =
-            SparseColMat::<usize, f64>::try_new_from_triplets(n_libres, n_libres, &tripletas)
-                .map_err(|e| ErrorNervi::Numerico(format!("no se pudo armar la matriz: {e:?}")))?;
-        let gdl_global: Vec<usize> = (0..n_gdl).filter(|&g| libre_idx[g] != usize::MAX).collect();
-        let mecanismo = |detalle: String| {
-            let d = mecanismo::diagnosticar(n_libres, &tripletas, &gdl_global)
-                .map(|mut d| {
-                    d.detalle = format!("{detalle}; {}", d.detalle);
-                    d
-                })
-                .unwrap_or(DiagnosticoMecanismo {
-                    detalle,
-                    ubicacion: None,
-                    modos: Vec::new(),
-                });
-            ErrorNervi::Mecanismo(d)
-        };
-        let llt = k_ff
-            .sp_cholesky(Side::Lower)
-            .map_err(|_| mecanismo("la matriz de rigidez no es definida positiva".to_string()))?;
-        llt.solve_in_place(u_libres.as_mut());
-
-        let diag_libre_max = (0..n_gdl)
-            .filter(|&g| libre_idx[g] != usize::MAX)
-            .fold(0.0_f64, |m, g| m.max(diag[g]));
-        for c in 0..n_casos {
-            let f_max = (0..n_libres).fold(0.0_f64, |m, i| m.max(rhs[(i, c)].abs()));
-            let u_max = (0..n_libres).fold(0.0_f64, |m, i| m.max(u_libres[(i, c)].abs()));
-            if !u_max.is_finite()
-                || (f_max > 0.0 && u_max * diag_libre_max > LIMITE_FLEXIBILIDAD * f_max)
-            {
-                return Err(mecanismo(format!(
-                    "caso {c}: la matriz de rigidez es numéricamente singular"
-                )));
-            }
-        }
-    }
+    let gdl_global: Vec<usize> = (0..n_gdl).filter(|&g| libre_idx[g] != usize::MAX).collect();
+    let diag_libre_max = gdl_global.iter().fold(0.0_f64, |m, &g| m.max(diag[g]));
+    let u_libres = resolver_sistema(&tripletas, rhs, &gdl_global, diag_libre_max, 3)?;
 
     // Post-proceso por caso.
     let mut casos = Vec::with_capacity(n_casos);
@@ -324,6 +288,110 @@ pub fn analizar(modelo: &Modelo) -> Resultado<Resultados> {
     })
 }
 
+/// Resuelve `K_ff U = rhs` (una columna por caso) con Cholesky disperso.
+///
+/// `tripletas` es el triángulo inferior de `K_ff`; `gdl_global[i]` es el GDL
+/// global del GDL libre `i` (`gdl_por_nudo · nudo + d`), que se usa para
+/// localizar el mecanismo si la matriz es singular. `diag_libre_max` es el
+/// mayor término diagonal de los GDL libres, para el control de flexibilidad.
+/// Lo comparten el pórtico plano y el espacial.
+pub(crate) fn resolver_sistema(
+    tripletas: &[Triplet<usize, usize, f64>],
+    rhs: Mat<f64>,
+    gdl_global: &[usize],
+    diag_libre_max: f64,
+    gdl_por_nudo: usize,
+) -> Resultado<Mat<f64>> {
+    let n_libres = gdl_global.len();
+    let n_casos = rhs.ncols();
+    let mut u_libres = rhs.clone();
+    if n_libres == 0 {
+        return Ok(u_libres);
+    }
+    let k_ff = SparseColMat::<usize, f64>::try_new_from_triplets(n_libres, n_libres, tripletas)
+        .map_err(|e| ErrorNervi::Numerico(format!("no se pudo armar la matriz: {e:?}")))?;
+    let mecanismo = |detalle: String| {
+        let d = mecanismo::diagnosticar(n_libres, tripletas, gdl_global, gdl_por_nudo)
+            .map(|mut d| {
+                d.detalle = format!("{detalle}; {}", d.detalle);
+                d
+            })
+            .unwrap_or(DiagnosticoMecanismo {
+                detalle,
+                ubicacion: None,
+                modos: Vec::new(),
+            });
+        ErrorNervi::Mecanismo(d)
+    };
+    let llt = k_ff
+        .sp_cholesky(Side::Lower)
+        .map_err(|_| mecanismo("la matriz de rigidez no es definida positiva".to_string()))?;
+    llt.solve_in_place(u_libres.as_mut());
+
+    for c in 0..n_casos {
+        let f_max = (0..n_libres).fold(0.0_f64, |m, i| m.max(rhs[(i, c)].abs()));
+        let u_max = (0..n_libres).fold(0.0_f64, |m, i| m.max(u_libres[(i, c)].abs()));
+        if !u_max.is_finite()
+            || (f_max > 0.0 && u_max * diag_libre_max > LIMITE_FLEXIBILIDAD * f_max)
+        {
+            return Err(mecanismo(format!(
+                "caso {c}: la matriz de rigidez es numéricamente singular"
+            )));
+        }
+    }
+    Ok(u_libres)
+}
+
+/// Esfuerzos y desplazamientos en la sección `x` de una barra plana (o de uno de
+/// los planos de flexión de una barra espacial), a partir de sus fuerzas `f` y
+/// desplazamientos `ue` de extremo en ejes locales `[axil, transversal, giro]`
+/// por extremo y de sus cargas en el tramo.
+#[allow(clippy::too_many_arguments)]
+pub(crate) fn seccion_plana(
+    l: f64,
+    ea: f64,
+    ei: f64,
+    f: &Vec6,
+    ue: &Vec6,
+    cargas: &[CargaLocal],
+    x: f64,
+    lado_derecho: bool,
+) -> Seccion {
+    let mut n = -f[0];
+    let mut v = f[1];
+    let mut m = -f[2] + f[1] * x;
+
+    let xi = x / l;
+    let (h1, h2) = (
+        1.0 - 3.0 * xi * xi + 2.0 * xi.powi(3),
+        l * (xi - 2.0 * xi * xi + xi.powi(3)),
+    );
+    let (h3, h4) = (
+        3.0 * xi * xi - 2.0 * xi.powi(3),
+        l * (-xi * xi + xi.powi(3)),
+    );
+    let mut u_local = (1.0 - xi) * ue[0] + xi * ue[3];
+    let mut v_local = h1 * ue[1] + h2 * ue[2] + h3 * ue[4] + h4 * ue[5];
+
+    for carga in cargas {
+        let (rx, ry, mom) = resultantes_hasta(carga, x, lado_derecho);
+        n -= rx;
+        v += ry;
+        m += mom;
+        let (du, dv) = flecha_biempotrada(l, ea, ei, carga, x);
+        u_local += du;
+        v_local += dv;
+    }
+    Seccion {
+        x,
+        n,
+        v,
+        m,
+        u_local,
+        v_local,
+    }
+}
+
 impl Resultados {
     /// Esfuerzos y desplazamientos en la sección `x` de una barra.
     ///
@@ -332,43 +400,16 @@ impl Resultados {
     pub fn seccion(&self, caso: usize, barra: usize, x: f64, lado_derecho: bool) -> Seccion {
         let rc = &self.casos[caso];
         let ba = &self.barras[barra];
-        let f = &rc.fuerzas_extremo[barra];
-        let ue = &rc.desplazamientos_extremo[barra];
-        let l = ba.l;
-
-        let mut n = -f[0];
-        let mut v = f[1];
-        let mut m = -f[2] + f[1] * x;
-
-        let xi = x / l;
-        let (h1, h2) = (
-            1.0 - 3.0 * xi * xi + 2.0 * xi.powi(3),
-            l * (xi - 2.0 * xi * xi + xi.powi(3)),
-        );
-        let (h3, h4) = (
-            3.0 * xi * xi - 2.0 * xi.powi(3),
-            l * (-xi * xi + xi.powi(3)),
-        );
-        let mut u_local = (1.0 - xi) * ue[0] + xi * ue[3];
-        let mut v_local = h1 * ue[1] + h2 * ue[2] + h3 * ue[4] + h4 * ue[5];
-
-        for carga in &rc.cargas_locales[barra] {
-            let (rx, ry, mom) = resultantes_hasta(carga, x, lado_derecho);
-            n -= rx;
-            v += ry;
-            m += mom;
-            let (du, dv) = flecha_biempotrada(l, ba.ea, ba.ei, carga, x);
-            u_local += du;
-            v_local += dv;
-        }
-        Seccion {
+        seccion_plana(
+            ba.l,
+            ba.ea,
+            ba.ei,
+            &rc.fuerzas_extremo[barra],
+            &rc.desplazamientos_extremo[barra],
+            &rc.cargas_locales[barra],
             x,
-            n,
-            v,
-            m,
-            u_local,
-            v_local,
-        }
+            lado_derecho,
+        )
     }
 
     /// Sección de una combinación lineal de casos, `Σ factores[c] · caso c`.
@@ -505,7 +546,7 @@ impl Resultados {
 
 /// Raíces en el intervalo abierto `(0, 1)` del polinomio de grado ≤ 2 que vale
 /// `f0`, `fm` y `f1` en `t = 0`, `1/2` y `1`.
-fn raices_cuadratica_en_intervalo(f0: f64, fm: f64, f1: f64) -> Vec<f64> {
+pub(crate) fn raices_cuadratica_en_intervalo(f0: f64, fm: f64, f1: f64) -> Vec<f64> {
     // f(t) = f0 + p·t + q·t² (interpolación de Lagrange en 0, 1/2, 1).
     let p = -3.0 * f0 + 4.0 * fm - f1;
     let q = 2.0 * f0 - 4.0 * fm + 2.0 * f1;

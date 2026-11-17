@@ -31,12 +31,14 @@ Veja o [guia de contribuição](CONTRIBUTING.md#contributing-from-other-countrie
 ## O que faz hoje
 
 - Pórticos planos com barras de Euler-Bernoulli (3 graus de liberdade por nó).
+- **Novo, preliminar:** pórticos espaciais a partir do Python (`nervi.Modelo3D`): barras de 12 graus de liberdade com flexão em dois planos, esforço normal e torção, eixos locais definidos por um vetor de referência, barras de treliça espacial e seções usuais em `nervi.secciones`. Ainda sem interface nem formato `.nrv`.
 - Cargas nodais e cargas em barras uniformes, concentradas, trapezoidais ou parciais, em eixos locais ou globais; momentos concentrados no vão; ações térmicas.
 - Articulações e liberações de extremidade; treliças.
 - Apoios rígidos e elásticos, e recalques impostos.
 - Vários casos de carga com uma única fatoração, e combinações lineares (combinações e envoltórias da ACI 318-19, experimentais).
 - Reações, esforços nas extremidades, diagramas `N`, `V`, `M` e deformada, incluindo os pontos de momento máximo.
 - Detecção de mecanismos e validação de dados com mensagens claras.
+- Memória de cálculo em PDF (em espanhol, com modelo editável): dados do modelo, seções, cargas, combinações, tabelas de resultados, diagramas e envoltórias (`nervi.memoria`, `pip install "nervi[memoria]"` ou Ctrl+P na interface).
 
 Os apoios são tratados por partição dos graus de liberdade (sem penalização) e o sistema é resolvido com Cholesky esparso do [`faer`](https://github.com/sarah-quinones/faer-rs). Um pórtico de 8 100 barras é resolvido em cerca de 45 ms (release).
 

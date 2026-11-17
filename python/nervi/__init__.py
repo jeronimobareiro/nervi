@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Nervi: análisis y dimensionamiento estructural de código abierto.
 
-Fase 1: pórtico plano lineal elástico.
+Fase 1: pórtico plano lineal elástico (``Modelo``). Fase 2a: pórtico espacial
+(``Modelo3D``, con secciones habituales en ``nervi.secciones``).
 
 >>> import nervi
 >>> m = nervi.Modelo()
@@ -14,7 +15,18 @@ Fase 1: pórtico plano lineal elástico.
 -0.0045
 """
 
+from . import secciones
 from ._core import MecanismoError
 from .modelo import Modelo, ResultadoCaso, Resultados
+from .modelo3d import Modelo3D, ResultadoCaso3D, Resultados3D
 
-__all__ = ["MecanismoError", "Modelo", "ResultadoCaso", "Resultados"]
+__all__ = [
+    "MecanismoError",
+    "Modelo",
+    "Modelo3D",
+    "ResultadoCaso",
+    "ResultadoCaso3D",
+    "Resultados",
+    "Resultados3D",
+    "secciones",
+]

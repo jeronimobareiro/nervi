@@ -16,6 +16,8 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | nudo (`nudo`, `agregar_nudo`) | node, joint | nó | узел |
 | barra (`Barra`, `agregar_barra`) | member, bar element | barra | стержень |
 | pórtico plano | plane frame | pórtico plano | плоская рама |
+| pórtico espacial (`Modelo3D`, `espacial`) | space frame, 3D frame | pórtico espacial | пространственная рама |
+| emparrillado | grid, grillage | grelha | ростверк, балочная клетка |
 | viga | beam | viga | балка |
 | columna | column | pilar | колонна |
 | cercha | truss | treliça | ферма |
@@ -33,6 +35,10 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | momento de inercia (`I`) | moment of inertia | momento de inércia | момент инерции |
 | canto (`h`) | section depth | altura da seção | высота сечения |
 | ejes locales / globales (`Ejes.Local`, `Ejes.Global`) | local / global axes | eixos locais / globais | местные / глобальные оси |
+| vector de referencia (`referencia`) | reference vector, orientation vector | vetor de referência | вектор ориентации |
+| módulo de elasticidad transversal (`G`) | shear modulus | módulo de elasticidade transversal | модуль сдвига |
+| constante de torsión (`J`) | torsion constant | constante de torção | момент инерции при кручении |
+| secciones (`secciones`, `rectangular`, `circular`, `tubo_circular`) | cross-sections | seções | сечения |
 | grado de libertad, GDL (`gdl`) | degree of freedom, DOF | grau de liberdade, GL | степень свободы |
 
 ## Apoyos y vínculos · Supports and releases
@@ -83,10 +89,14 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | esfuerzo axil (`N`) | axial force | esforço normal | продольная сила |
 | esfuerzo cortante (`V`) | shear force | esforço cortante | поперечная сила |
 | momento flector (`M`) | bending moment | momento fletor | изгибающий момент |
+| momento torsor, torsor (`T`) | torque, twisting moment | momento torçor | крутящий момент |
 | diagrama (`diagrama`) | diagram | diagrama | эпюра |
 | deformada | deflected shape | deformada | деформированная схема |
 | flecha | deflection | flecha | прогиб |
 | envolvente (`envolvente`) | envelope | envoltória | огибающая |
+| memoria de cálculo (`memoria`, `memoria_de_calculo`) | calculation report, design report | memória de cálculo | расчётная записка |
+| plantilla (`plantilla.toml`) | template | modelo, template | шаблон |
+| capítulo de la memoria (`Capitulo`) | report chapter, section | capítulo | раздел, глава |
 
 ## Diseño y normas · Design and codes
 

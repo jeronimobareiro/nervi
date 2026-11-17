@@ -19,10 +19,19 @@ classifiers = [
 
 [project.optional-dependencies]
 # Interfaz de escritorio. PySide6 (Qt for Python) es LGPL-3.0, compatible con GPL-3.0.
-gui = ["PySide6-Essentials>=6.6"]
+gui = ["PySide6-Essentials>=6.6", "reportlab>=4", "tomli>=2; python_version < '3.11'"]
+# Memoria de cálculo en PDF. ReportLab es BSD (compatible con GPL-3.0); tomli, MIT.
+memoria = ["reportlab>=4", "tomli>=2; python_version < '3.11'"]
 # Visor 3D (issue #30): PyVista y pyvistaqt (MIT) sobre VTK (BSD-3-Clause), compatibles con GPL-3.0.
 visor3d = ["PySide6-Essentials>=6.6", "pyvista>=0.44", "pyvistaqt>=0.11"]
-dev = ["pytest>=8", "ruff>=0.6", "pytest-qt>=4.4", "tomli>=2; python_version < '3.11'"]
+dev = [
+    "pytest>=8",
+    "ruff>=0.6",
+    "pytest-qt>=4.4",
+    "tomli>=2; python_version < '3.11'",
+    "reportlab>=4",
+    "pypdf>=4",  # BSD-3-Clause; solo para leer el texto de la memoria en las pruebas
+]
 
 [project.gui-scripts]
 nervi-gui = "nervi.gui:main"
@@ -48,7 +57,9 @@ ignore = ["E741"]  # l, I: notación estándar en estructuras
 [tool.ruff.lint.per-file-ignores]
 # La interfaz muestra tipografía española a propósito: − (signo menos), › (separador).
 "python/nervi/gui/*" = ["RUF001", "RUF002"]
-"python/nervi/gui/estilo.py" = ["E501"]  # hoja de estilos Qt, una regla por línea
+"python/nervi/gui/estilo.py" = ["E501"]
+# La memoria escribe símbolos de ingeniería a propósito: α, Δ, ×, − (y los traduce a la fuente Symbol).
+"python/nervi/memoria/*" = ["RUF001", "RUF002"]  # hoja de estilos Qt, una regla por línea
 
 [tool.ruff.lint.isort]
 known-first-party = ["nervi"]

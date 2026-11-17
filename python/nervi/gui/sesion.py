@@ -255,6 +255,29 @@ class Sesion(QObject):
             return self.resultados[self.combinacion]
         return None
 
+    def memoria(self, datos_proyecto: dict[str, str] | None = None):
+        """Memoria de cálculo (``nervi.memoria.Memoria``) del proyecto abierto, con
+        los ``id`` de nudos y barras que ve el usuario. Calcula si hace falta."""
+        from ..memoria import memoria_de_calculo
+
+        if not self.al_dia or self.resultados is None or self.indices is None:
+            self.calcular()
+        m = self.modelo
+        modelo, indices = formato.construir_modelo(m)
+        combinaciones = {c["nombre"]: c["factores"] for c in m.get("combinaciones", [])}
+        datos = {"Proyecto": self.ruta.stem if self.ruta else "Sin título"}
+        datos.update(datos_proyecto or {})
+        u = m["unidades"]
+        return memoria_de_calculo(
+            modelo,
+            modelo.resolver(combinaciones=combinaciones or None),
+            datos_proyecto=datos,
+            fuerza=u["fuerza"],
+            longitud=u["longitud"],
+            nombres_nudos=lambda k: f"N{indices.id_nudo(k)}",
+            nombres_barras=lambda k: f"B{indices.id_barra(k)}",
+        )
+
     def elegir_combinacion(self, nombre: str) -> None:
         if nombre != self.combinacion:
             self.combinacion = nombre

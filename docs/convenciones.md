@@ -62,3 +62,51 @@ Fuerza que el apoyo ejerce **sobre** la estructura, en ejes globales. En un apoy
 Cada barra tiene seis liberaciones `(N_i, V_i, M_i, N_j, V_j, M_j)`. Una articulación es `M = 0` en ese extremo. Se aplican por condensación estática; la barra conserva su giro propio en el extremo liberado, que se usa para la deformada.
 
 Si en un nudo todas las barras están articuladas y no hay apoyo al giro (nudos de cercha), ese giro no tiene rigidez: el motor lo fija automáticamente y lo informa en `gdl_sin_rigidez`. Si además hay un momento aplicado en ese nudo, el análisis se detiene con un error.
+
+## Pórtico espacial (Fase 2a)
+
+Módulo `nervi_core::espacial` en Rust y `nervi.Modelo3D` en Python (issue #11). Es aparte del pórtico plano: nada de lo anterior cambia.
+
+### Ejes globales y grados de libertad
+
+- X e Y horizontales, **Z vertical hacia arriba** (terna derecha). El peso propio es `qz < 0` en ejes globales.
+- **6 GDL por nudo**: `ux, uy, uz, rx, ry, rz`, giros por la regla de la mano derecha. El nudo `i` ocupa los índices globales `6i … 6i + 5`.
+- Cada barra tiene 12 GDL y matriz de rigidez 12×12. Por extremo, en ejes locales: `[u, v, w, θx, θy, θz]`.
+
+### Ejes locales de barra
+
+- `x` local va del nudo `i` al nudo `j`.
+- El plano `x`–`y` local lo fija un **vector de referencia** `v` en globales: `z = x × v / |x × v|` e `y = z × x`, o sea, `y` es la componente de `v` perpendicular a la barra. Si `v` es nulo o paralelo a la barra, el modelo es inválido.
+- **Regla por defecto** (sin vector): `v = +Z`, así que en vigas y barras inclinadas `y` apunta hacia arriba y `z` queda horizontal. En una viga sobre X: `y = +Z`, `z = -Y`; sobre Y: `y = +Z`, `z = +X`.
+- **Barras verticales** (proyección horizontal menor que `1e-6·L`): `z = -Y` e `y = z × x`. Una columna que sube tiene `y = -X`; una que baja, `y = +X`.
+- Con esta regla, un pórtico plano dibujado en el plano XZ (visto desde `-Y`, con X a la derecha y Z hacia arriba) tiene en todas sus columnas y en las vigas dibujadas de izquierda a derecha los mismos ejes locales que en el motor plano, con `z = -Y`. Para barras dibujadas de derecha a izquierda, el vector de referencia `(-sen α, 0, cos α)` reproduce el eje `y` plano. El giro plano `rz` equivale a `-ry` y el momento plano `Mz` a `-My` global.
+- Transformación `{v_local} = [T]{v_global}` con `[T] = diag(λ, λ, λ, λ)` y `λ` la matriz cuyas filas son los versores `x, y, z` locales en globales.
+
+### Propiedades
+
+`E, G, A, Iy, Iz, J`: `Iz` es la inercia de la flexión en el plano `x`–`y` (giro `θz`, desplazamiento `v`) e `Iy` la del plano `x`–`z`. Con los ejes por defecto, la flexión de una viga por cargas gravitatorias usa **`Iz`**. En `nervi.secciones` el canto `h` se mide sobre `y` y el ancho `b` sobre `z`, así que una viga rectangular tiene `Iz = b·h³/12`. `J` es la constante de torsión de Saint-Venant (sin alabeo).
+
+### Cargas
+
+- **Nodales**: `[Fx, Fy, Fz, Mx, My, Mz]` en ejes globales.
+- **En barra**, en ejes locales o globales (las distribuidas, por unidad de longitud de barra): uniforme `(qx, qy, qz)`, puntual `(px, py, pz)` a la distancia `a` y trapezoidal entre `a` y `b`, igual que en el plano pero con tres componentes. Todavía no hay momentos en el tramo, cargas térmicas ni torsores distribuidos en 3D.
+- Las cargas equivalentes de cada plano de flexión son las de la barra plana: el plano `x`–`y` es idéntico al pórtico plano y el `x`–`z` se lleva a él con `v → w` y `θ → -θy` (porque `θy = -dw/dx`).
+
+### Esfuerzos internos
+
+Componentes, en ejes locales, de la acción de la parte `[x, L]` de la barra sobre la parte `[0, x]` (la cara positiva), salvo los cortantes:
+
+| Esfuerzo | Signo positivo |
+|---|---|
+| Axil `N` | Tracción |
+| Torsor `T` | Momento alrededor de `+x` en la cara positiva (regla de la mano derecha) |
+| Momento `Mz` | Tracciona la fibra del lado `-y` (igual que `M` del pórtico plano) |
+| Momento `My` | Tracciona la fibra del lado `+z` (momento alrededor de `+y` en la cara positiva) |
+| Cortante `Vy` | `Vy = dMz/dx` (igual que `V` del pórtico plano) |
+| Cortante `Vz` | `Vz = dMy/dx` |
+
+Con las fuerzas de extremo `{f}` sobre la barra (doce componentes `[Fx, Fy, Fz, Mx, My, Mz]` en `i` y en `j`) y sin cargas en el tramo: `N = -f1`, `T = -f4`, `Vy = f2`, `Mz = -f6 + f2·x`, `Vz = -f3`, `My = -f5 - f3·x`. Ejemplos: en un voladizo sobre X empotrado en `x = 0` con una carga `Py` (local) en la punta, `Mz(x) = Py·(L - x)`; con `Pz`, `My(x) = -Pz·(L - x)`. En una viga biapoyada con `qz = -q` (local), `My(L/2) = -qL²/8`.
+
+### Liberaciones
+
+Doce liberaciones por barra, `(N, Vy, Vz, T, My, Mz)` en `i` y luego en `j`, por condensación estática como en el plano. Una articulación esférica libera `My` y `Mz`; una biela de cercha espacial libera además `T` en un extremo (si no, el giro alrededor de su eje queda indeterminado). Son inestables y se rechazan: `N`, `Vy`, `Vz` o `T` liberados en los dos extremos, y `Vy` con `Mz` o `Vz` con `My` en el mismo extremo. Los giros de nudos sin rigidez (nudos de cercha) se fijan solos y se informan en `gdl_sin_rigidez`, como en el plano.

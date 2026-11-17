@@ -1,0 +1,61 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+#
+# Plantilla de la memoria de cálculo de Nervi.
+#
+# Copiá este archivo, cambiá los textos y pasalo como
+#   nervi.memoria.memoria_de_calculo(..., plantilla="mi_plantilla.toml")
+# Las claves que no pongas se toman de esta plantilla. En los textos se pueden
+# usar {proyecto}, {autor}, {fecha}, {version}, {fuerza} y {longitud}, y las
+# marcas <b>negrita</b>, <i>cursiva</i>, <sub>sub</sub> y <sup>sup</sup>.
+
+titulo = "Memoria de cálculo estructural"
+pie = "{proyecto} · Memoria de cálculo · Nervi {version}"
+# Separador decimal de las tablas: "," o ".".
+decimal = ","
+# Cifras significativas de los resultados.
+cifras = 4
+
+[portada]
+# Datos de la portada, en este orden. Se completan con datos_proyecto.
+campos = ["Proyecto", "Ubicación", "Comitente", "Autor", "Fecha"]
+aviso = """Esta memoria fue generada con Nervi {version}, software libre en etapa \
+preliminar. Los resultados deben ser revisados por un profesional habilitado, que \
+es quien firma y se responsabiliza por el cálculo."""
+
+[textos]
+alcance = """Esta memoria documenta el análisis estructural de un pórtico plano: \
+geometría, materiales y secciones, casos de carga, combinaciones y resultados \
+(desplazamientos, reacciones y diagramas de esfuerzos)."""
+
+metodo = """El análisis es lineal elástico, de primer orden, por el método directo de \
+rigidez. Cada barra es un elemento de Euler-Bernoulli con 3 grados de libertad por \
+nudo (u<sub>x</sub>, u<sub>y</sub>, r<sub>z</sub>), con deformación axial y por \
+flexión y sin deformación por cortante. Las combinaciones se obtienen por \
+superposición de los casos de carga."""
+
+convenciones = """Ejes globales: X horizontal, Y vertical hacia arriba; giros y \
+momentos nodales positivos en sentido antihorario. Ejes locales de cada barra: x \
+del nudo i al nudo j, y a 90° antihorario. Axil N positivo en tracción; momento M \
+positivo cuando tracciona la fibra del lado -y local (abajo en una viga dibujada de \
+izquierda a derecha) y dibujado del lado traccionado; cortante V = dM/dx. Las \
+reacciones son las fuerzas que el apoyo ejerce sobre la estructura."""
+
+unidades = """Fuerzas en {fuerza}, longitudes en {longitud}, momentos en \
+{fuerza}·{longitud}, módulos de elasticidad en {fuerza}/{longitud}²."""
+
+numeracion = """Los nudos y las barras se numeran desde 1."""
+
+geometria = ""
+materiales = """Cada barra queda definida por su módulo de elasticidad E, su área A \
+y su momento de inercia I. Las barras con las mismas propiedades se agrupan en un \
+tipo de sección."""
+cargas = """Las cargas en barra en ejes globales se entienden por unidad de longitud \
+de barra (no proyectada). Las cargas nodales están en ejes globales."""
+combinaciones = """Cada combinación es la suma de los casos de carga multiplicados \
+por su factor."""
+resultados = """Para cada caso de carga y cada combinación se dan los desplazamientos \
+de los nudos, las reacciones de apoyo, los esfuerzos en los extremos de las barras, \
+los valores extremos de cada barra y los diagramas de esfuerzos y la deformada."""
+envolvente = """Valores máximos y mínimos de cada esfuerzo sobre todas las \
+combinaciones, con la combinación que los produce."""
+verificaciones = ""

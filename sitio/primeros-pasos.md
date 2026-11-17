@@ -14,6 +14,7 @@ Todo el trabajo se hace en una sola ventana. Arriba está el recorrido **Geometr
 4. **Calcular.** Presioná **F5** o el botón **Calcular**. Si al modelo le falta algo, como un apoyo, la pestaña **Revisión del modelo** te dice qué es.
 5. **Resultados.** Elegí el diagrama de **Momento**. Al pasar el cursor por la barra ves M, V y N en cada punto, y en el centro aparece el máximo de 90 kN·m. Las reacciones están en la tabla de abajo. Con el botón **3D**, a la izquierda de los diagramas, ves la misma viga con sus cargas en 3D: se gira arrastrando con el mouse y un clic en una barra la selecciona.
 6. **Guardar.** Ctrl+S guarda el proyecto como archivo `.nrv`.
+7. **Memoria de cálculo.** Ctrl+P (o **Exportar memoria de cálculo** en el menú) genera un PDF con el modelo, las cargas, las combinaciones, las tablas de resultados y los diagramas de cada caso y combinación.
 
 Con **Ctrl+K** abrís un buscador para encontrar cualquier comando o elemento del modelo por su nombre.
 
@@ -43,6 +44,31 @@ print(u.diagrama(viga)["M"].max())         # 0.125 · 40 · 6² = 180 kN·m
 ```
 
 Un ejemplo más completo, un pórtico con cargas de viento y combinaciones, está en [`examples/portico_simple.py`](https://github.com/jeronimobareiro/nervi/blob/main/examples/portico_simple.py).
+
+### Pórtico espacial (preliminar)
+
+En 3D el eje Z es vertical hacia arriba y cada nudo tiene seis grados de libertad. Este emparrillado en L está empotrado en un extremo y cargado en el otro; la barra que sale del empotramiento trabaja a flexión y a torsión:
+
+```python
+import nervi
+from nervi.secciones import rectangular
+
+m = nervi.Modelo3D()
+a = m.agregar_nudo(0, 0, 0)
+b = m.agregar_nudo(3, 0, 0)
+c = m.agregar_nudo(3, 2, 0)
+sec = rectangular(b=0.25, h=0.50)              # h sobre el eje y local (hacia arriba)
+m.agregar_barra(a, b, E=2.5e7, G=1.04e7, seccion=sec)
+m.agregar_barra(b, c, E=2.5e7, G=1.04e7, seccion=sec)
+m.apoyar(a)                                    # empotramiento (6 GDL)
+m.carga_nodal("P", c, fz=-10)                  # 10 kN hacia abajo
+
+r = m.resolver()["P"]
+print(r.desplazamientos[c, 2])                 # -0.00825 m (8.25 mm hacia abajo)
+print(r.diagrama(0)["T"][0])                   # torsor en la primera barra: -20 kN·m
+```
+
+Las convenciones de ejes y signos en 3D están en la [documentación técnica](https://github.com/jeronimobareiro/nervi/blob/main/docs/convenciones.md). Un pórtico de un piso con vigas y columnas está en [`examples/portico_espacial.py`](https://github.com/jeronimobareiro/nervi/blob/main/examples/portico_espacial.py).
 
 ## Si un resultado no te cierra
 

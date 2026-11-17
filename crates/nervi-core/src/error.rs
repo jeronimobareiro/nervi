@@ -3,21 +3,44 @@
 
 use std::fmt;
 
-/// Grado de libertad de un nudo en el pórtico plano.
+/// Grado de libertad de un nudo. El pórtico plano usa `Ux, Uy, Rz`; el
+/// espacial, los seis.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Gdl {
     Ux,
     Uy,
     Rz,
+    Uz,
+    Rx,
+    Ry,
 }
 
 impl Gdl {
+    /// GDL del pórtico plano a partir del índice global `3·nudo + d`.
     pub fn desde_indice(i: usize) -> Gdl {
         match i % 3 {
             0 => Gdl::Ux,
             1 => Gdl::Uy,
             _ => Gdl::Rz,
         }
+    }
+
+    /// GDL del pórtico espacial a partir del índice global `6·nudo + d`, con el
+    /// orden `[ux, uy, uz, rx, ry, rz]`.
+    pub fn desde_indice_3d(i: usize) -> Gdl {
+        match i % 6 {
+            0 => Gdl::Ux,
+            1 => Gdl::Uy,
+            2 => Gdl::Uz,
+            3 => Gdl::Rx,
+            4 => Gdl::Ry,
+            _ => Gdl::Rz,
+        }
+    }
+
+    /// `true` si es una traslación.
+    pub fn es_traslacion(self) -> bool {
+        matches!(self, Gdl::Ux | Gdl::Uy | Gdl::Uz)
     }
 }
 
@@ -27,6 +50,9 @@ impl fmt::Display for Gdl {
             Gdl::Ux => "ux",
             Gdl::Uy => "uy",
             Gdl::Rz => "rz",
+            Gdl::Uz => "uz",
+            Gdl::Rx => "rx",
+            Gdl::Ry => "ry",
         };
         f.write_str(s)
     }
