@@ -52,10 +52,11 @@ Nervi analiza pórticos por el método de los elementos finitos y muestra reacci
 - **Interfaz de escritorio** en una sola ventana, con tablas para cargar el modelo, o uso desde Python para quien programa.
 - **Proyectos** guardados en archivos `.nrv`.
 - **Memoria de cálculo en PDF**, con los datos del modelo, las cargas, las combinaciones, las tablas de resultados y los diagramas, a partir de una plantilla editable.
+- **Pórticos espaciales (3D)**, por ahora solo desde Python y en versión preliminar: barras con flexión en dos planos y torsión, cerchas espaciales y secciones rectangulares y circulares.
 
 ## Qué viene
 
-Pórticos en 3D, análisis sísmico, diseño de hormigón armado según norma, intercambio con programas BIM (IFC) y memoria de cálculo. El orden y las tareas están en la [hoja de ruta](hoja-de-ruta.md).
+Pórticos 3D en la interfaz, análisis sísmico, diseño de hormigón armado según norma, intercambio con programas BIM (IFC) y memoria de cálculo. El orden y las tareas están en la [hoja de ruta](hoja-de-ruta.md).
 
 ## Para seguir leyendo
 
