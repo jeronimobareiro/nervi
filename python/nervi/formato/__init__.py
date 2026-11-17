@@ -2,7 +2,8 @@
 """Lectura y escritura de proyectos ``.nrv`` (ver ``docs/formato-nrv.md``).
 
 Un proyecto se maneja como un :class:`Documento`: el manifiesto, el diccionario
-de ``modelo.json`` (módulo ``modelo``, versión 1) y los miembros del ZIP que este
+de ``modelo.json`` (módulo ``modelo``, versión 1), el de ``diseno.json`` si el
+proyecto tiene datos de diseño (módulo ``diseno``, versión 1) y los miembros del ZIP que este
 programa no interpreta, que se conservan al volver a guardar. Cada módulo tiene
 su propia versión y sus migraciones (``docs/formato-nrv.md`` §3.1 y §6).
 
@@ -12,6 +13,7 @@ su propia versión y sus migraciones (``docs/formato-nrv.md`` §3.1 y §6).
 'portico_2d'
 """
 
+from . import diseno
 from .contenedor import (
     MIMETYPE,
     MODULOS,
@@ -32,6 +34,7 @@ __all__ = [
     "abrir",
     "construir_modelo",
     "desde_modelo",
+    "diseno",
     "guardar",
     "validar",
 ]

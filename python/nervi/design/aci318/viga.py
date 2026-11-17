@@ -1,9 +1,10 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Diseño de una barra del modelo como viga, a partir de sus envolventes (experimental).
 
-Usa :func:`nervi.design.envolvente` y supone el modelo en **kN y m**: los momentos
-de la envolvente en kN·m y los cortantes en kN. La sección y los materiales van en
-mm y MPa.
+Usa :func:`nervi.design.envolvente`. Por defecto supone el modelo en **kN y m**;
+si está en otras unidades, ``fuerza`` y ``longitud`` dicen cuáles y los esfuerzos
+se convierten a kN·m y kN antes de diseñar. La sección y los materiales van en mm
+y MPa.
 
 - Flexión: el momento positivo máximo (tracciona abajo, ``-y`` local) da la
   armadura inferior y el negativo mínimo, la superior.
@@ -25,9 +26,13 @@ import numpy as np
 
 from ...modelo import Resultados
 from ..envolvente import envolvente
-from .cortante import Estribos, elegir_estribos
+from .cortante import Estribos, ResultadoCortante, armadura_cortante, elegir_estribos
 from .flexion import DisposicionBarras, elegir_barras
 from .materiales import DIAMETROS_COMERCIALES, Materiales, SeccionRectangular, avisar
+
+#: Factores para pasar las unidades de ``modelo.json`` a kN y m (1 kgf = 9.80665 N).
+A_KN = {"N": 1e-3, "kN": 1.0, "kgf": 9.80665e-3, "tf": 9.80665}
+A_M = {"mm": 1e-3, "cm": 1e-2, "m": 1.0}
 
 
 @dataclass(frozen=True)
@@ -50,6 +55,9 @@ class DisenoViga:
     superior: DisposicionBarras | None
     #: Estribos (``None`` si no hacen falta por cálculo).
     estribos: Estribos | None
+    #: Altura útil (mm) y verificación a cortante usadas para los estribos.
+    d_cortante: float = 0.0
+    cortante: ResultadoCortante | None = None
 
 
 def disenar_viga(
@@ -64,15 +72,26 @@ def disenar_viga(
     seccion_critica_a_d: bool = True,
     diametros: tuple[int, ...] = DIAMETROS_COMERCIALES,
     diametros_estribo: tuple[int, ...] | None = None,
+    fuerza: str = "kN",
+    longitud: str = "m",
 ) -> DisenoViga:
     """Armadura longitudinal y estribos de la barra ``barra`` con sus envolventes.
 
     ``ancho_apoyo_i`` y ``ancho_apoyo_j`` son los anchos de los apoyos (mm) en cada
     extremo, para ubicar su cara. Por defecto los estribos usan el diámetro
     ``seccion.d_estribo``, que es el mismo que se supuso para ubicar las barras.
+    ``fuerza`` y ``longitud`` son las unidades del modelo (las de ``modelo.json``).
     """
     avisar()
-    env = envolvente(res, barra, combinaciones)
+    try:
+        ff, fl = A_KN[fuerza], A_M[longitud]
+    except KeyError:
+        raise ValueError(f"unidades no reconocidas: {fuerza}, {longitud}") from None
+    env = dict(envolvente(res, barra, combinaciones))
+    env["x"] = env["x"] * fl
+    for c, f in (("M", ff * fl), ("V", ff), ("N", ff)):
+        env[f"{c}_max"] = env[f"{c}_max"] * f
+        env[f"{c}_min"] = env[f"{c}_min"] * f
     x = env["x"]
     largo = float(x[-1])
 
@@ -134,6 +153,9 @@ def disenar_viga(
         rho_w=rho_w,
         diametros=(int(seccion.d_estribo),) if diametros_estribo is None else diametros_estribo,
     )
+    cortante = (
+        None if estribos is not None else armadura_cortante(vu, seccion.b, d, mat, rho_w=rho_w)
+    )
     return DisenoViga(
         barra=barra,
         Mu_pos=mu_pos,
@@ -146,4 +168,6 @@ def disenar_viga(
         inferior=inferior,
         superior=superior,
         estribos=estribos,
+        d_cortante=d,
+        cortante=estribos.requerido if estribos is not None else cortante,
     )

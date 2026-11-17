@@ -6,7 +6,8 @@ revisado por un ingeniero estructural (ver ``AGENTS.md`` y la bitácora). Los
 resultados no deben usarse para dimensionar estructuras reales sin verificarlos.
 
 El diseño de vigas de hormigón armado (flexión y cortante, ACI 318-19) está en
-:mod:`nervi.design.aci318`.
+:mod:`nervi.design.aci318`, y el diseño de todas las barras de un proyecto (lo que
+usa la interfaz) en :mod:`nervi.design.proyecto`.
 
 >>> import nervi
 >>> from nervi import design
@@ -24,7 +25,10 @@ El diseño de vigas de hormigón armado (flexión y cortante, ACI 318-19) está 
 (62.5, '5.3.1b: 1.2·D + 1.6·L')
 """
 
-from . import aci318  # vigas de hormigón, #22 y #23
+from . import (
+    aci318,  # vigas de hormigón, #22 y #23
+    proyecto,  # diseño de todo el pórtico (etapa Diseño de la interfaz)
+)
 from .combinaciones import (
     TIPOS_CARGA,
     Combinacion,
@@ -45,4 +49,5 @@ __all__ = [
     "envolvente_reacciones",
     "generar",
     "normas_disponibles",
+    "proyecto",
 ]

@@ -6,15 +6,16 @@ As unidades deste guia são kN e m. O sentido dos eixos e os sinais dos esforço
 
 ## Com a interface
 
-Todo o trabalho é feito em uma única janela. No alto está o percurso **Geometria › Cargas › Análise › Resultados**, à esquerda a árvore do projeto e à direita as propriedades do que você seleciona.
+Todo o trabalho é feito em uma única janela. No alto está o percurso **Geometria › Cargas › Análise › Resultados › Dimensionamento**, à esquerda a árvore do projeto e à direita as propriedades do que você seleciona.
 
 1. **Geometria.** Na tabela de nós, cadastre N1 em (0, 0) e N2 em (6, 0). Na tabela de barras, una N1 com N2 e digite E = 2.5e7, A = 0.125, I = 0.0026.
 2. **Apoios.** N1 com deslocamentos X e Y impedidos (apoio fixo) e N2 apenas com Y impedido (apoio móvel).
 3. **Cargas.** Crie o caso D e adicione à barra uma carga uniforme qy = −20 (para baixo).
 4. **Calcular.** Pressione **F5** ou o botão **Calcular**. Se o modelo estiver incompleto, por exemplo sem um apoio, a aba **Revisão do modelo** diz o que falta.
 5. **Resultados.** Escolha o diagrama de **Momento**. Ao passar o cursor pela barra você vê M, V e N em cada ponto, e no centro aparece o máximo de 90 kN·m. As reações estão na tabela de baixo. Com o botão **3D**, à esquerda dos diagramas, você vê a mesma viga com suas cargas em 3D: arraste com o mouse para girar e clique em uma barra para selecioná-la.
-6. **Salvar.** Ctrl+S salva o projeto como arquivo `.nrv`.
-7. **Memória de cálculo.** Ctrl+P (ou **Exportar memoria de cálculo** no menu) gera um PDF, em espanhol, com o modelo, as cargas, as combinações, as tabelas de resultados e os diagramas de cada caso e combinação.
+6. **Dimensionamento (experimental).** Para dimensionar a viga é preciso pelo menos uma combinação: adicione `1.4D` com fator 1.4 para D na tabela de combinações e calcule de novo. Na etapa **Diseño** escolha f'c, fy e o cobrimento e pressione **Diseñar**. A viga é tomada como retangular com a mesma A e I (cerca de 250 × 500 mm neste exemplo; você pode mudá-la na tabela). Cada barra mostra sua armadura inferior, superior e os estribos, e ao selecioná-la você vê cada verificação com seu artigo da ACI 318-19. Os pilares ainda não são dimensionados. É uma versão experimental, que ainda não foi revisada por um engenheiro estrutural.
+7. **Salvar.** Ctrl+S salva o projeto como arquivo `.nrv`, junto com os dados de dimensionamento.
+8. **Memória de cálculo.** Ctrl+P (ou **Exportar memoria de cálculo** no menu) gera um PDF, em espanhol, com o modelo, as cargas, as combinações, as tabelas de resultados e os diagramas de cada caso e combinação. Se você dimensionou, adiciona um capítulo com as armaduras e as verificações.
 
 Com **Ctrl+K** você abre uma busca para encontrar qualquer comando ou elemento do modelo pelo nome.
 

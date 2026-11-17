@@ -6,15 +6,16 @@ Las unidades de esta guía son kN y m. El sentido de los ejes y los signos de lo
 
 ## Con la interfaz
 
-Todo el trabajo se hace en una sola ventana. Arriba está el recorrido **Geometría › Cargas › Análisis › Resultados**, a la izquierda el árbol del proyecto y a la derecha las propiedades de lo que seleccionás.
+Todo el trabajo se hace en una sola ventana. Arriba está el recorrido **Geometría › Cargas › Análisis › Resultados › Diseño**, a la izquierda el árbol del proyecto y a la derecha las propiedades de lo que seleccionás.
 
 1. **Geometría.** En la tabla de nudos cargá N1 en (0, 0) y N2 en (6, 0). En la tabla de barras uní N1 con N2 y escribí E = 2.5e7, A = 0.125, I = 0.0026.
 2. **Apoyos.** N1 con desplazamientos X e Y impedidos (articulado fijo) y N2 solo con Y impedido (carrito).
 3. **Cargas.** Creá el caso D y agregá a la barra una carga uniforme qy = −20 (hacia abajo).
 4. **Calcular.** Presioná **F5** o el botón **Calcular**. Si al modelo le falta algo, como un apoyo, la pestaña **Revisión del modelo** te dice qué es.
 5. **Resultados.** Elegí el diagrama de **Momento**. Al pasar el cursor por la barra ves M, V y N en cada punto, y en el centro aparece el máximo de 90 kN·m. Las reacciones están en la tabla de abajo. Con el botón **3D**, a la izquierda de los diagramas, ves la misma viga con sus cargas en 3D: se gira arrastrando con el mouse y un clic en una barra la selecciona.
-6. **Guardar.** Ctrl+S guarda el proyecto como archivo `.nrv`.
-7. **Memoria de cálculo.** Ctrl+P (o **Exportar memoria de cálculo** en el menú) genera un PDF con el modelo, las cargas, las combinaciones, las tablas de resultados y los diagramas de cada caso y combinación.
+6. **Diseño (experimental).** Para armar la viga hace falta al menos una combinación: agregá en la tabla de combinaciones `1.4D` con factor 1.4 para D y calculá de nuevo. En la etapa **Diseño** elegí f'c, fy y el recubrimiento y presioná **Diseñar**. La viga se toma como rectangular con el mismo A e I (unos 250 × 500 mm en este ejemplo; podés cambiarla en la tabla). Cada barra muestra su armadura inferior, superior y estribos, y al elegirla ves cada verificación con su artículo de ACI 318-19. Las columnas todavía no se diseñan. Es una versión experimental, que todavía no revisó un ingeniero estructural.
+7. **Guardar.** Ctrl+S guarda el proyecto como archivo `.nrv`, junto con los datos de diseño.
+8. **Memoria de cálculo.** Ctrl+P (o **Exportar memoria de cálculo** en el menú) genera un PDF con el modelo, las cargas, las combinaciones, las tablas de resultados y los diagramas de cada caso y combinación. Si diseñaste, suma un capítulo con las armaduras y las verificaciones.
 
 Con **Ctrl+K** abrís un buscador para encontrar cualquier comando o elemento del modelo por su nombre.
 

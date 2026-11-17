@@ -118,6 +118,12 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | resistencia de diseño (`phiMn`) | design strength | resistência de cálculo | расчётная прочность |
 | factor de reducción (`phi`) | strength reduction factor | coeficiente de minoração | коэффициент снижения прочности |
 | sección crítica | critical section | seção crítica | расчётное сечение |
+| elemento (`Elemento`), viga, columna | member, beam, column | elemento, viga, pilar | элемент, балка, колонна |
+| diseñador (`DISENADORES`) | designer (design function per member type) | dimensionador | функция расчёта элемента |
+| relación solicitación / resistencia (`relacion`) | demand / capacity ratio | razão solicitação / resistência | коэффициент использования |
+| cumple / no cumple (`cumple`) | passes / fails | atende / não atende | выполняется / не выполняется |
+| sección equivalente (`seccion_equivalente`) | equivalent rectangular section | seção equivalente | эквивалентное сечение |
+| huella del modelo (`modelo_sha256`) | model fingerprint (hash) | impressão digital do modelo | отпечаток модели |
 
 ## Verbos y palabras frecuentes en el código · Common words in the code
 

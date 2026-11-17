@@ -245,3 +245,108 @@ def test_exportar_memoria_de_calculo(ventana, tmp_path):
     )
     ids = [n["id"] for n in ventana.sesion.modelo["nudos"]]
     assert [f[0] for f in nudos.filas] == [f"N{i}" for i in ids]
+
+
+# --- Etapa Diseño ------------------------------------------------------------------------
+
+
+def test_etapa_diseno_habilitada_y_disena(ventana):
+    boton = ventana.botones_etapa[4]
+    assert boton.isEnabled() and not ventana.botones_etapa[5].isEnabled()
+    assert ventana.disenar()
+    s, panel = ventana.sesion, ventana.panel_diseno
+    assert ventana.panel_inferior.currentWidget() is panel
+    assert s.diseno_al_dia and boton.text() == "✓ Diseño"
+    # Desde que se diseña, los datos de diseño quedan en el proyecto.
+    assert s.doc.diseno is not None and s.modificado
+    t = panel.tabla
+    assert [t.item(f, 0).text() for f in range(t.rowCount())] == ["B1", "B2", "B3"]
+    viga = s.resultado_diseno(2)
+    assert t.item(1, 4).text() == viga.armadura["Inferior"]
+    assert t.item(1, 6).text() == viga.armadura["Estribos"]
+    assert t.item(1, 7).text() == f"✓ {viga.relacion:.2f}"
+    assert "#24" in t.item(0, 4).text()  # columnas pendientes hasta el issue #24
+    assert "experimental" in panel.aviso.text().lower()
+    # La vista 2D colorea cada barra según su estado.
+    assert set(ventana.vista.colores_barra) == {1, 2, 3}
+
+
+def test_diseno_muestra_verificaciones_de_la_barra_elegida(ventana):
+    ventana.disenar()
+    s, panel = ventana.sesion, ventana.panel_diseno
+    s.seleccionar(Seleccion("barra", 2))
+    v = panel.verif
+    viga = s.resultado_diseno(2)
+    assert v.rowCount() == len(viga.verificaciones)
+    assert v.item(0, 0).text() == "Flexión M+"
+    assert v.item(0, 3).text().startswith("§")
+    assert panel.tabla.currentRow() == 1
+    # El panel de propiedades suma la armadura de la barra.
+    assert ventana.lbl_dis.isVisibleTo(ventana)
+    # Elegir otra fila de la tabla selecciona esa barra.
+    panel.tabla.selectRow(2)
+    assert s.seleccion == Seleccion("barra", 3)
+
+
+def test_diseno_editar_seccion_tipo_y_materiales(ventana, qtbot):
+    ventana.disenar()
+    s, panel = ventana.sesion, ventana.panel_diseno
+    panel.tabla.item(1, 3).setText("300")  # h de la viga
+    qtbot.waitUntil(lambda: s.doc.diseno["elementos"] == [{"barra": 2, "h": 300.0}])
+    assert not s.diseno_al_dia
+    panel.disenar()
+    assert s.resultado_diseno(2).estado == "no cumple"
+    assert panel.tabla.item(1, 7).text().startswith("✕")
+    # Tipo "No diseñar" para la columna B1.
+    combo = panel.tabla.cellWidget(0, 1)
+    combo.setCurrentIndex(combo.findData("No diseñar"))
+    assert {"barra": 1, "tipo": "ninguno"} in s.doc.diseno["elementos"]
+    panel.fc.setValue(30.0)
+    assert s.doc.diseno["hormigon"]["fc"] == 30.0
+    # Un dato no válido no se acepta y la tabla vuelve al valor anterior.
+    panel.tabla.item(1, 2).setText("-5")
+    qtbot.wait(10)
+    assert {"barra": 2, "h": 300.0} in s.doc.diseno["elementos"]
+    assert panel.tabla.item(1, 2).text() == "250"
+    # La tabla se rearma sin dejar selectores de tipo sueltos en otras columnas.
+    assert all(panel.tabla.cellWidget(f, 0) is None for f in range(3))
+
+
+def test_diseno_editar_modelo_lo_desactualiza(ventana):
+    ventana.disenar()
+    tabla = ventana.tabs_modelo.widget(0).modelo
+    assert tabla.setData(tabla.index(1, 2), "3.5")
+    assert not ventana.sesion.diseno_al_dia
+    assert "desactualizado" in ventana.panel_diseno.lbl_estado.text()
+
+
+def test_diseno_sin_combinaciones_avisa(ventana):
+    m = ventana.sesion.copia_modelo()
+    m["combinaciones"] = []
+    ventana.sesion.editar(m)
+    assert not ventana.disenar()
+    assert "combinaciones" in ventana.panel_diseno.lbl_mensaje.text()
+
+
+def test_diseno_se_guarda_y_se_abre(ventana, tmp_path, qtbot):
+    ventana.disenar()
+    panel = ventana.panel_diseno
+    panel.tabla.item(1, 3).setText("550")
+    qtbot.waitUntil(lambda: ventana.sesion.doc.diseno["elementos"] != [])
+    ruta = tmp_path / "p.nrv"
+    assert ventana._guardar_en(ruta)
+    otra = Sesion()
+    otra.abrir(ruta)
+    assert otra.doc.diseno["elementos"] == [{"barra": 2, "h": 550.0}]
+    assert otra.resultados_diseno is None
+
+
+def test_memoria_con_capitulo_de_diseno(ventana, tmp_path):
+    pytest.importorskip("reportlab")
+    doc = ventana.sesion.memoria()
+    assert not any(c.titulo.startswith("Diseño") for c in doc.capitulos)
+    ventana.disenar()
+    doc = ventana.sesion.memoria()
+    assert doc.capitulos[-1].titulo == "Diseño de hormigón armado (ACI 318-19)"
+    assert any("experimental" in a.lower() for a in doc.avisos)
+    assert ventana.exportar_memoria(tmp_path / "m.pdf")

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Ventana principal: todo el trabajo en una sola ventana.
 
-Arriba, el flujo de trabajo (Geometría › Cargas › Análisis › Resultados) y la
+Arriba, el flujo de trabajo (Geometría › Cargas › Análisis › Resultados › Diseño) y la
 barra contextual; a la izquierda, el explorador del proyecto; al centro, la
 vista del pórtico; a la derecha, las propiedades de la selección; abajo, tablas,
 revisión del modelo y consola.
@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
 from .. import MecanismoError, formato
 from . import estilo, vista3d
 from .consola import Consola
+from .diseno import PanelDiseno, color_estado
 from .paleta import Entrada, Paleta
 from .sesion import Seleccion, Sesion, documento_ejemplo
 from .tablas import LISTAS, EditorLista, TablaResultados, vista_tabla
@@ -77,7 +78,7 @@ class Ventana(QMainWindow):
         self.vistas = QStackedWidget()
         self.vistas.addWidget(self.vista)
         self.panel_inferior = self._panel_inferior()
-        centro = QSplitter(Qt.Vertical)
+        self.centro = centro = QSplitter(Qt.Vertical)
         centro.addWidget(self.vistas)
         centro.addWidget(self.panel_inferior)
         centro.setStretchFactor(0, 3)
@@ -100,6 +101,7 @@ class Ventana(QMainWindow):
         s.modelo_cambiado.connect(self._actualizar_etapas)
         s.resultados_cambiados.connect(self._actualizar_resultados)
         s.seleccion_cambiada.connect(self._actualizar_propiedades)
+        s.diseno_cambiado.connect(self._actualizar_diseno)
         self.vista.diagrama_cambiado.connect(self._marcar_diagrama)
         self._actualizar_todo()
 
@@ -119,6 +121,7 @@ class Ventana(QMainWindow):
         self.a_guardar = self._accion("Guardar", self.guardar, QKeySequence.Save)
         self.a_guardar_como = self._accion("Guardar como…", self.guardar_como, QKeySequence.SaveAs)
         self.a_calcular = self._accion("Calcular", self.calcular, "F5")
+        self.a_disenar = self._accion("Diseñar elementos de hormigón armado", self.disenar)
         self.a_memoria = self._accion(
             "Exportar memoria de cálculo (PDF)…", self.exportar_memoria, "Ctrl+P"
         )
@@ -174,9 +177,13 @@ class Ventana(QMainWindow):
                 sep = QLabel("›", objectName="tenue")
                 capa.addWidget(sep)
             b = QPushButton(nombre, objectName="etapa", checkable=True)
-            if nombre in ("Diseño", "Memoria"):
+            if nombre == "Memoria":
                 b.setEnabled(False)
-                b.setToolTip("Llega con la Fase 3 (diseño) y la Fase 4 (memoria de cálculo)")
+                b.setToolTip(
+                    "Llega con la Fase 4. Mientras tanto, exportá la memoria en PDF con Ctrl+P"
+                )
+            elif nombre == "Diseño":
+                b.setToolTip("Armadura de vigas de hormigón según ACI 318-19 (experimental)")
             self.etapas.addButton(b, n)
             self.botones_etapa.append(b)
             capa.addWidget(b)
@@ -267,12 +274,18 @@ class Ventana(QMainWindow):
         self.lbl_res = QLabel("RESULTADOS", objectName="seccion")
         self.form_res = QFormLayout()
         self.form_res.setVerticalSpacing(6)
+        self.lbl_dis = QLabel("DISEÑO · ACI 318-19 (experimental)", objectName="seccion")
+        self.form_dis = QFormLayout()
+        self.form_dis.setVerticalSpacing(6)
         for w in (self.lbl_tipo_sel, self.lbl_sel):
             self.capa_prop.addWidget(w)
         self.capa_prop.addLayout(self.form)
         self.capa_prop.addSpacing(6)
         self.capa_prop.addWidget(self.lbl_res)
         self.capa_prop.addLayout(self.form_res)
+        self.capa_prop.addSpacing(6)
+        self.capa_prop.addWidget(self.lbl_dis)
+        self.capa_prop.addLayout(self.form_dis)
         self.capa_prop.addStretch()
         panel.setMinimumWidth(240)
         return panel
@@ -296,6 +309,10 @@ class Ventana(QMainWindow):
             self.tabs_res.addTab(vista_tabla(TablaResultados(self.sesion, tipo)), titulo)
         tabs.addTab(self.tabs_res, "Resultados")
 
+        self.panel_diseno = PanelDiseno(self.sesion)
+        self.panel_diseno.disenado.connect(lambda: self.ir_a_etapa(4))
+        tabs.addTab(self.panel_diseno, "Diseño")
+
         self.revision = QListWidget()
         tabs.addTab(self.revision, "Revisión del modelo")
         self.consola = Consola(self.sesion)
@@ -314,7 +331,8 @@ class Ventana(QMainWindow):
         aviso = QLabel(AVISO_PRELIMINAR, objectName="etiqueta")
         aviso.setToolTip(
             "Análisis lineal elástico verificado contra soluciones analíticas. "
-            "El diseño según norma todavía no está disponible."
+            "El diseño de vigas según ACI 318-19 es experimental y no fue revisado "
+            "por un ingeniero estructural."
         )
         barra.addPermanentWidget(aviso)
 
@@ -340,6 +358,7 @@ class Ventana(QMainWindow):
             bool(m["casos"]),
             self.sesion.al_dia,
             self.sesion.al_dia,
+            self.sesion.diseno_al_dia,
         )
         for b, listo, nombre in zip(self.botones_etapa, listos, ETAPAS, strict=False):
             b.setText(f"✓ {nombre}" if listo else nombre)
@@ -425,8 +444,38 @@ class Ventana(QMainWindow):
         self._actualizar_revision()
         self._actualizar_propiedades()
 
+    def _actualizar_diseno(self) -> None:
+        s = self.sesion
+        en_diseno = self.etapas.checkedId() == 4
+        self.vista.colores_barra = (
+            {r.elemento.barra: color_estado(r.estado) for r in s.resultados_diseno or []}
+            if en_diseno and s.diseno_al_dia
+            else {}
+        )
+        self.vista.update()
+        self._actualizar_etapas()
+        self._actualizar_propiedades()
+
+    def _propiedades_diseno(self, barra: int) -> None:
+        r = self.sesion.resultado_diseno(barra)
+        if r is None:
+            return
+        self.lbl_dis.setVisible(True)
+        el = r.elemento
+        self.form_dis.addRow("Elemento", _valor(f"{el.tipo.capitalize()} {el.b:g} × {el.h:g} mm"))
+        for nombre, texto in r.armadura.items():
+            self.form_dis.addRow(nombre, _valor(texto))
+        rel = r.relacion
+        if rel is not None:
+            color = estilo.OK if r.estado == "cumple" else estilo.NEGATIVO
+            lbl = _valor(f"{rel:.2f} · {r.estado}")
+            lbl.setStyleSheet(f"color: {color};")
+            self.form_dis.addRow("Relación máx.", lbl)
+        for m in r.mensajes:
+            self.form_dis.addRow(_tenue(m))
+
     def _actualizar_propiedades(self) -> None:
-        for form in (self.form, self.form_res):
+        for form in (self.form, self.form_res, self.form_dis):
             while form.rowCount():
                 form.removeRow(0)
         sel = self.sesion.seleccion
@@ -434,6 +483,7 @@ class Ventana(QMainWindow):
         u = m["unidades"]
         f, l = u["fuerza"], u["longitud"]
         self.lbl_res.setVisible(False)
+        self.lbl_dis.setVisible(False)
         if sel is None:
             self.lbl_tipo_sel.setText("PROPIEDADES")
             self.lbl_sel.setText("Nada seleccionado")
@@ -513,6 +563,7 @@ class Ventana(QMainWindow):
             self.form_res.addRow("|V| máx", _valor(_num(abs(d["V"]).max()) + f" {f}"))
             self.form_res.addRow("N", _valor(_num(d["N"][0]) + f" {f}"))
             self.form_res.addRow("|v| máx", _valor(_num(abs(d["v"]).max(), ".4g") + f" {l}"))
+        self._propiedades_diseno(barra["id"])
 
     def _marcar_diagrama(self, clave: str) -> None:
         self.botones_diagrama[clave].setChecked(True)
@@ -570,6 +621,18 @@ class Ventana(QMainWindow):
             self.panel_inferior.setCurrentWidget(self.revision)
         elif n == 3:
             self.panel_inferior.setCurrentWidget(self.tabs_res)
+        elif n == 4:
+            self.panel_inferior.setCurrentWidget(self.panel_diseno)
+            # La tabla de diseño necesita más alto que las tablas del modelo.
+            alto = sum(self.centro.sizes())
+            if self.centro.sizes()[1] < 0.42 * alto:
+                self.centro.setSizes([int(0.55 * alto), alto - int(0.55 * alto)])
+        self._actualizar_diseno()
+
+    def disenar(self) -> bool:
+        """Va a la etapa Diseño y diseña todas las barras."""
+        self.ir_a_etapa(4)
+        return self.panel_diseno.disenar()
 
     # --- Comandos --------------------------------------------------------------------
     def _seguir_si_hay_cambios(self) -> bool:
@@ -693,7 +756,7 @@ class Ventana(QMainWindow):
             Entrada(a.text().replace("&", ""), "Comando", a.shortcut().toString(), a.trigger)
             for a in self.actions()
         ]
-        for n, nombre in enumerate(ETAPAS[:4]):
+        for n, nombre in enumerate(ETAPAS[:5]):
             entradas.append(Entrada(f"Ir a {nombre}", "Etapa", "", lambda n=n: self.ir_a_etapa(n)))
         for lista, (titulo, _c) in LISTAS.items():
             entradas.append(

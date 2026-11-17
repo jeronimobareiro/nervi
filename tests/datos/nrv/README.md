@@ -9,5 +9,7 @@ Estos archivos garantizan que un proyecto guardado con una versión vieja de Ner
 | `modelo-v1.nrv` | Módulo `modelo` versión 1: pórtico plano de 5 nudos y 4 barras con todos los tipos de carga de la versión 1, resorte, asentamiento, articulación y dos combinaciones. Guardado el 2026-11-12. |
 | `modelo-v1-sin-modulos.nrv` | El mismo proyecto con el manifiesto que escribía Nervi antes de que existiera `modulos` (GUI del 2026-11-10 al 2026-11-12). |
 | `modelo-v1.esperado.json` | Desplazamientos, reacciones y fuerzas de extremo de cada caso, calculados con el motor del 2026-11-12. |
+| `diseno-v1.nrv` | Módulo `diseno` versión 1 junto con `modelo` 1: el pórtico de ejemplo de la interfaz con H-21, estribos Ø8, B1 marcada como columna, B2 con sección propia de 250 × 550 mm y B3 sin diseñar. Guardado el 2026-11-17. |
+| `diseno-v1.esperado.json` | Resultados de cada caso (motor del 2026-11-17) y, en `diseno`, el tipo y la sección de cada barra y los materiales que se tienen que leer. |
 
 Cuando un módulo sube de versión, se **agrega** su archivo (`modelo-v2.nrv`, `modelo-v2.esperado.json`) y se anota acá. Los anteriores se quedan.

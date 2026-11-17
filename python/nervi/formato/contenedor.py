@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
+from . import diseno as _diseno
 from . import migraciones
 from . import modelo as _modelo
 from .errores import FormatoError
@@ -50,6 +51,8 @@ class Modulo:
 #: Módulos que conoce esta versión de Nervi y la versión que escribe de cada uno.
 MODULOS: dict[str, Modulo] = {
     "modelo": Modulo("modelo", 1, (_modelo.MIEMBRO,), requerido=True),
+    # Datos de diseño (Fase 3): se escribe solo si el proyecto los tiene.
+    "diseno": Modulo("diseno", 1, (_diseno.MIEMBRO,), requerido=False),
 }
 
 
@@ -75,13 +78,15 @@ class Documento:
     (``vista.json``, ``adjuntos/…``, módulos de versiones más nuevas) para
     escribirlos igual al guardar. ``migrado_desde`` dice, por módulo, la versión
     original si al abrir hubo que migrarlo (``{"modelo": 1}``), y ``avisos``
-    explica lo que se conservó sin leer."""
+    explica lo que se conservó sin leer. ``diseno`` es el diccionario de
+    ``diseno.json`` (``None`` si el proyecto todavía no tiene datos de diseño)."""
 
     modelo: dict
     manifiesto: dict = field(default_factory=dict)
     otros: dict[str, bytes] = field(default_factory=dict)
     migrado_desde: dict[str, int] | None = None
     avisos: list[str] = field(default_factory=list)
+    diseno: dict | None = None
 
     @classmethod
     def nuevo(cls) -> Documento:
@@ -224,6 +229,16 @@ def abrir(ruta: str | os.PathLike) -> Documento:
 
         modelo = leidos[_modelo.MIEMBRO]
         _modelo.validar(modelo)
+        diseno = leidos.get(_diseno.MIEMBRO)
+        if diseno is not None:
+            _diseno.validar(diseno)
+            sha = diseno.get("modelo_sha256")
+            if sha and sha != _diseno.huella(zf.read(_modelo.MIEMBRO)):
+                avisos.append(
+                    "El modelo cambió después de guardar los datos de diseño (lo editó un "
+                    "programa que no los conoce). Revisá los tipos y las secciones de las "
+                    "barras antes de diseñar."
+                )
         propios = {"mimetype", MANIFIESTO, *leidos}
         otros = {
             i.filename: zf.read(i.filename)
@@ -231,7 +246,7 @@ def abrir(ruta: str | os.PathLike) -> Documento:
             if i.filename not in propios and not i.is_dir()
         }
     manifiesto["modulos"] = modulos
-    return Documento(modelo, manifiesto, otros, migrado or None, avisos)
+    return Documento(modelo, manifiesto, otros, migrado or None, avisos, diseno)
 
 
 def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) -> None:
@@ -239,6 +254,8 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
 
     Con ``copia_bak=True`` deja el archivo anterior como ``<ruta>.bak``."""
     _modelo.validar(doc.modelo)
+    if doc.diseno is not None:
+        _diseno.validar(doc.diseno)
     ruta = Path(ruta)
     ahora = _ahora()
     manifiesto = {k: v for k, v in doc.manifiesto.items()}
@@ -255,8 +272,22 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
         for nombre, entrada in manifiesto.get("modulos", {}).items()
         if nombre not in MODULOS or entrada["version"] > MODULOS[nombre].version
     }
-    modulos.update({n: m.entrada() for n, m in MODULOS.items() if n not in modulos})
+    presentes = {"modelo", *(["diseno"] if doc.diseno is not None else [])}
+    modulos.update(
+        {n: m.entrada() for n, m in MODULOS.items() if n not in modulos and n in presentes}
+    )
     manifiesto["modulos"] = modulos
+
+    def _json(valor) -> bytes:
+        texto = json.dumps(valor, ensure_ascii=False, indent=2, allow_nan=False)
+        return (texto + "\n").encode("utf-8")
+
+    miembros = {MANIFIESTO: _json(manifiesto), _modelo.MIEMBRO: _json(doc.modelo)}
+    # Si el archivo traía un módulo "diseno" más nuevo, se conserva ese y no se pisa.
+    if doc.diseno is not None and modulos["diseno"]["version"] <= MODULOS["diseno"].version:
+        # La huella permite saber al abrir si otro programa cambió el modelo.
+        doc.diseno["modelo_sha256"] = _diseno.huella(miembros[_modelo.MIEMBRO])
+        miembros[_diseno.MIEMBRO] = _json(doc.diseno)
 
     tmp = ruta.with_name(ruta.name + ".tmp")
     with open(tmp, "wb") as f:
@@ -264,9 +295,8 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
             info = zipfile.ZipInfo("mimetype", date_time=(1980, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_STORED
             zf.writestr(info, MIMETYPE.encode("ascii"))
-            for nombre, valor in ((MANIFIESTO, manifiesto), (_modelo.MIEMBRO, doc.modelo)):
-                texto = json.dumps(valor, ensure_ascii=False, indent=2, allow_nan=False)
-                zf.writestr(nombre, (texto + "\n").encode("utf-8"), zipfile.ZIP_DEFLATED)
+            for nombre, datos in miembros.items():
+                zf.writestr(nombre, datos, zipfile.ZIP_DEFLATED)
             for nombre, datos in doc.otros.items():
                 zf.writestr(nombre, datos, zipfile.ZIP_DEFLATED)
         f.flush()

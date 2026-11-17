@@ -75,19 +75,52 @@ def _modulo(nombre, version, miembros, requerido):
 
 
 def test_modulo_desconocido_opcional_se_conserva(tmp_path):
+    # Hasta la entrada 2026-11-17-04 esta prueba usaba "diseno", que desde entonces
+    # es un módulo conocido; "resultados" sigue siendo uno que Nervi no lee.
     ruta = _con_manifiesto(
         tmp_path,
-        _modulo("diseno", 1, ["diseno.json", "diseno/"], False),
-        [("diseno.json", '{"norma": "ACI 318-19"}'), ("diseno/vigas.json", "[]")],
+        _modulo("resultados", 1, ["resultados.json", "resultados/"], False),
+        [("resultados.json", '{"sha": "x"}'), ("resultados/casos.json", "[]")],
     )
     doc = formato.abrir(ruta)
-    assert len(doc.avisos) == 1 and "'diseno'" in doc.avisos[0]
+    assert len(doc.avisos) == 1 and "'resultados'" in doc.avisos[0]
     formato.guardar(doc, ruta)
     doc2 = formato.abrir(ruta)
-    assert doc2.manifiesto["modulos"]["diseno"]["version"] == 1
-    assert doc2.otros["diseno.json"] == b'{"norma": "ACI 318-19"}'
-    assert doc2.otros["diseno/vigas.json"] == b"[]"
+    assert doc2.manifiesto["modulos"]["resultados"]["version"] == 1
+    assert doc2.otros["resultados.json"] == b'{"sha": "x"}'
+    assert doc2.otros["resultados/casos.json"] == b"[]"
     assert doc2.manifiesto["modulos"]["modelo"] == formato.MODULOS["modelo"].entrada()
+
+
+def test_diseno_de_version_futura_se_conserva(tmp_path):
+    ruta = _con_manifiesto(
+        tmp_path,
+        _modulo("diseno", 2, ["diseno.json"], False),
+        [("diseno.json", '{"norma": "ACI 318-25"}')],
+    )
+    doc = formato.abrir(ruta)
+    assert doc.diseno is None
+    assert len(doc.avisos) == 1 and "'diseno' versión 2" in doc.avisos[0]
+    formato.guardar(doc, ruta)
+    doc2 = formato.abrir(ruta)
+    assert doc2.manifiesto["modulos"]["diseno"]["version"] == 2
+    assert doc2.otros["diseno.json"] == b'{"norma": "ACI 318-25"}'
+
+
+def test_referencia_del_modulo_diseno():
+    # Los datos de diseño de diseno-v1.nrv se leen igual que cuando se guardaron.
+    from nervi.design import proyecto
+
+    esperado = _esperado(DATOS / "diseno-v1.nrv")["diseno"]
+    doc = formato.abrir(DATOS / "diseno-v1.nrv")
+    d = doc.diseno
+    mat = esperado["materiales"]
+    assert d["hormigon"]["fc"] == mat["fc"]
+    assert d["acero"] == {"fy": mat["fy"], "fyt": mat["fyt"]}
+    assert d["criterios"]["d_estribo"] == mat["d_estribo"]
+    for el in proyecto.elementos(doc.modelo, d):
+        e = esperado[f"B{el.barra}"]
+        assert (el.tipo, el.b, el.h) == (e["tipo"], e["b"], e["h"])
 
 
 def test_modulo_desconocido_requerido_no_abre(tmp_path):

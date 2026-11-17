@@ -91,6 +91,7 @@ class Sesion(QObject):
     resultados_cambiados = Signal()
     seleccion_cambiada = Signal()
     archivo_cambiado = Signal()
+    diseno_cambiado = Signal()
 
     def __init__(self, doc: formato.Documento | None = None) -> None:
         super().__init__()
@@ -104,6 +105,8 @@ class Sesion(QObject):
         self.seleccion: Seleccion | None = None
         self.avisos: list[Aviso] = []
         self.inestabilidad: Inestabilidad | None = None
+        self.resultados_diseno: list | None = None
+        self.diseno_al_dia = False
         self.revisar()
 
     # --- Archivo ---------------------------------------------------------------
@@ -143,11 +146,14 @@ class Sesion(QObject):
         self.combinacion = ""
         self.seleccion = None
         self.inestabilidad = None
+        self.resultados_diseno = None
+        self.diseno_al_dia = False
         self.revisar()
         self.archivo_cambiado.emit()
         self.modelo_cambiado.emit()
         self.resultados_cambiados.emit()
         self.seleccion_cambiada.emit()
+        self.diseno_cambiado.emit()
 
     # --- Edición -----------------------------------------------------------------
     @property
@@ -161,10 +167,12 @@ class Sesion(QObject):
         self.modificado = True
         self.al_dia = False
         self.inestabilidad = None
+        self.diseno_al_dia = False
         self.revisar()
         self.archivo_cambiado.emit()
         self.modelo_cambiado.emit()
         self.resultados_cambiados.emit()
+        self.diseno_cambiado.emit()
 
     def copia_modelo(self) -> dict:
         return copy.deepcopy(self.doc.modelo)
@@ -255,6 +263,53 @@ class Sesion(QObject):
             return self.resultados[self.combinacion]
         return None
 
+    # --- Diseño --------------------------------------------------------------------
+    @property
+    def diseno(self) -> dict:
+        """Datos de ``diseno.json`` (los de por defecto si el proyecto no tiene)."""
+        return self.doc.diseno if self.doc.diseno is not None else formato.diseno.nuevo()
+
+    def editar_diseno(self, nuevo: dict) -> None:
+        """Reemplaza los datos de diseño. Lanza ``FormatoError`` si no son válidos."""
+        formato.diseno.validar(nuevo)
+        self.doc.diseno = nuevo
+        self.modificado = True
+        self.diseno_al_dia = False
+        self.archivo_cambiado.emit()
+        self.diseno_cambiado.emit()
+
+    def _resolver_con_combinaciones(self):
+        m = self.modelo
+        modelo, indices = formato.construir_modelo(m)
+        combinaciones = {c["nombre"]: c["factores"] for c in m.get("combinaciones", [])}
+        return modelo, modelo.resolver(combinaciones=combinaciones or None), indices
+
+    def disenar(self) -> list:
+        """Diseña todas las barras (``nervi.design.proyecto``). Calcula si hace falta.
+
+        Lanza ``ValueError`` si no hay combinaciones, y lo mismo que :meth:`calcular`."""
+        from ..design import proyecto
+
+        if not self.al_dia:
+            self.calcular()
+        _modelo, res, indices = self._resolver_con_combinaciones()
+        resultados = proyecto.disenar(self.modelo, self.diseno, res, indices)
+        if self.doc.diseno is None:
+            # Desde que se diseña, los datos de diseño son parte del proyecto.
+            self.doc.diseno = self.diseno
+            self.modificado = True
+            self.archivo_cambiado.emit()
+        self.resultados_diseno = resultados
+        self.diseno_al_dia = True
+        self.diseno_cambiado.emit()
+        return resultados
+
+    def resultado_diseno(self, barra: int):
+        """Resultado de diseño de la barra ``barra`` (id), si está al día."""
+        if not self.diseno_al_dia or not self.resultados_diseno:
+            return None
+        return next((r for r in self.resultados_diseno if r.elemento.barra == barra), None)
+
     def memoria(self, datos_proyecto: dict[str, str] | None = None):
         """Memoria de cálculo (``nervi.memoria.Memoria``) del proyecto abierto, con
         los ``id`` de nudos y barras que ve el usuario. Calcula si hace falta."""
@@ -263,20 +318,27 @@ class Sesion(QObject):
         if not self.al_dia or self.resultados is None or self.indices is None:
             self.calcular()
         m = self.modelo
-        modelo, indices = formato.construir_modelo(m)
-        combinaciones = {c["nombre"]: c["factores"] for c in m.get("combinaciones", [])}
+        modelo, res, indices = self._resolver_con_combinaciones()
         datos = {"Proyecto": self.ruta.stem if self.ruta else "Sin título"}
         datos.update(datos_proyecto or {})
         u = m["unidades"]
-        return memoria_de_calculo(
+        doc = memoria_de_calculo(
             modelo,
-            modelo.resolver(combinaciones=combinaciones or None),
+            res,
             datos_proyecto=datos,
             fuerza=u["fuerza"],
             longitud=u["longitud"],
             nombres_nudos=lambda k: f"N{indices.id_nudo(k)}",
             nombres_barras=lambda k: f"B{indices.id_barra(k)}",
         )
+        # Si el proyecto tiene datos de diseño, la memoria suma su capítulo.
+        if self.doc.diseno is not None and res.combinaciones:
+            from ..design import proyecto
+
+            diseno = self.resultados_diseno if self.diseno_al_dia else self.disenar()
+            doc.agregar(proyecto.capitulo_memoria(diseno, self.diseno))
+            doc.avisos.append(proyecto.AVISO_EXPERIMENTAL)
+        return doc
 
     def elegir_combinacion(self, nombre: str) -> None:
         if nombre != self.combinacion:
