@@ -118,6 +118,15 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | resistencia de diseño (`phiMn`) | design strength | resistência de cálculo | расчётная прочность |
 | factor de reducción (`phi`) | strength reduction factor | coeficiente de minoração | коэффициент снижения прочности |
 | sección crítica | critical section | seção crítica | расчётное сечение |
+| flecha inmediata / diferida (`delta_D`, `delta_diferida`) | immediate / long-term deflection | flecha imediata / diferida | мгновенный / длительный прогиб |
+| inercia efectiva / fisurada (`Ie`, `Icr`) | effective / cracked moment of inertia | inércia efetiva / fissurada | эффективный / трещинообразованный момент инерции |
+| momento de fisuración (`Mcr`) | cracking moment | momento de fissuração | момент трещинообразования |
+| carga sostenida (`fraccion_sostenida`) | sustained load | carga de longa duração | длительная нагрузка |
+| control de fisuración (`verificar_fisuracion`) | crack control | controle de fissuração | контроль трещин |
+| longitud de desarrollo / anclaje (`ld`) | development length | comprimento de ancoragem | длина анкеровки |
+| gancho normal (`gancho_normal`, `ldh`) | standard hook | gancho padrão | стандартный крюк |
+| empalme por yuxtaposición (`empalme_traccion`) | lap splice | emenda por traspasse | нахлёсточное соединение |
+| armadura de piel | skin reinforcement | armadura de pele | поверхностная арматура |
 
 ## Verbos y palabras frecuentes en el código · Common words in the code
 

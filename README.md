@@ -25,7 +25,7 @@ Documentación: **[jeronimobareiro.github.io/nervi](https://jeronimobareiro.gith
 - Articulaciones y liberaciones de extremo; cerchas.
 - Apoyos rígidos, apoyos elásticos y asentamientos impuestos.
 - Varios casos de carga con una sola factorización, y combinaciones lineales.
-- Diseño de vigas rectangulares de hormigón armado según ACI 318-19 (`nervi.design.aci318`, experimental): armadura a flexión simple o doble, elección de barras comerciales y estribos a cortante, a partir de las envolventes.
+- Diseño de vigas rectangulares de hormigón armado según ACI 318-19 (`nervi.design.aci318`, experimental): armadura a flexión simple o doble, elección de barras comerciales y estribos a cortante, a partir de las envolventes; flechas inmediatas y diferidas con inercia efectiva, control de fisuración y longitudes de anclaje, ganchos y empalmes (`aci318.servicio`, `aci318.detalle`).
 - Reacciones, fuerzas de extremo, diagramas `N`, `V`, `M` y deformada, incluyendo los puntos de momento máximo.
 - Detección de mecanismos y validación de datos con mensajes claros.
 - Memoria de cálculo en PDF, en español y con plantilla editable: datos del modelo, secciones, cargas, combinaciones, tablas de resultados, diagramas y envolventes (`nervi.memoria`, `pip install "nervi[memoria]"`, o desde la interfaz con Ctrl+P).
