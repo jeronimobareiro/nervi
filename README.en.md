@@ -71,10 +71,11 @@ More examples in [`examples/`](examples/). Sign conventions in [`docs/convencion
 
 ```
 pip install "nervi[gui]"       # or, from source: pip install PySide6-Essentials
+pip install "nervi[visor3d]"   # optional: 3D viewer (PyVista and VTK)
 nervi-gui                      # or: python -m nervi.gui project.nrv
 ```
 
-Everything happens in a single window: tables for nodes, members, supports, loads and combinations, analysis with F5, N, V, M and deflected-shape diagrams with values under the cursor, selection properties, model check, a Python console and a command palette (Ctrl+K). Projects are saved in the [`.nrv`](docs/formato-nrv.md) format. Windows (`.exe`) and Linux (AppImage) installers are built in [Releases](https://github.com/jeronimobareiro/nervi/releases) when a `v*` tag is published; they are not signed. The interface is currently in Spanish.
+Everything happens in a single window: tables for nodes, members, supports, loads and combinations, analysis with F5, N, V, M and deflected-shape diagrams with values under the cursor, an optional 3D viewer of the model, loads and diagrams, selection properties, model check, a Python console and a command palette (Ctrl+K). Projects are saved in the [`.nrv`](docs/formato-nrv.md) format. Windows (`.exe`) and Linux (AppImage) installers are built in [Releases](https://github.com/jeronimobareiro/nervi/releases) when a `v*` tag is published; they are not signed. The interface is currently in Spanish.
 
 > **Preliminary version, not fit for real projects.** Linear elastic analysis is verified against analytical solutions; code-based design does not exist yet.
 

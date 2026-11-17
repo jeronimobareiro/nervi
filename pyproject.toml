@@ -22,6 +22,8 @@ classifiers = [
 gui = ["PySide6-Essentials>=6.6", "reportlab>=4", "tomli>=2; python_version < '3.11'"]
 # Memoria de cálculo en PDF. ReportLab es BSD (compatible con GPL-3.0); tomli, MIT.
 memoria = ["reportlab>=4", "tomli>=2; python_version < '3.11'"]
+# Visor 3D (issue #30): PyVista y pyvistaqt (MIT) sobre VTK (BSD-3-Clause), compatibles con GPL-3.0.
+visor3d = ["PySide6-Essentials>=6.6", "pyvista>=0.44", "pyvistaqt>=0.11"]
 dev = [
     "pytest>=8",
     "ruff>=0.6",

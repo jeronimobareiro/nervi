@@ -132,6 +132,9 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | error | error | erro | ошибка |
 | aviso | warning | aviso | предупреждение |
 | ventana / vista / tabla | window / view / table | janela / vista / tabela | окно / вид / таблица |
+| visor 3D (`vista3d`) / escena (`escena3d`) | 3D viewer / scene | visualizador 3D / cena | 3D-просмотрщик / сцена |
+| flecha / relleno / etiqueta | arrow / fill / label | seta / preenchimento / rótulo | стрелка / заливка / подпись |
+| encuadrar / capturar | fit the view / render to an image | enquadrar / capturar | вписать вид / сохранить снимок |
 | prueba | test | teste | тест |
 
 ## Proyecto · Project

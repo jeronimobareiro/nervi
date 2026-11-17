@@ -49,7 +49,7 @@ O Nervi analisa pórticos pelo método dos elementos finitos e mostra reações,
 - **Cargas** em nós e em barras: uniformes, pontuais, trapezoidais ou parciais e momentos concentrados no vão.
 - **Casos e combinações** de carga, por exemplo 1.2D + 1.6L.
 - **Vigas de concreto armado** segundo a ACI 318-19, em versão experimental: armadura de flexão, barras comerciais e estribos, a partir do Python.
-- **Resultados**: reações, diagramas de esforço normal, cortante e momento, e a deformada. Ao passar o cursor sobre uma barra, os valores naquele ponto aparecem.
+- **Resultados**: reações, diagramas de esforço normal, cortante e momento, e a deformada. Ao passar o cursor sobre uma barra, os valores naquele ponto aparecem. Com o visualizador 3D opcional, o modelo, as cargas e os diagramas aparecem em perspectiva.
 - **Interface de desktop** em uma única janela, com tabelas para montar o modelo, ou uso a partir do Python para quem programa.
 - **Projetos** salvos em arquivos `.nrv`.
 - **Memória de cálculo em PDF** (em espanhol), com os dados do modelo, as cargas, as combinações, as tabelas de resultados e os diagramas, a partir de um modelo editável.

@@ -74,9 +74,9 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python -m venv .venv
-      - name: Bibliotecas del sistema para Qt (pruebas de la interfaz sin pantalla)
-        run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon0
-      - run: .venv/bin/pip install maturin pytest ruff pytest-qt "PySide6-Essentials>=6.6" "tomli>=2; python_version < '3.11'" reportlab pypdf
+      - name: Bibliotecas del sistema para Qt y VTK (pruebas de la interfaz sin pantalla)
+        run: sudo apt-get update && sudo apt-get install -y libegl1 libxkbcommon0 libosmesa6
+      - run: .venv/bin/pip install maturin pytest ruff pytest-qt "PySide6-Essentials>=6.6" "pyvista>=0.44" "pyvistaqt>=0.11" "tomli>=2; python_version < '3.11'" reportlab pypdf
       - run: .venv/bin/ruff check python tests examples scripts
       - run: .venv/bin/ruff format --check python tests examples scripts
       - run: .venv/bin/maturin develop --release
@@ -85,6 +85,8 @@ jobs:
       - run: .venv/bin/pytest -q
         env:
           QT_QPA_PLATFORM: offscreen
+          # Que las pruebas del visor 3D fallen en vez de omitirse si VTK no puede renderizar.
+          NERVI_EXIGIR_3D: "1"
       - run: .venv/bin/python examples/portico_simple.py
       - name: Memoria de cálculo del pórtico de ejemplo (issue #28)
         run: .venv/bin/python examples/memoria_portico_simple.py memoria-portico-simple.pdf

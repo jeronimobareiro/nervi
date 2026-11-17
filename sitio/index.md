@@ -49,7 +49,7 @@ Nervi analiza pórticos por el método de los elementos finitos y muestra reacci
 - **Cargas** en nudos y en barras: uniformes, puntuales, trapezoidales o parciales y momentos concentrados en el tramo.
 - **Casos y combinaciones** de carga, por ejemplo 1.2D + 1.6L.
 - **Vigas de hormigón armado** según ACI 318-19, en versión experimental: armadura a flexión, barras comerciales y estribos, desde Python.
-- **Resultados**: reacciones, diagramas de axil, cortante y momento, y deformada. Al pasar el cursor por una barra se leen los valores en ese punto.
+- **Resultados**: reacciones, diagramas de axil, cortante y momento, y deformada. Al pasar el cursor por una barra se leen los valores en ese punto. Con el visor 3D opcional se ven el modelo, las cargas y los diagramas en perspectiva.
 - **Interfaz de escritorio** en una sola ventana, con tablas para cargar el modelo, o uso desde Python para quien programa.
 - **Proyectos** guardados en archivos `.nrv`.
 - **Memoria de cálculo en PDF**, con los datos del modelo, las cargas, las combinaciones, las tablas de resultados y los diagramas, a partir de una plantilla editable.
