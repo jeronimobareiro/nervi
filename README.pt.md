@@ -36,6 +36,7 @@ Veja o [guia de contribuição](CONTRIBUTING.md#contributing-from-other-countrie
 - Articulações e liberações de extremidade; treliças.
 - Apoios rígidos e elásticos, e recalques impostos.
 - Vários casos de carga com uma única fatoração, e combinações lineares (combinações e envoltórias da ACI 318-19, experimentais).
+- Dimensionamento de vigas retangulares de concreto armado segundo a ACI 318-19 (`nervi.design.aci318`, experimental): armadura de flexão simples ou dupla, escolha de barras comerciais e estribos para cortante, a partir das envoltórias.
 - Reações, esforços nas extremidades, diagramas `N`, `V`, `M` e deformada, incluindo os pontos de momento máximo.
 - Detecção de mecanismos e validação de dados com mensagens claras.
 - Memória de cálculo em PDF (em espanhol, com modelo editável): dados do modelo, seções, cargas, combinações, tabelas de resultados, diagramas e envoltórias (`nervi.memoria`, `pip install "nervi[memoria]"` ou Ctrl+P na interface).
