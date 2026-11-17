@@ -11,7 +11,7 @@ Sumar al diseño de vigas de hormigón armado (entrada 2026-11-17-02) las verifi
 
 ## Qué se hizo
 
-Se revisaron antes `main` y los PR abiertos (#54 columnas, #55 etapa Diseño en la interfaz) para no pisarlos: todo lo nuevo va en módulos propios y no se tocan `aci318/__init__.py`, `viga.py` ni `design/__init__.py`, que esos PR cambian. Los módulos se importan como `from nervi.design.aci318 import servicio, detalle`.
+Se revisaron antes `main` y los PR abiertos (#54 columnas, #55 etapa Diseño en la interfaz) para no pisarlos: todo lo nuevo va en módulos propios y no se tocan `aci318/__init__.py`, `viga.py` ni `design/__init__.py`, que esos PR cambian. Los módulos se importan como `from nervi.design.aci318 import servicio, detalle`. Después de que entró #54 se trajo `main` a la rama, se resolvieron los conflictos de documentación (README, sitio, glosario, `ESTADO.md`) y se exportaron `servicio` y `detalle` desde `aci318/__init__.py`, que #55 no toca.
 
 - `python/nervi/design/aci318/servicio.py` (MPa, mm, kN·m):
   - `modulo_elasticidad` (`Ec = 4700 √f'c`, §19.2.2.1b), `modulo_rotura` (`fr = 0.62 λ √f'c`, §19.2.3.1), `inercia_bruta`, `momento_fisuracion` (§24.2.3.5).
@@ -38,7 +38,7 @@ Se revisaron antes `main` y los PR abiertos (#54 columnas, #55 etapa Diseño en 
   - Fisuración con `fs = (2/3) fy` y con `fs` de la sección fisurada (comparada también con `Ms / (As · 0.9 d)`).
   - Longitudes de desarrollo, ganchos, compresión y empalmes paso a paso. Además, contra la forma en unidades inglesas de las mismas expresiones de la norma: `ℓd = fy/(25 √f'c) db` y `fy/(20 √f'c) db` (37.9 db y 47.4 db para grado 60 y 4000 psi), `ℓdh = fy ψ/(55 √f'c) db^1.5` para una barra No. 8 y `0.0005 fy db` para el empalme comprimido. Las constantes SI de la norma están redondeadas, así que la comparación tiene tolerancia de 1 a 3 %.
   - Detalle de la viga continua diseñada: separación libre, `cb`, `Ktr`, `ℓd`, empalme, prolongación de corte y barras continuas.
-- `cargo fmt`, `cargo clippy -D warnings`, `cargo test -p nervi-core`, `pytest` (220 en verde y 4 saltadas por no tener PyVista en el entorno), `ruff check`, `ruff format --check` y `verificar_bitacora.py`.
+- `cargo fmt`, `cargo clippy -D warnings`, `cargo test -p nervi-core`, `pytest` (246 en verde y 4 saltadas por no tener PyVista en el entorno, ya con las columnas de #54), `ruff check`, `ruff format --check` y `verificar_bitacora.py`.
 
 ## Decisiones tomadas
 
@@ -49,7 +49,7 @@ Se revisaron antes `main` y los PR abiertos (#54 columnas, #55 etapa Diseño en 
 - `ρ'` del multiplicador diferido es 0 por defecto (las barras superiores de `disenar_viga` son de los apoyos); se puede pasar `As_comp_centro`.
 - `cc` del control de fisuración es el recubrimiento libre hasta el estribo, que es la barra más cercana a la cara traccionada.
 - Las sobrecargas se aplican todas juntas en servicio; no se buscan patrones alternados para la flecha.
-- No se modificaron `aci318/__init__.py`, `viga.py` ni `design/__init__.py` para no chocar con los PR #54 y #55; cuando entren, conviene exportar `servicio` y `detalle` desde `aci318` y llamarlos desde `design.proyecto`.
+- No se modificaron `viga.py` ni `design/__init__.py` para no chocar con el PR #55; cuando entre, conviene llamar a `servicio` y `detalle` desde `design.proyecto`.
 
 ## Pendiente y problemas conocidos
 
