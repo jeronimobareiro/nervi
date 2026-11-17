@@ -31,6 +31,7 @@ Veja o [guia de contribuição](CONTRIBUTING.md#contributing-from-other-countrie
 ## O que faz hoje
 
 - Pórticos planos com barras de Euler-Bernoulli (3 graus de liberdade por nó).
+- **Novo, preliminar:** pórticos espaciais a partir do Python (`nervi.Modelo3D`): barras de 12 graus de liberdade com flexão em dois planos, esforço normal e torção, eixos locais definidos por um vetor de referência, barras de treliça espacial e seções usuais em `nervi.secciones`. Ainda sem interface nem formato `.nrv`.
 - Cargas nodais e cargas em barras uniformes, concentradas, trapezoidais ou parciais, em eixos locais ou globais; momentos concentrados no vão; ações térmicas.
 - Articulações e liberações de extremidade; treliças.
 - Apoios rígidos e elásticos, e recalques impostos.

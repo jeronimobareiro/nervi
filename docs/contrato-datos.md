@@ -63,3 +63,45 @@ Diccionario:
 | `nudo` | `int` o `None` | nudo que más se mueve en el primer modo de mecanismo, o el nudo cargado sin rigidez; `None` si no se pudo localizar |
 | `gdl` | `"ux"`, `"uy"`, `"rz"` o `None` | GDL de ese nudo (una traslación, salvo que el modo solo tenga giros) |
 | `modos` | lista de listas de `(nudo, gdl, valor)` | modos de mecanismo (hasta 6), cada uno normalizado para que el GDL principal valga 1; solo las componentes con valor absoluto de al menos 1e-6. Vacía para la carga sin rigidez |
+
+# Contrato de datos del pórtico espacial (versión 3D 1)
+
+Función: `nervi._core.resolver_portico_3d(version, coords, conectividad, props, referencias, liberaciones, restricciones, resortes, cargas_nodales, cargas_barra, despl_impuestos, n_estaciones=11)` (issue #12).
+
+Se versiona aparte con `nervi._core.VERSION_CONTRATO_3D` (hoy 1), para que agregar el pórtico espacial no cambie el contrato plano: `resolver_portico_2d` y `VERSION_CONTRATO = 2` siguen iguales. Mismas reglas que arriba: NumPy con forma y tipo fijos, `ValueError` con el nombre del arreglo si una forma no coincide, GIL liberado durante el cálculo y `n_casos` deducido de `cargas_nodales`. Ejes y signos en [`convenciones.md`](convenciones.md) §Pórtico espacial.
+
+## Entrada
+
+| Arreglo | dtype | Forma | Contenido |
+|---|---|---|---|
+| `coords` | float64 | `(n_nudos, 3)` | `[x, y, z]`, Z vertical hacia arriba |
+| `conectividad` | int64 | `(n_barras, 2)` | `[nudo_i, nudo_j]` |
+| `props` | float64 | `(n_barras, 6)` | `[E, G, A, Iy, Iz, J]` |
+| `referencias` | float64 | `(n_barras, 3)` | vector de referencia del plano `x`–`y` local, en globales; una fila de ceros aplica la regla por defecto |
+| `liberaciones` | uint8 | `(n_barras, 12)` | 1 = fuerza de extremo liberada `(N, Vy, Vz, T, My, Mz)` en `i` y luego en `j` |
+| `restricciones` | uint8 | `(n_nudos, 6)` | 1 = GDL restringido `(ux, uy, uz, rx, ry, rz)` |
+| `resortes` | float64 | `(n_nudos, 6)` | rigidez de apoyo elástico `(kx, ky, kz, krx, kry, krz)` |
+| `cargas_nodales` | float64 | `(n_casos, n_nudos, 6)` | `[Fx, Fy, Fz, Mx, My, Mz]` globales |
+| `cargas_barra` | float64 | `(n_cargas, 12)` | `[caso, barra, tipo, ejes, a, b, qx1, qy1, qz1, qx2, qy2, qz2]` |
+| `despl_impuestos` | float64 | `(n_casos, n_nudos, 6)` | asentamientos; solo se usan en GDL restringidos |
+
+`cargas_barra`: `tipo` 0 = uniforme en toda la luz (`q1`; `a`, `b` y `q2` se ignoran), 1 = puntual `q1 = (px, py, pz)` a la distancia `a` del nudo `i`, 2 = trapezoidal entre `a` y `b` (`0 ≤ a < b ≤ L`) que vale `q1` en `a` y `q2` en `b`. `ejes` 0 = local, 1 = global. Un arreglo con otro número de columnas se rechaza con `ValueError`.
+
+## Salida
+
+| Clave | Forma | Contenido |
+|---|---|---|
+| `desplazamientos` | `(n_casos, n_nudos, 6)` | `[ux, uy, uz, rx, ry, rz]` globales |
+| `reacciones` | `(n_casos, n_nudos, 6)` | `[Rx, Ry, Rz, Mx, My, Mz]` globales; cero en GDL libres |
+| `fuerzas_extremo` | `(n_casos, n_barras, 12)` | fuerzas sobre la barra en ejes locales, `[Fx, Fy, Fz, Mx, My, Mz]` en `i` y en `j` |
+| `ejes` | `(n_barras, 3, 3)` | filas: versores `x, y, z` locales de cada barra en globales |
+| `gdl_sin_rigidez` | lista de `(nudo, "ux"…"rz")` | GDL fijados automáticamente |
+| `diagramas` | lista (por caso) de diccionarios | arreglos planos `barra, x, N, Vy, Vz, T, My, Mz, u, v, w, rx` (`u, v, w` desplazamientos y `rx` giro de torsión, en ejes locales); estaciones equidistantes, puntos de carga y puntos donde `Vy` o `Vz` se anulan |
+
+Errores: los mismos que en el plano. `MecanismoError.gdl` puede valer además `"uz"`, `"rx"` o `"ry"`.
+
+### Historial de versiones (3D)
+
+| Versión | Cambio |
+|---|---|
+| 1 | Versión inicial (issues #11 y #12): cargas uniformes, puntuales y trapezoidales. |

@@ -51,10 +51,11 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 - **Results**: reactions, axial force, shear and moment diagrams, and the deformed shape. Hovering over a member shows the values at that point.
 - **Desktop interface** in a single window, with tables to enter the model, or use from Python for those who program.
 - **Projects** saved as `.nrv` files.
+- **Space frames (3D)**, for now only from Python and as a preview: members with bending in two planes and torsion, space trusses, and rectangular and circular sections.
 
 ## What is coming
 
-3D frames, seismic analysis, reinforced concrete design to code, exchange with BIM programs (IFC) and calculation reports. The order and the tasks are in the [roadmap](hoja-de-ruta.md).
+3D frames in the interface, seismic analysis, reinforced concrete design to code, exchange with BIM programs (IFC) and calculation reports. The order and the tasks are in the [roadmap](hoja-de-ruta.md).
 
 ## Keep reading
 

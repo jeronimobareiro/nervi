@@ -20,6 +20,7 @@ Documentación: **[jeronimobareiro.github.io/nervi](https://jeronimobareiro.gith
 ## Qué hace hoy
 
 - Pórticos planos con barras Euler-Bernoulli (3 GDL por nudo).
+- **Nuevo, preliminar:** pórticos espaciales desde Python (`nervi.Modelo3D`): barras de 12 GDL con flexión en dos planos, axil y torsión, ejes locales con vector de referencia, bielas de cercha espacial y secciones habituales en `nervi.secciones`. Todavía sin interfaz ni formato `.nrv`.
 - Cargas nodales, uniformes, puntuales y trapezoidales o parciales en barras, en ejes locales o globales, y momentos concentrados en el tramo.
 - Articulaciones y liberaciones de extremo; cerchas.
 - Apoyos rígidos, apoyos elásticos y asentamientos impuestos.
