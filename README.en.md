@@ -36,7 +36,7 @@ See the [contributing guide](CONTRIBUTING.md#contributing-from-other-countries).
 - Hinges and end releases; trusses.
 - Rigid and elastic supports, and prescribed settlements.
 - Several load cases with a single factorization, and linear combinations (ACI 318-19 combinations and envelopes, experimental).
-- Rectangular reinforced concrete beam design per ACI 318-19 (`nervi.design.aci318`, experimental): flexural reinforcement (singly or doubly reinforced), choice of commercial bars, and shear stirrups, from the envelopes.
+- Rectangular reinforced concrete beam design per ACI 318-19 (`nervi.design.aci318`, experimental): flexural reinforcement (singly or doubly reinforced), choice of commercial bars, and shear stirrups, from the envelopes; immediate and long-term deflections with effective moment of inertia, crack control, and development, hook and lap splice lengths (`aci318.servicio`, `aci318.detalle`).
 - Reinforced concrete column design per ACI 318-19 (`nervi.design.aci318`, experimental): biaxial bending with axial load and interaction diagram, slenderness by moment magnification, and choice of reinforcement, from the 3D or plane frame.
 - Reactions, member end forces, `N`, `V`, `M` diagrams and deflected shape, including the points of maximum moment.
 - Mechanism detection and input validation with clear messages.

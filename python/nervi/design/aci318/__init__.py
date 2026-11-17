@@ -25,6 +25,7 @@ Unidades: MPa y mm en secciones y materiales; kN·m y kN en esfuerzos.
 (166.8, 0.969)
 """
 
+from . import detalle, servicio  # servicio (flechas, fisuración) y detalle de armaduras
 from .columna import (
     DIAMETROS_COLUMNA,
     DemandaColumna,
@@ -108,6 +109,7 @@ __all__ = [
     "beta1",
     "carga_critica",
     "coeficiente_cm",
+    "detalle",
     "diagrama_interaccion",
     "disenar_columna",
     "disenar_viga",
@@ -126,6 +128,7 @@ __all__ = [
     "separacion_libre_minima",
     "separacion_libre_minima_columna",
     "separacion_maxima",
+    "servicio",
     "solicitaciones_columna",
     "verificar_columna",
 ]
