@@ -37,6 +37,7 @@ See the [contributing guide](CONTRIBUTING.md#contributing-from-other-countries).
 - Rigid and elastic supports, and prescribed settlements.
 - Several load cases with a single factorization, and linear combinations (ACI 318-19 combinations and envelopes, experimental).
 - Rectangular reinforced concrete beam design per ACI 318-19 (`nervi.design.aci318`, experimental): flexural reinforcement (singly or doubly reinforced), choice of commercial bars, and shear stirrups, from the envelopes.
+- Reinforced concrete column design per ACI 318-19 (`nervi.design.aci318`, experimental): biaxial bending with axial load and interaction diagram, slenderness by moment magnification, and choice of reinforcement, from the 3D or plane frame.
 - Reactions, member end forces, `N`, `V`, `M` diagrams and deflected shape, including the points of maximum moment.
 - Mechanism detection and input validation with clear messages.
 - Calculation report in PDF (in Spanish, with an editable template): model data, sections, loads, combinations, result tables, diagrams and envelopes (`nervi.memoria`, `pip install "nervi[memoria]"`, or Ctrl+P in the desktop interface).
