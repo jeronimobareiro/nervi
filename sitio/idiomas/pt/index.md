@@ -25,7 +25,7 @@ O Nervi analisa pórticos pelo método dos elementos finitos e mostra reações,
 ![Janela do Nervi com os diagramas de momento de um pórtico](img/interfaz.png){ .nv-captura }
 
 !!! warning "Versão preliminar, não apta para projeto"
-    O Nervi está em desenvolvimento. Hoje calcula pórticos planos com análise linear elástica; ainda não dimensiona segundo normas. Ele auxilia o engenheiro, não substitui seu critério nem sua assinatura.
+    O Nervi está em desenvolvimento. Hoje calcula pórticos planos com análise linear elástica; o dimensionamento de vigas de concreto armado segundo norma é experimental e ainda não foi revisado por um engenheiro estrutural. Ele auxilia o engenheiro, não substitui seu critério nem sua assinatura.
 
 <div class="grid cards nv-tarjetas" markdown>
 
@@ -50,15 +50,16 @@ O Nervi analisa pórticos pelo método dos elementos finitos e mostra reações,
 - **Casos e combinações** de carga, por exemplo 1.2D + 1.6L.
 - **Vigas de concreto armado** segundo a ACI 318-19, em versão experimental: armadura de flexão, barras comerciais e estribos, flechas, fissuração e ancoragens, a partir do Python.
 - **Pilares de concreto armado** segundo a ACI 318-19, em versão experimental: flexo-compressão em duas direções, esbeltez e escolha da armadura, a partir do Python.
+- **Etapa Diseño** (dimensionamento) na interface: dimensiona todas as vigas e pilares do pórtico, marca quais atendem e mostra cada verificação com o artigo da norma.
 - **Resultados**: reações, diagramas de esforço normal, cortante e momento, e a deformada. Ao passar o cursor sobre uma barra, os valores naquele ponto aparecem. Com o visualizador 3D opcional, o modelo, as cargas e os diagramas aparecem em perspectiva.
 - **Interface de desktop** em uma única janela, com tabelas para montar o modelo, ou uso a partir do Python para quem programa.
 - **Projetos** salvos em arquivos `.nrv`.
-- **Memória de cálculo em PDF** (em espanhol), com os dados do modelo, as cargas, as combinações, as tabelas de resultados e os diagramas, a partir de um modelo editável.
+- **Memória de cálculo em PDF** (em espanhol), com os dados do modelo, as cargas, as combinações, as tabelas de resultados, os diagramas e, se você dimensionou, as armaduras e verificações das vigas, a partir de um modelo editável.
 - **Pórticos espaciais (3D)**, por enquanto só a partir do Python e em versão preliminar: barras com flexão em dois planos e torção, treliças espaciais e seções retangulares e circulares.
 
 ## O que vem a seguir
 
-Pórticos 3D na interface, análise sísmica, projeto de concreto armado segundo norma, intercâmbio com programas BIM (IFC) e memorial de cálculo. A ordem e as tarefas estão no [roteiro](hoja-de-ruta.md).
+Pórticos 3D na interface, análise sísmica, flechas, fissuração e detalhamento de armaduras, intercâmbio com programas BIM (IFC) e memorial de cálculo. A ordem e as tarefas estão no [roteiro](hoja-de-ruta.md).
 
 ## Para continuar lendo
 

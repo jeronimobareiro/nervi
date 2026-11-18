@@ -16,6 +16,9 @@ ACENTO_SUAVE = "#E8EEFC"
 POSITIVO = "#1D4ED8"
 NEGATIVO = "#C2410C"
 OK = "#15803D"
+AVISO_FONDO = "#FFF7ED"
+AVISO_BORDE = "#FED7AA"
+AVISO_TEXTO = "#9A3412"
 ESTRUCTURA = "#2B3038"
 
 QSS = f"""
@@ -71,6 +74,10 @@ QTabBar::tab:hover {{ color: {TEXTO}; }}
 QSplitter::handle {{ background: {BORDE}; }}
 QStatusBar {{ border-top: 1px solid {BORDE}; color: {TEXTO_2}; }}
 QStatusBar QLabel {{ color: {TEXTO_2}; padding: 0 6px; }}
+QLabel#aviso {{
+    background: {AVISO_FONDO}; color: {AVISO_TEXTO}; border: 1px solid {AVISO_BORDE};
+    border-radius: 4px; padding: 4px 8px;
+}}
 QLabel#etiqueta {{ border: 1px solid {BORDE}; border-radius: 3px; padding: 0 6px; }}
 QScrollBar:vertical {{ background: transparent; width: 10px; }}
 QScrollBar::handle:vertical {{ background: #D5D9E0; border-radius: 4px; min-height: 24px; }}

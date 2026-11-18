@@ -59,11 +59,14 @@ ignore = ["E741"]  # l, I: notación estándar en estructuras
 "python/nervi/gui/*" = ["RUF001", "RUF002"]
 "python/nervi/gui/estilo.py" = ["E501"]
 # La memoria escribe símbolos de ingeniería a propósito: α, Δ, ×, − (y los traduce a la fuente Symbol).
-"python/nervi/memoria/*" = ["RUF001", "RUF002"]
+"python/nervi/memoria/*" = ["RUF001", "RUF002"]  # hoja de estilos Qt, una regla por línea
 # Notación de la norma en columnas: ρ (cuantía) y − (signo menos) en fórmulas y mensajes.
 "python/nervi/design/aci318/columna.py" = ["RUF001", "RUF002"]
 "python/nervi/design/aci318/__init__.py" = ["RUF002"]
-"tests/test_design_columnas_aci318.py" = ["RUF001", "RUF002", "RUF003"]  # hoja de estilos Qt, una regla por línea
+"tests/test_design_columnas_aci318.py" = ["RUF001", "RUF002", "RUF003"]
+# El diseño arma textos para la interfaz y la memoria: × (sección) y − (momento negativo).
+"python/nervi/design/proyecto.py" = ["RUF001"]
+"tests/test_diseno_proyecto.py" = ["RUF001"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["nervi"]

@@ -37,6 +37,8 @@ class Vista2D(QWidget):
         self.sesion = sesion
         self.diagrama = "M"
         self.mostrar_valores = True
+        #: Color de cada barra (id -> color), por ejemplo el estado de su diseño.
+        self.colores_barra: dict[int, str] = {}
         self._cursor: QPointF | None = None
         self.setMouseTracking(True)
         self.setMinimumSize(320, 240)
@@ -125,9 +127,8 @@ class Vista2D(QWidget):
         sel = self.sesion.seleccion
         for bid, _k, pi, pj in self._barras():
             elegida = sel == Seleccion("barra", bid)
-            p.setPen(
-                QPen(QColor(estilo.ACENTO if elegida else estilo.ESTRUCTURA), 3 if elegida else 2.5)
-            )
+            color = estilo.ACENTO if elegida else self.colores_barra.get(bid, estilo.ESTRUCTURA)
+            p.setPen(QPen(QColor(color), 3 if elegida or bid in self.colores_barra else 2.5))
             p.drawLine(pi, pj)
         p.setFont(QFont(self.font().family(), 8))
         nudos = self._nudos()

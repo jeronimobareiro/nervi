@@ -22,6 +22,7 @@ Migracion = Callable[[Datos], Datos]
 #: Hoy todos los módulos están en su versión 1, así que las cadenas están vacías.
 MIGRACIONES: dict[str, dict[int, Migracion]] = {
     "modelo": {},
+    "diseno": {},
 }
 
 

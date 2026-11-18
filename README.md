@@ -27,6 +27,7 @@ Documentación: **[jeronimobareiro.github.io/nervi](https://jeronimobareiro.gith
 - Varios casos de carga con una sola factorización, y combinaciones lineales.
 - Diseño de vigas rectangulares de hormigón armado según ACI 318-19 (`nervi.design.aci318`, experimental): armadura a flexión simple o doble, elección de barras comerciales y estribos a cortante, a partir de las envolventes; flechas inmediatas y diferidas con inercia efectiva, control de fisuración y longitudes de anclaje, ganchos y empalmes (`aci318.servicio`, `aci318.detalle`).
 - Columnas de hormigón armado según ACI 318-19 (`nervi.design.aci318`, experimental): flexocompresión biaxial con curva de interacción, esbeltez por magnificación de momentos y elección de la armadura, desde el pórtico espacial o el plano.
+- Desde la interfaz, la etapa **Diseño** arma todas las vigas y columnas del pórtico, muestra cada verificación con su artículo y suma el capítulo de diseño a la memoria de cálculo.
 - Reacciones, fuerzas de extremo, diagramas `N`, `V`, `M` y deformada, incluyendo los puntos de momento máximo.
 - Detección de mecanismos y validación de datos con mensajes claros.
 - Memoria de cálculo en PDF, en español y con plantilla editable: datos del modelo, secciones, cargas, combinaciones, tablas de resultados, diagramas y envolventes (`nervi.memoria`, `pip install "nervi[memoria]"`, o desde la interfaz con Ctrl+P).
@@ -63,9 +64,9 @@ pip install "nervi[visor3d]"   # opcional: visor 3D (PyVista y VTK)
 nervi-gui                      # o: python -m nervi.gui proyecto.nrv
 ```
 
-Todo el trabajo pasa en una sola ventana: tablas de nudos, barras, apoyos, cargas y combinaciones, cálculo con F5, diagramas N, V, M y deformada con lectura de esfuerzos al pasar el cursor, visor 3D opcional del modelo, las cargas y los diagramas, propiedades de la selección, revisión del modelo, consola Python y buscador de comandos (Ctrl+K). Los proyectos se guardan en formato [`.nrv`](docs/formato-nrv.md). Los instaladores para Windows (`.exe`) y Linux (AppImage) se generan en [Releases](https://github.com/jeronimobareiro/nervi/releases) al publicar una etiqueta `v*`; no están firmados.
+Todo el trabajo pasa en una sola ventana: tablas de nudos, barras, apoyos, cargas y combinaciones, cálculo con F5, diagramas N, V, M y deformada con lectura de esfuerzos al pasar el cursor, visor 3D opcional del modelo, las cargas y los diagramas, propiedades de la selección, etapa Diseño de vigas de hormigón armado (experimental), revisión del modelo, consola Python y buscador de comandos (Ctrl+K). Los proyectos se guardan en formato [`.nrv`](docs/formato-nrv.md). Los instaladores para Windows (`.exe`) y Linux (AppImage) se generan en [Releases](https://github.com/jeronimobareiro/nervi/releases) al publicar una etiqueta `v*`; no están firmados.
 
-> **Versión preliminar, no apta para proyecto.** El análisis lineal elástico está verificado contra soluciones analíticas; el diseño según norma todavía no existe.
+> **Versión preliminar, no apta para proyecto.** El análisis lineal elástico está verificado contra soluciones analíticas; el diseño de vigas según ACI 318-19 es experimental y todavía no lo revisó un ingeniero estructural.
 
 ## Compilar desde el código fuente
 

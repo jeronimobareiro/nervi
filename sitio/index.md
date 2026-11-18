@@ -25,7 +25,7 @@ Nervi analiza pórticos por el método de los elementos finitos y muestra reacci
 ![Ventana de Nervi con los diagramas de momento de un pórtico](img/interfaz.png){ .nv-captura }
 
 !!! warning "Versión preliminar, no apta para proyecto"
-    Nervi está en desarrollo. Hoy calcula pórticos planos con análisis lineal elástico; todavía no dimensiona según normas. Asiste al ingeniero, no reemplaza su criterio ni su firma.
+    Nervi está en desarrollo. Hoy calcula pórticos planos con análisis lineal elástico; el diseño de vigas de hormigón armado según norma es experimental y todavía no lo revisó un ingeniero estructural. Asiste al ingeniero, no reemplaza su criterio ni su firma.
 
 <div class="grid cards nv-tarjetas" markdown>
 
@@ -50,15 +50,16 @@ Nervi analiza pórticos por el método de los elementos finitos y muestra reacci
 - **Casos y combinaciones** de carga, por ejemplo 1.2D + 1.6L.
 - **Vigas de hormigón armado** según ACI 318-19, en versión experimental: armadura a flexión, barras comerciales y estribos, flechas, fisuración y anclajes, desde Python.
 - **Columnas de hormigón armado** según ACI 318-19, en versión experimental: flexocompresión en dos direcciones, esbeltez y elección de la armadura, desde Python.
+- **Etapa Diseño** en la interfaz: arma todas las vigas y columnas del pórtico, marca cuáles cumplen y muestra cada verificación con su artículo de la norma.
 - **Resultados**: reacciones, diagramas de axil, cortante y momento, y deformada. Al pasar el cursor por una barra se leen los valores en ese punto. Con el visor 3D opcional se ven el modelo, las cargas y los diagramas en perspectiva.
 - **Interfaz de escritorio** en una sola ventana, con tablas para cargar el modelo, o uso desde Python para quien programa.
 - **Proyectos** guardados en archivos `.nrv`.
-- **Memoria de cálculo en PDF**, con los datos del modelo, las cargas, las combinaciones, las tablas de resultados y los diagramas, a partir de una plantilla editable.
+- **Memoria de cálculo en PDF**, con los datos del modelo, las cargas, las combinaciones, las tablas de resultados, los diagramas y, si diseñaste, las armaduras y verificaciones de las vigas, a partir de una plantilla editable.
 - **Pórticos espaciales (3D)**, por ahora solo desde Python y en versión preliminar: barras con flexión en dos planos y torsión, cerchas espaciales y secciones rectangulares y circulares.
 
 ## Qué viene
 
-Pórticos 3D en la interfaz, análisis sísmico, diseño de hormigón armado según norma, intercambio con programas BIM (IFC) y memoria de cálculo. El orden y las tareas están en la [hoja de ruta](hoja-de-ruta.md).
+Pórticos 3D en la interfaz, análisis sísmico, flechas, fisuración y detalle de armaduras, intercambio con programas BIM (IFC) y memoria de cálculo. El orden y las tareas están en la [hoja de ruta](hoja-de-ruta.md).
 
 ## Para seguir leyendo
 

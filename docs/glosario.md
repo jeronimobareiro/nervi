@@ -136,6 +136,12 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | pórtico desplazable / no desplazable (`desplazable`) | sway / nonsway frame | pórtico deslocável / indeslocável | рама со смещаемыми / несмещаемыми узлами |
 | razón demanda/capacidad (`razon`) | demand/capacity ratio | razão solicitação/resistência | коэффициент использования |
 | zuncho (`zunchada`) | spiral reinforcement | cinta helicoidal, espiral | спиральная арматура |
+| elemento (`Elemento`), viga, columna | member, beam, column | elemento, viga, pilar | элемент, балка, колонна |
+| diseñador (`DISENADORES`) | designer (design function per member type) | dimensionador | функция расчёта элемента |
+| relación solicitación / resistencia (`relacion`) | demand / capacity ratio | razão solicitação / resistência | коэффициент использования |
+| cumple / no cumple (`cumple`) | passes / fails | atende / não atende | выполняется / не выполняется |
+| sección equivalente (`seccion_equivalente`) | equivalent rectangular section | seção equivalente | эквивалентное сечение |
+| huella del modelo (`modelo_sha256`) | model fingerprint (hash) | impressão digital do modelo | отпечаток модели |
 
 ## Verbos y palabras frecuentes en el código · Common words in the code
 
