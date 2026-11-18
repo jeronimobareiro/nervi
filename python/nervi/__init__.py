@@ -2,7 +2,8 @@
 """Nervi: análisis y dimensionamiento estructural de código abierto.
 
 Fase 1: pórtico plano lineal elástico (``Modelo``). Fase 2a: pórtico espacial
-(``Modelo3D``, con secciones habituales en ``nervi.secciones``).
+(``Modelo3D``, con secciones habituales en ``nervi.secciones``). Fase 2b:
+análisis modal y espectro de respuesta (``Modelo3D.modal``, ``nervi.dinamica``).
 
 >>> import nervi
 >>> m = nervi.Modelo()
@@ -15,8 +16,9 @@ Fase 1: pórtico plano lineal elástico (``Modelo``). Fase 2a: pórtico espacial
 -0.0045
 """
 
-from . import secciones
+from . import dinamica, secciones
 from ._core import MecanismoError
+from .dinamica import ResultadoEspectro3D, ResultadosModal3D
 from .modelo import Modelo, ResultadoCaso, Resultados
 from .modelo3d import Modelo3D, ResultadoCaso3D, Resultados3D
 
@@ -26,7 +28,10 @@ __all__ = [
     "Modelo3D",
     "ResultadoCaso",
     "ResultadoCaso3D",
+    "ResultadoEspectro3D",
     "Resultados",
     "Resultados3D",
+    "ResultadosModal3D",
+    "dinamica",
     "secciones",
 ]

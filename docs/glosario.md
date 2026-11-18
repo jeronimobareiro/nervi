@@ -94,6 +94,20 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | deformada | deflected shape | deformada | деформированная схема |
 | flecha | deflection | flecha | прогиб |
 | envolvente (`envolvente`) | envelope | envoltória | огибающая |
+| masa (`masa_nodal`, `masa_lineal`) | mass | massa | масса |
+| masa concentrada / consistente (`TipoMasa`) | lumped / consistent mass | massa concentrada / consistente | сосредоточенная / согласованная масса |
+| análisis modal (`modal`) | modal analysis | análise modal | модальный анализ |
+| modo, forma modal (`modos`) | mode, mode shape | modo, forma modal | форма колебаний |
+| periodo (`periodos`) | period | período | период |
+| frecuencia circular (`omegas`) | circular frequency | frequência angular | круговая частота |
+| factor de participación (`factores_participacion`) | participation factor | fator de participação | коэффициент участия |
+| masa modal efectiva (`masas_efectivas`) | effective modal mass | massa modal efetiva | эффективная модальная масса |
+| espectro de respuesta (`espectro`) | response spectrum | espectro de resposta | спектр ответа |
+| aceleración espectral (`Sa`, `aceleraciones`) | spectral acceleration | aceleração espectral | спектральное ускорение |
+| amortiguamiento (`amortiguamiento`) | damping ratio | amortecimento | демпфирование |
+| combinación modal SRSS / CQC (`combinacion`) | SRSS / CQC modal combination | combinação modal SRSS / CQC | сочетание форм SRSS / CQC |
+| cortante basal (`cortante_basal`) | base shear | cortante basal | сдвигающая сила в основании |
+| inercias (`inercias`, `M φ`) | modal inertia forces | forças de inércia modais | инерционные силы формы |
 | memoria de cálculo (`memoria`, `memoria_de_calculo`) | calculation report, design report | memória de cálculo | расчётная записка |
 | plantilla (`plantilla.toml`) | template | modelo, template | шаблон |
 | capítulo de la memoria (`Capitulo`) | report chapter, section | capítulo | раздел, глава |

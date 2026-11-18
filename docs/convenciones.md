@@ -110,3 +110,33 @@ Con las fuerzas de extremo `{f}` sobre la barra (doce componentes `[Fx, Fy, Fz, 
 ### Liberaciones
 
 Doce liberaciones por barra, `(N, Vy, Vz, T, My, Mz)` en `i` y luego en `j`, por condensación estática como en el plano. Una articulación esférica libera `My` y `Mz`; una biela de cercha espacial libera además `T` en un extremo (si no, el giro alrededor de su eje queda indeterminado). Son inestables y se rechazan: `N`, `Vy`, `Vz` o `T` liberados en los dos extremos, y `Vy` con `Mz` o `Vz` con `My` en el mismo extremo. Los giros de nudos sin rigidez (nudos de cercha) se fijan solos y se informan en `gdl_sin_rigidez`, como en el plano.
+
+## Dinámica: masas, modal y espectro (Fase 2b)
+
+Módulo `nervi_core::espacial::dinamica` en Rust y `Modelo3D.modal` / `nervi.dinamica` en Python (issues #16, #17 y #18). Solo para el pórtico espacial; las masas se dan aparte del modelo estático, así que el análisis estático y su contrato no cambian.
+
+### Unidades
+
+Las del modelo: con fuerzas en kN y longitudes en m, la masa va en **t** (kN·s²/m), las inercias de rotación en t·m², la gravedad en m/s² (9.80665 por defecto; en cm, 980.665) y la aceleración espectral `Sa` en m/s². Los periodos, en s.
+
+### Masas
+
+- **Nodales**: `[mx, my, mz, Jx, Jy, Jz]` en ejes globales (`masa_nodal(nudo, m)` pone `m` en las tres traslaciones).
+- **De las barras**: masa por unidad de longitud `m` (por ejemplo `ρ·A`). **Concentrada** (por defecto): `m L/2` en las tres traslaciones de cada extremo; se **desprecia la inercia rotacional**. **Consistente**: matriz 12×12 de Przemieniecki (cap. 11) con las mismas funciones de forma de la rigidez; la torsión usa el momento polar `Iy + Iz` y no hay inercia rotacional de flexión. Las barras con liberaciones usan siempre masa concentrada.
+- **Desde los casos de carga**: `m = -Fz · factor / g` con la componente vertical global de las cargas (las que apuntan hacia abajo dan masa positiva). Las cargas en barras se reparten a sus nudos como las reacciones de una viga simplemente apoyada. Va como masa traslacional en X, Y y Z. Si las cargas netas de un nudo apuntan hacia arriba, el modelo es inválido.
+- La masa de los GDL restringidos no participa. Un GDL libre con masa y sin rigidez es un error (`MecanismoError`).
+
+### Modos
+
+- `[K]{φ} = ω²[M]{φ}` en los GDL libres. Se devuelven los `n_modos` de menor frecuencia, ordenados de menor a mayor `ω` (o menos, si el modelo tiene menos GDL con masa).
+- **Normalización a masa**: `φᵀ M φ = 1`. **Signo**: la componente traslacional de mayor valor absoluto de cada modo es positiva.
+- Factor de participación `Γ = φᵀ M r`, con `r` la traslación rígida unitaria en X, Y o Z (los giros de `r` valen cero); masa modal efectiva `Γ²`; masa total `rᵀ M r` en los GDL libres. Con todos los modos, la suma de masas efectivas es la masa total.
+- Métodos: **denso exacto** hasta 1500 GDL con masa (la condensación de los GDL sin masa es exacta) y **Lanczos** con transformación espectral (`σ = 0`) y bloqueo de los modos hallados por encima; los dos dan el mismo resultado, incluidas las frecuencias repetidas.
+
+### Espectro de respuesta
+
+- Espectro dado como pares `(T, Sa)` con periodos crecientes, interpolado linealmente; fuera del rango se toma el extremo más cercano.
+- Dirección de la excitación: un vector en globales, usado tal cual (`"X"` es `(1, 0, 0)`).
+- Respuesta de cada modo: la estática con `uₙ = Γₙ Sa(Tₙ)/ωₙ² φₙ` y fuerzas `fₙ = Γₙ Sa(Tₙ) M φₙ`. Cortante basal del modo: suma de sus reacciones.
+- **Combinación** de cada magnitud por separado (desplazamientos, reacciones, fuerzas de extremo, cada esfuerzo en cada estación y el cortante basal de cada modo): SRSS o CQC con el coeficiente de Der Kiureghian para amortiguamiento igual en todos los modos (Chopra, ec. 13.7.10). El resultado es un **valor absoluto**, sin signo: no se suma con signo a otros casos.
+- Los diagramas combinados se dan en estaciones equidistantes, porque la combinación no es lineal entre ellas.
