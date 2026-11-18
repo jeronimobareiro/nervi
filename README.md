@@ -25,7 +25,7 @@ Documentación: **[jeronimobareiro.github.io/nervi](https://jeronimobareiro.gith
 - Articulaciones y liberaciones de extremo; cerchas.
 - Apoyos rígidos, apoyos elásticos y asentamientos impuestos.
 - Varios casos de carga con una sola factorización, y combinaciones lineales.
-- Diseño de vigas rectangulares de hormigón armado según ACI 318-19 (`nervi.design.aci318`, experimental): armadura a flexión simple o doble, elección de barras comerciales y estribos a cortante, a partir de las envolventes.
+- Diseño de vigas rectangulares de hormigón armado según ACI 318-19 (`nervi.design.aci318`, experimental): armadura a flexión simple o doble, elección de barras comerciales y estribos a cortante, a partir de las envolventes; flechas inmediatas y diferidas con inercia efectiva, control de fisuración y longitudes de anclaje, ganchos y empalmes (`aci318.servicio`, `aci318.detalle`).
 - Columnas de hormigón armado según ACI 318-19 (`nervi.design.aci318`, experimental): flexocompresión biaxial con curva de interacción, esbeltez por magnificación de momentos y elección de la armadura, desde el pórtico espacial o el plano.
 - Desde la interfaz, la etapa **Diseño** arma todas las vigas y columnas del pórtico, muestra cada verificación con su artículo y suma el capítulo de diseño a la memoria de cálculo.
 - Reacciones, fuerzas de extremo, diagramas `N`, `V`, `M` y deformada, incluyendo los puntos de momento máximo.

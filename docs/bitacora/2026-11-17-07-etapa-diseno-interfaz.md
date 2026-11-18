@@ -1,4 +1,4 @@
-# 2026-11-17-05 · Etapa Diseño en la interfaz
+# 2026-11-17-07 · Etapa Diseño en la interfaz
 
 - **Agente:** Claude (Claude Code)
 - **Pedido por:** Jerónimo Bareiro
@@ -32,7 +32,7 @@ Habilitar la etapa "Diseño" de la interfaz, que estaba desactivada: elegir horm
 - `tests/test_diseno_proyecto.py` (24 pruebas): sección equivalente y tipo automático; elementos con datos del usuario y ancho de apoyo; el diseño del pórtico da lo mismo que llamar a `aci318.disenar_viga` con esos datos (armadura y cada verificación); armadura mínima exigida con la excepción de 4/3, calculada a mano; el mismo pórtico en tf y cm da la misma armadura que en kN y m; sección chica (no cumple, con el motivo) e imposible (error); registro de diseñadores; el diseño de una columna da lo mismo que `aci318.disenar_columna`; una columna en otras unidades queda pendiente; sin combinaciones no se diseña; capítulo de la memoria; guardar y abrir `diseno.json`; aviso cuando otro programa cambió el modelo; diez casos de `diseno.json` inválido con su ruta.
 - `tests/test_formato_compatibilidad.py`: el archivo de referencia nuevo se abre y da los mismos resultados (prueba general) y sus datos de diseño se leen igual (prueba nueva); un módulo `diseno` de una versión futura se conserva sin leer.
 - `tests/test_gui.py` (7 pruebas nuevas): etapa habilitada y diseño del ejemplo, verificaciones de la barra elegida y selección desde la tabla, edición de sección, tipo y materiales (dato inválido rechazado), diseño desactualizado al editar el modelo, aviso sin combinaciones, guardar y abrir, memoria con el capítulo de diseño en PDF.
-- `pytest`: 263 en verde (después de integrar `main` con las columnas), con `NERVI_EXIGIR_3D=1`. `ruff check` y `ruff format --check` en verde. `cargo fmt --check`, `cargo clippy -D warnings` y `cargo test -p nervi-core` en verde (no se tocó Rust).
+- `pytest`: 286 en verde (después de integrar `main` con las columnas y con servicio y detalle de vigas, entrada 2026-11-17-06), con `NERVI_EXIGIR_3D=1`. `ruff check` y `ruff format --check` en verde. `cargo fmt --check`, `cargo clippy -D warnings` y `cargo test -p nervi-core` en verde (no se tocó Rust).
 - Ventana real bajo `QT_QPA_PLATFORM=offscreen` a 1920 × 1080 para las capturas, y lectura del PDF de la memoria con `pypdf`.
 
 ## Decisiones tomadas
@@ -48,9 +48,11 @@ Habilitar la etapa "Diseño" de la interfaz, que estaba desactivada: elegir horm
 
 ## Pendiente y problemas conocidos
 
+- Flechas, fisuración y anclajes de vigas (`aci318.servicio` y `aci318.detalle`, entrada 2026-11-17-06) todavía no están en la etapa Diseño ni en su capítulo de la memoria.
+
 - **Revisión de un ingeniero estructural** de todo `nervi.design` antes de quitar la marca de experimental, ahora también de: el ancho de apoyo tomado del canto de la columna, la sección equivalente desde `A` e `I`, y qué verificaciones van en la memoria.
 - **Columnas en la etapa Diseño:** el supuesto de pórtico no desplazable no es conservador si el pórtico se desplaza con cargas laterales; falta pedir `k`, `lu` y `δs` por barra, revisar fuera del plano y diseñar los estribos. Las barras de arranque (16 mm) son fijas por ahora. Que lo revise un ingeniero.
-- No hay flechas, fisuración, torsión, anclajes, corte de barras ni estribos por zonas. La vista 2D no muestra todavía la envolvente ni dibuja la armadura.
+- La etapa no revisa torsión ni estribos por zonas. La vista 2D no muestra todavía la envolvente ni dibuja la armadura.
 - El módulo `diseno` se congela junto con el resto del formato en la etiqueta `v0.1.0`.
 - Firma DCO: el usuario autorizó por escrito, el 2026-11-17 a las 00:39 UTC (opción "Sí, firmá con mi nombre" a "¿Firmo los commits de este PR (DCO) con tu nombre?"), que el agente firme los commits de este aporte en su nombre como `bareirojero <345933350+bareirojero@users.noreply.github.com>`.
 

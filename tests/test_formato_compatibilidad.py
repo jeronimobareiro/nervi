@@ -75,7 +75,7 @@ def _modulo(nombre, version, miembros, requerido):
 
 
 def test_modulo_desconocido_opcional_se_conserva(tmp_path):
-    # Hasta la entrada 2026-11-17-05 esta prueba usaba "diseno", que desde entonces
+    # Hasta la entrada 2026-11-17-07 esta prueba usaba "diseno", que desde entonces
     # es un módulo conocido; "resultados" sigue siendo uno que Nervi no lee.
     ruta = _con_manifiesto(
         tmp_path,
