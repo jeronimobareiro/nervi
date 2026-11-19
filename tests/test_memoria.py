@@ -235,14 +235,36 @@ def test_pdf_del_ejemplo(tmp_path):
     assert salida.read_bytes().startswith(b"%PDF")
     texto = _texto_pdf(salida)
     for esperado in (
-        "Memoria de cálculo estructural",
+        "MEMORIA DE CÁLCULO ESTRUCTURAL",
         "Pórtico de una crujía (ejemplo)",
+        "Revisión 0",
+        "Generada con Nervi",
+        "Normativa de referencia",
+        "no incluye verificaciones de diseño",
         "Índice",
         "Combinación 1.2D+1.6L",
         "Envolvente de esfuerzos",
         "119,1",
     ):
         assert esperado in texto, esperado
+
+
+def test_caratula_con_normas_y_titulo_largo(tmp_path):
+    """La carátula parte un título largo y la hoja siguiente lista las normas."""
+    pytest.importorskip("reportlab")
+    m = nervi.Modelo()
+    a, b = m.agregar_nudo(0, 0), m.agregar_nudo(5, 0)
+    barra = m.agregar_barra(a, b, E=2e8, A=0.01, I=1e-4)
+    m.apoyar(a)
+    m.apoyar(b)
+    m.carga_uniforme("D", barra, qy=-10)
+    largo = "Edificio de oficinas de cinco plantas con subsuelo y cubierta metálica liviana"
+    doc = memoria_de_calculo(m, datos_proyecto={"Proyecto": largo, "Autor": "A"})
+    doc.normas += ["Norma de prueba 1", "Norma de prueba 2"]
+    texto = _texto_pdf(doc.guardar_pdf(tmp_path / "normas.pdf"))
+    for esperado in ("Edificio de oficinas", "Norma de prueba 1", "Norma de prueba 2"):
+        assert esperado in texto, esperado
+    assert "no incluye verificaciones de diseño" not in texto
 
 
 def test_pdf_con_simbolos_griegos(tmp_path):

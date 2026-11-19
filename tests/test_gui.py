@@ -3,6 +3,7 @@
 
 import os
 
+import numpy as np
 import pytest
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
@@ -347,8 +348,103 @@ def test_memoria_con_capitulo_de_diseno(ventana, tmp_path):
     pytest.importorskip("reportlab")
     doc = ventana.sesion.memoria()
     assert not any(c.titulo.startswith("Diseño") for c in doc.capitulos)
+    assert doc.normas == []
     ventana.disenar()
     doc = ventana.sesion.memoria()
     assert doc.capitulos[-1].titulo == "Diseño de hormigón armado (ACI 318-19)"
     assert any("experimental" in a.lower() for a in doc.avisos)
+    assert [n[:10] for n in doc.normas] == ["ACI 318-19"]  # hoja de normativa
     assert ventana.exportar_memoria(tmp_path / "m.pdf")
+
+
+# --- Dinámica: modos y espectros ---------------------------------------------------------
+
+
+def test_dinamica_sin_masa_avisa(ventana):
+    panel = ventana.panel_dinamica
+    assert not ventana.analizar_dinamica()
+    assert ventana.panel_inferior.currentWidget() is panel
+    assert "masa" in panel.lbl_estado.text()
+    assert ventana.sesion.doc.dinamica is None
+
+
+def test_dinamica_desde_el_panel(ventana, qtbot):
+    s, panel = ventana.sesion, ventana.panel_dinamica
+    # Factores de masa en la tabla (D = 1, L = 0,25) y un espectro de ejemplo.
+    filas = {panel.t_masas.item(k, 0).text(): k for k in range(panel.t_masas.rowCount())}
+    panel.t_masas.item(filas["D"], 1).setText("1")
+    panel.t_masas.item(filas["L"], 1).setText("0,25")
+    assert s.dinamica["masas"]["casos"] == {"D": 1.0, "L": 0.25}
+    panel.n_modos.setValue(4)
+    panel.agregar_espectro()
+    assert [e["nombre"] for e in s.dinamica["espectros"]] == ["Sismo X"]
+    assert panel.t_puntos.rowCount() == len(s.dinamica["espectros"][0]["puntos"])
+    panel.c_combinacion.setCurrentText("SRSS")
+    assert s.dinamica["espectros"][0]["combinacion"] == "SRSS"
+
+    assert ventana.analizar_dinamica()
+    din = s.resultados_dinamica
+    assert s.dinamica_al_dia and panel.t_modos.rowCount() == din.modal.n_modos == 4
+    assert panel.t_basal.rowCount() == 1
+    # Primer modo: traslación horizontal con toda la masa en X; se dibuja como deformada.
+    assert din.modal.masa_participante[0, 0] == pytest.approx(1.0, abs=1e-4)
+    assert s.combinacion == "Modo 1" and ventana.vista.diagrama == "D"
+    assert "Modo 1" in s.nombres_resultado() and "Sismo X" in s.nombres_resultado()
+    assert np.abs(s.resultado().desplazamientos[:, :2]).max() == pytest.approx(1.0)
+    ventana.vista.grab()
+    # Elegir el espectro en la tabla muestra su momento (valores absolutos).
+    panel.t_basal.selectRow(0)
+    assert s.combinacion == "Sismo X" and ventana.vista.diagrama == "M"
+    assert s.resultado().cortante_basal[0] > 0
+    ventana.vista.grab()
+    # Animación del modo en la vista 2D.
+    panel.t_modos.selectRow(1)
+    assert s.combinacion == "Modo 2"
+    panel.b_animar.setChecked(True)
+    qtbot.waitUntil(lambda: ventana.vista.fase != 1.0, timeout=2000)
+    ventana.vista.grab()
+    panel.b_animar.setChecked(False)
+    assert ventana.vista.fase == 1.0
+    # Editar el modelo desactualiza la dinámica y saca los modos del selector.
+    m = s.copia_modelo()
+    m["nudos"][1]["x"] = 0.1
+    s.editar(m)
+    assert not s.dinamica_al_dia and "Modo 1" not in s.nombres_resultado()
+    assert "desactualizados" in panel.lbl_estado.text()
+
+
+def test_dinamica_se_guarda_y_va_a_la_memoria(ventana, tmp_path):
+    pytest.importorskip("reportlab")
+    s = ventana.sesion
+    d = formato.dinamica.nuevo()
+    d["masas"]["casos"] = {"D": 1.0}
+    d["n_modos"] = 3
+    d["espectros"].append(formato.dinamica.espectro_ejemplo())
+    s.editar_dinamica(d)
+    ruta = tmp_path / "p.nrv"
+    assert ventana._guardar_en(ruta)
+    otra = Sesion()
+    otra.abrir(ruta)
+    assert otra.doc.dinamica == d and otra.resultados_dinamica is None
+    # La memoria analiza si hace falta y suma el capítulo antes del de diseño.
+    doc = s.memoria()
+    assert doc.capitulos[-1].titulo == "Análisis dinámico"
+    ventana.disenar()
+    titulos = [c.titulo for c in s.memoria().capitulos]
+    assert titulos.index("Análisis dinámico") < titulos.index(
+        "Diseño de hormigón armado (ACI 318-19)"
+    )
+    assert ventana.exportar_memoria(tmp_path / "m.pdf")
+
+
+def test_modo_en_la_escena_3d(ventana):
+    # El visor 3D dibuja el modo como una deformada (sin abrir VTK).
+    from nervi.gui import escena3d
+
+    s = ventana.sesion
+    d = formato.dinamica.nuevo()
+    d["masas"]["casos"] = {"D": 1.0}
+    s.editar_dinamica(d)
+    ventana.analizar_dinamica()
+    escena = escena3d.armar(s.modelo, s.resultado(), s.indices, "D", s.combinacion)
+    assert escena.deformada

@@ -116,6 +116,8 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | centro de masa (`centro_masa`) | center of mass | centro de massa | центр масс |
 | centro de rigidez | center of rigidity, center of stiffness | centro de rigidez | центр жёсткости |
 | deriva de piso (`derivas`, `deriva_x`) | story drift ratio | deslocamento relativo entre pavimentos (drift) | относительный межэтажный перекос |
+| masa participante (`masa_participante`) | mass participation ratio | massa participante | доля участвующей массы |
+| dinámica del pórtico plano (`dinamica_plana`) | plane frame dynamics | dinâmica do pórtico plano | динамика плоской рамы |
 | memoria de cálculo (`memoria`, `memoria_de_calculo`) | calculation report, design report | memória de cálculo | расчётная записка |
 | plantilla (`plantilla.toml`) | template | modelo, template | шаблон |
 | capítulo de la memoria (`Capitulo`) | report chapter, section | capítulo | раздел, глава |

@@ -18,8 +18,10 @@ memoria = memoria_de_calculo(
     res,
     datos_proyecto={
         "Proyecto": "Pórtico de una crujía (ejemplo)",
-        "Ubicación": "—",
+        "Ubicación": "Asunción, Paraguay",
+        "Comitente": "Ejemplo",
         "Autor": "Ejemplo de Nervi",
+        "Revisión": "0",
     },
     fuerza="kN",
     longitud="m",

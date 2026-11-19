@@ -12,6 +12,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 
+from . import dinamica as _dinamica
 from . import diseno as _diseno
 from . import migraciones
 from . import modelo as _modelo
@@ -53,6 +54,8 @@ MODULOS: dict[str, Modulo] = {
     "modelo": Modulo("modelo", 1, (_modelo.MIEMBRO,), requerido=True),
     # Datos de diseño (Fase 3): se escribe solo si el proyecto los tiene.
     "diseno": Modulo("diseno", 1, (_diseno.MIEMBRO,), requerido=False),
+    # Datos del análisis modal y espectral (Fase 2b): solo si el proyecto los tiene.
+    "dinamica": Modulo("dinamica", 1, (_dinamica.MIEMBRO,), requerido=False),
 }
 
 
@@ -79,7 +82,8 @@ class Documento:
     escribirlos igual al guardar. ``migrado_desde`` dice, por módulo, la versión
     original si al abrir hubo que migrarlo (``{"modelo": 1}``), y ``avisos``
     explica lo que se conservó sin leer. ``diseno`` es el diccionario de
-    ``diseno.json`` (``None`` si el proyecto todavía no tiene datos de diseño)."""
+    ``diseno.json`` (``None`` si el proyecto todavía no tiene datos de diseño) y
+    ``dinamica`` el de ``dinamica.json`` (``None`` sin datos de dinámica)."""
 
     modelo: dict
     manifiesto: dict = field(default_factory=dict)
@@ -87,6 +91,7 @@ class Documento:
     migrado_desde: dict[str, int] | None = None
     avisos: list[str] = field(default_factory=list)
     diseno: dict | None = None
+    dinamica: dict | None = None
 
     @classmethod
     def nuevo(cls) -> Documento:
@@ -239,6 +244,9 @@ def abrir(ruta: str | os.PathLike) -> Documento:
                     "programa que no los conoce). Revisá los tipos y las secciones de las "
                     "barras antes de diseñar."
                 )
+        dinamica = leidos.get(_dinamica.MIEMBRO)
+        if dinamica is not None:
+            _dinamica.validar(dinamica)
         propios = {"mimetype", MANIFIESTO, *leidos}
         otros = {
             i.filename: zf.read(i.filename)
@@ -246,7 +254,7 @@ def abrir(ruta: str | os.PathLike) -> Documento:
             if i.filename not in propios and not i.is_dir()
         }
     manifiesto["modulos"] = modulos
-    return Documento(modelo, manifiesto, otros, migrado or None, avisos, diseno)
+    return Documento(modelo, manifiesto, otros, migrado or None, avisos, diseno, dinamica)
 
 
 def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) -> None:
@@ -256,6 +264,8 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
     _modelo.validar(doc.modelo)
     if doc.diseno is not None:
         _diseno.validar(doc.diseno)
+    if doc.dinamica is not None:
+        _dinamica.validar(doc.dinamica)
     ruta = Path(ruta)
     ahora = _ahora()
     manifiesto = {k: v for k, v in doc.manifiesto.items()}
@@ -272,7 +282,9 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
         for nombre, entrada in manifiesto.get("modulos", {}).items()
         if nombre not in MODULOS or entrada["version"] > MODULOS[nombre].version
     }
-    presentes = {"modelo", *(["diseno"] if doc.diseno is not None else [])}
+    presentes = {"modelo"}
+    presentes |= {"diseno"} if doc.diseno is not None else set()
+    presentes |= {"dinamica"} if doc.dinamica is not None else set()
     modulos.update(
         {n: m.entrada() for n, m in MODULOS.items() if n not in modulos and n in presentes}
     )
@@ -288,6 +300,8 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
         # La huella permite saber al abrir si otro programa cambió el modelo.
         doc.diseno["modelo_sha256"] = _diseno.huella(miembros[_modelo.MIEMBRO])
         miembros[_diseno.MIEMBRO] = _json(doc.diseno)
+    if doc.dinamica is not None and modulos["dinamica"]["version"] <= MODULOS["dinamica"].version:
+        miembros[_dinamica.MIEMBRO] = _json(doc.dinamica)
 
     tmp = ruta.with_name(ruta.name + ".tmp")
     with open(tmp, "wb") as f:
