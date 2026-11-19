@@ -16,7 +16,7 @@ Las fases siguientes ya empezaron en paralelo: el pórtico espacial con brazos y
 
 ## Principios que valen para todas las fases
 
-- **Rendimiento (regla prioritaria).** Todo cálculo que recorra barras, nudos, combinaciones o puntos (análisis, diseño, envolventes, diagramas de interacción) va en Rust y se expone a Python con la misma API; Python queda para la interfaz, la memoria PDF, los ejemplos y los prototipos. Cada migración se mide antes y después con el banco de tiempos (`scripts/medir_diseno.py`) y pasa las mismas pruebas. Plan aprobado el 19/11/2026: fase 0 (banco de tiempos) y fase 1 (columnas en Rust) hechas; sigue la fase 2 (vigas en Rust) y, si el banco lo muestra, las fases 3 (combinaciones, envolventes y diseño en paralelo) y 4 (detalle).
+- **Rendimiento (regla prioritaria).** Todo cálculo que recorra barras, nudos, combinaciones o puntos (análisis, diseño, envolventes, diagramas de interacción) va en Rust y se expone a Python con la misma API; Python queda para la interfaz, la memoria PDF, los ejemplos y los prototipos. Cada migración se mide antes y después con el banco de tiempos (`scripts/medir_diseno.py`) y pasa las mismas pruebas. Plan aprobado el 19/11/2026: fases 0 (banco de tiempos), 1 (columnas en Rust) y 2 (flexión de vigas en Rust) hechas: el pórtico de referencia pasó de 132 s a 2,4 s. Cortante y servicio quedaron en Python porque se midió que no pesan (menos de 1 ms por viga). Las fases 3 (combinaciones, envolventes y diseño en paralelo) y 4 (detalle) se deciden con el banco de tiempos.
 - **Interfaz.** Un único sistema de diseño ([`diseno-interfaz.md`](diseno-interfaz.md)), con tema claro por defecto y oscuro de la marca; los cambios de diseño se acuerdan con una muestra visual.
 - **Documentación al día.** Cada aporte actualiza en el mismo PR el README y sus traducciones, `ESTADO.md`, este plan, el sitio y lo que corresponda ([`CONTRIBUTING.md`](../CONTRIBUTING.md) §Documentación al día).
 
@@ -92,7 +92,7 @@ Etiquetas de tamaño: **BPA** = `buen-primer-aporte`, **PA** = `proyecto-academi
 |---|---|---|---|
 | [#20](https://github.com/jeronimobareiro/nervi/issues/20) | Decidir las normas de hormigón y sismo para Paraguay | decisión | normas |
 | [#21](https://github.com/jeronimobareiro/nervi/issues/21) | Combinaciones de carga y envolventes (hecho, experimental) | PA | normas |
-| [#22](https://github.com/jeronimobareiro/nervi/issues/22) | Flexión de vigas según ACI 318-19 (hecho, experimental) | PA | normas |
+| [#22](https://github.com/jeronimobareiro/nervi/issues/22) | Flexión de vigas según ACI 318-19 (hecho, experimental; cálculo en Rust) | PA | normas |
 | [#23](https://github.com/jeronimobareiro/nervi/issues/23) | Cortante de vigas según ACI 318-19 (hecho, experimental) | PA | normas |
 | [#24](https://github.com/jeronimobareiro/nervi/issues/24) | Columnas: interacción biaxial y esbeltez (hecho, experimental; cálculo en Rust) | T | normas |
 | — | Flechas, fisuración y detalle de armaduras de vigas (hecho, experimental; falta llevarlo a la etapa Diseño) | PA | normas |

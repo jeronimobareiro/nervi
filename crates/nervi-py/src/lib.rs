@@ -990,5 +990,8 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(diseno::columna_capacidad, m)?)?;
     m.add_function(wrap_pyfunction!(diseno::columna_razones, m)?)?;
     m.add_function(wrap_pyfunction!(diseno::columna_elegir_armadura, m)?)?;
+    m.add_function(wrap_pyfunction!(diseno::viga_resistencia, m)?)?;
+    m.add_function(wrap_pyfunction!(diseno::viga_armadura_simple, m)?)?;
+    m.add_function(wrap_pyfunction!(diseno::viga_elegir_barras, m)?)?;
     Ok(())
 }

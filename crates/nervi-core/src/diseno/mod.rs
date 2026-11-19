@@ -7,3 +7,4 @@
 //! por un ingeniero estructural.
 
 pub mod columna;
+pub mod viga;

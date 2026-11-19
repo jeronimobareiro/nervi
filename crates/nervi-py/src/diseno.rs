@@ -3,11 +3,15 @@
 //!
 //! Contrato de datos del diseño, versión [`VERSION_CONTRATO_DISENO`]: ver
 //! `docs/contrato-datos.md` §Diseño. Se versiona aparte de los contratos del
-//! análisis. Lo usa `nervi.design.aci318.columna`; no es API pública.
+//! análisis. Lo usan `nervi.design.aci318.columna` y `nervi.design.aci318.flexion`;
+//! no es API pública.
 
 use nervi_core::diseno::columna::{
     capacidades, elegir_armadura, seccion_en, verificar, Candidata, MaterialColumna,
     SeccionColumna, Solicitacion,
+};
+use nervi_core::diseno::viga::{
+    armadura_simple, elegir_barras, resistencia, MaterialViga, ResistenciaFlexion, SeccionViga,
 };
 use numpy::ndarray::{Array1, ArrayView2};
 use numpy::{IntoPyArray, PyArray1, PyReadonlyArray1, PyReadonlyArray2, PyReadonlyArray3};
@@ -18,7 +22,7 @@ use pyo3::types::PyDict;
 use crate::verificar_forma;
 
 /// Versión del contrato de datos del diseño.
-pub const VERSION_CONTRATO_DISENO: u32 = 1;
+pub const VERSION_CONTRATO_DISENO: u32 = 2;
 
 fn verificar_version(version: u32) -> PyResult<()> {
     if version != VERSION_CONTRATO_DISENO {
@@ -227,4 +231,118 @@ pub fn columna_elegir_armadura(
         .collect();
     let s = solicitaciones(&solicitaciones_kn)?;
     Ok(py.detach(|| elegir_armadura(&candidatas, &mat, &s)))
+}
+
+// --- Vigas: flexión ----------------------------------------------------------------
+
+type Resistencia8 = (f64, f64, f64, f64, f64, f64, f64, f64);
+
+fn tupla(r: &ResistenciaFlexion) -> Resistencia8 {
+    (r.mn, r.phi, r.phi_mn, r.c, r.a, r.eps_t, r.fs, r.fs_comp)
+}
+
+/// Resistencia a flexión de una sección rectangular (mm, mm², MPa):
+/// `(Mn, φ, φMn, c, a, εt, fs, fs_comp)` con los momentos en kN·m.
+#[pyfunction]
+#[allow(clippy::too_many_arguments)]
+pub fn viga_resistencia(
+    version: u32,
+    b: f64,
+    d: f64,
+    as_: f64,
+    fc: f64,
+    fy: f64,
+    as_comp: f64,
+    d_comp: f64,
+    dt: f64,
+) -> PyResult<Resistencia8> {
+    verificar_version(version)?;
+    let mat = material_viga(fc, fy)?;
+    Ok(tupla(&resistencia(b, d, as_, &mat, as_comp, d_comp, dt)))
+}
+
+/// Armadura simple para `mu` (kN·m) con `εt ≥ lim`: `(As_lim, c_lim, resistencia
+/// límite, simple)`, donde `simple` es `None` o `(As_req, As, resistencia)`.
+#[pyfunction]
+#[allow(clippy::too_many_arguments)]
+#[allow(clippy::type_complexity)]
+pub fn viga_armadura_simple(
+    version: u32,
+    mu: f64,
+    b: f64,
+    d: f64,
+    dt: f64,
+    fc: f64,
+    fy: f64,
+    lim: f64,
+) -> PyResult<(f64, f64, Resistencia8, Option<(f64, f64, Resistencia8)>)> {
+    verificar_version(version)?;
+    let mat = material_viga(fc, fy)?;
+    let f = armadura_simple(mu, b, d, dt, &mat, lim);
+    Ok((
+        f.as_lim,
+        f.c_lim,
+        tupla(&f.limite),
+        f.simple
+            .map(|s| (s.as_req, s.as_dis, tupla(&s.resistencia))),
+    ))
+}
+
+/// Disposición de barras para `mu` (kN·m), o `None`: `(capas, As, d, dt, b_nec,
+/// s_libre, As_req, resistencia)`, con las capas como listas de índices en
+/// `diametros`.
+#[pyfunction]
+#[allow(clippy::too_many_arguments)]
+#[allow(clippy::type_complexity)]
+pub fn viga_elegir_barras(
+    py: Python<'_>,
+    version: u32,
+    mu: f64,
+    b: f64,
+    h: f64,
+    recubrimiento: f64,
+    d_estribo: f64,
+    d_agregado: f64,
+    fc: f64,
+    fy: f64,
+    lim: f64,
+    diametros: PyReadonlyArray1<'_, f64>,
+    max_capas: usize,
+    max_barras: usize,
+) -> PyResult<Option<(Vec<Vec<usize>>, f64, f64, f64, f64, f64, f64, Resistencia8)>> {
+    verificar_version(version)?;
+    let mat = material_viga(fc, fy)?;
+    let diametros = diametros.as_array().to_vec();
+    if diametros.is_empty() || diametros.iter().any(|&x| x.is_nan() || x <= 0.0) {
+        return Err(PyValueError::new_err(
+            "los diámetros tienen que ser positivos",
+        ));
+    }
+    let seccion = SeccionViga {
+        b,
+        h,
+        recubrimiento,
+        d_estribo,
+        d_agregado,
+    };
+    let r = py.detach(|| elegir_barras(mu, &seccion, &mat, lim, &diametros, max_capas, max_barras));
+    Ok(r.map(|x| {
+        (
+            x.capas,
+            x.area,
+            x.d,
+            x.dt,
+            x.b_nec,
+            x.s_libre,
+            x.as_req,
+            tupla(&x.resistencia),
+        )
+    }))
+}
+
+fn material_viga(fc: f64, fy: f64) -> PyResult<MaterialViga> {
+    if !(fc > 0.0 && fy > 0.0) {
+        return Err(PyValueError::new_err("f'c y fy tienen que ser positivos"));
+    }
+    Ok(MaterialViga { fc, fy })
 }

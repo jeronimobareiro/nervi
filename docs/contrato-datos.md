@@ -166,9 +166,9 @@ Errores: `ValueError` por datos inválidos (masas negativas, modelo sin masa, es
 | 1 | Versión inicial (issues #16, #17 y #18): masas nodales, lineales y desde casos; modal denso y Lanczos; espectro con SRSS y CQC. |
 | 2 | El modelo admite brazos rígidos y diafragmas (contrato 3D 2); `resolver_modal_3d` devuelve además `diafragmas`, y las `inercias` se dan en los GDL independientes. |
 
-# Contrato de datos del diseño (versión 1)
+# Contrato de datos del diseño (versión 2)
 
-Funciones de `nervi._core` que usa `nervi.design.aci318.columna` (issue #24) para la flexocompresión biaxial de columnas, calculada en `nervi_core::diseno::columna`. No son API pública: se llaman a través de `verificar_columna`, `diagrama_interaccion`, `elegir_armadura_columna` y `disenar_columna`, que no cambiaron. Se versiona aparte con `nervi._core.VERSION_CONTRATO_DISENO` (hoy 1); los contratos del análisis no cambian.
+Funciones de `nervi._core` que usan `nervi.design.aci318.columna` (issue #24) para la flexocompresión biaxial de columnas, calculada en `nervi_core::diseno::columna`, y `nervi.design.aci318.flexion` (issue #22) para la flexión de vigas, calculada en `nervi_core::diseno::viga`. No son API pública: se llaman a través de `verificar_columna`, `diagrama_interaccion`, `elegir_armadura_columna`, `disenar_columna`, `resistencia_flexion`, `armadura_flexion`, `elegir_barras` y `disenar_viga`, que no cambiaron. Se versiona aparte con `nervi._core.VERSION_CONTRATO_DISENO` (hoy 2); los contratos del análisis no cambian.
 
 Argumentos comunes (float64 contiguos, mm y MPa): `contorno (k, 2)` con los vértices `(y, z)` del polígono convexo antihorario con el origen en el baricentro, `barras (n, 2)` con las posiciones `(y, z)`, `areas (n,)` en mm² (las barras de área nula se ignoran), `fc`, `fy` y `zunchada`. Signos de [`convenciones.md`](convenciones.md) y del módulo de Python: `Pn` y `Pu` positivos en compresión.
 
@@ -181,8 +181,19 @@ Argumentos comunes (float64 contiguos, mm y MPa): `contorno (k, 2)` con los vér
 
 Errores: `ValueError` si la versión no coincide, las formas no son las esperadas, el contorno tiene menos de 3 vértices o `f'c` o `fy` no son positivos.
 
+## Flexión de vigas
+
+Argumentos comunes (mm, mm² y MPa; momentos en kN·m): `b`, `d`, `fc`, `fy`. La validación de los datos y los mensajes de error de la API quedan en Python. `resistencia` es la tupla `(Mn, φ, φMn, c, a, εt, fs, fs_comp)` de `ResistenciaFlexion`, con `Mn` y `φMn` en kN·m.
+
+| Función | Entrada propia | Salida |
+|---|---|---|
+| `viga_resistencia(version, b, d, As, fc, fy, As_comp, d_comp, dt)` | armaduras traccionada y comprimida, `d_comp` y `dt` (capa más traccionada) | `resistencia` |
+| `viga_armadura_simple(version, Mu, b, d, dt, fc, fy, lim)` | `Mu` en valor absoluto y `lim`, el `εt` mínimo | `(As_lim, c_lim, resistencia con As_lim, simple)`, donde `simple` es `None` si hace falta armadura de compresión o `(As_req, As, resistencia con As)` |
+| `viga_elegir_barras(version, Mu, b, h, recubrimiento, d_estribo, d_agregado, fc, fy, lim, diametros, max_capas, max_barras)` | `diametros (k,)` float64 positivos | `None` o `(capas, As, d, dt, b_nec, s_libre, As_req, resistencia)`, con `capas` como listas de índices en `diametros`, desde la capa más traccionada |
+
 ### Historial de versiones (diseño)
 
 | Versión | Cambio |
 |---|---|
 | 1 | Versión inicial: flexocompresión biaxial de columnas (antes en NumPy, mismos resultados). |
+| 2 | Flexión de vigas: `viga_resistencia`, `viga_armadura_simple` y `viga_elegir_barras` (antes en Python, mismos resultados). Las funciones de columnas no cambian. |

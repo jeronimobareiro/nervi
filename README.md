@@ -30,7 +30,7 @@ Documentación: **[jeronimobareiro.github.io/nervi](https://jeronimobareiro.gith
 ### Diseño de hormigón armado según ACI 318-19 (experimental)
 
 - Combinaciones de carga y envolventes por sección (`nervi.design`).
-- **Vigas** rectangulares: armadura a flexión simple o doble, elección de barras comerciales y estribos a cortante; flechas inmediatas y diferidas con inercia efectiva, fisuración y longitudes de anclaje, ganchos y empalmes (`aci318.servicio`, `aci318.detalle`).
+- **Vigas** rectangulares: armadura a flexión simple o doble, elección de barras comerciales y estribos a cortante; flechas inmediatas y diferidas con inercia efectiva, fisuración y longitudes de anclaje, ganchos y empalmes (`aci318.servicio`, `aci318.detalle`). La flexión y la elección de barras corren en Rust.
 - **Columnas**: flexocompresión biaxial con curva de interacción, esbeltez por magnificación de momentos y elección de la armadura, desde el pórtico plano o el espacial. El cálculo corre en Rust.
 
 Todavía no lo revisó un ingeniero estructural: no usar para proyecto.
@@ -43,7 +43,7 @@ Todavía no lo revisó un ingeniero estructural: no usar para proyecto.
 
 ### Rendimiento
 
-Apoyos por partición de grados de libertad (sin penalización) y Cholesky disperso con [`faer`](https://github.com/sarah-quinones/faer-rs): un pórtico de 8 100 barras se resuelve en unos 45 ms (release). El diseño de columnas en Rust bajó la etapa Diseño del pórtico de referencia de 130 barras de 132 s a 4,6 s (`scripts/medir_diseno.py`).
+Apoyos por partición de grados de libertad (sin penalización) y Cholesky disperso con [`faer`](https://github.com/sarah-quinones/faer-rs): un pórtico de 8 100 barras se resuelve en unos 45 ms (release). Con el diseño de columnas y de vigas en Rust, la etapa Diseño del pórtico de referencia de 130 barras bajó de 132 s a 2,4 s (`scripts/medir_diseno.py`).
 
 ## Uso
 
@@ -126,7 +126,7 @@ Estas reglas valen para todo aporte, de personas o de agentes de IA. El detalle 
 
 ## Qué sigue
 
-- Rendimiento: pasar a Rust el diseño de vigas y sumar el banco de tiempos al CI.
+- Rendimiento: sumar el banco de tiempos al CI y acelerar la búsqueda de la armadura de columnas, que hoy es casi todo el tiempo del diseño.
 - Cerrar la Fase 1: ejemplos resueltos de libros en `verification/` ([#6](https://github.com/jeronimobareiro/nervi/issues/6)) y material didáctico ([#10](https://github.com/jeronimobareiro/nervi/issues/10)).
 - Pórtico espacial en la interfaz y en el `.nrv`, verificación contra ejemplos 3D publicados ([#15](https://github.com/jeronimobareiro/nervi/issues/15)), P-Δ ([#19](https://github.com/jeronimobareiro/nervi/issues/19)) y espectro de la norma regional ([#20](https://github.com/jeronimobareiro/nervi/issues/20)).
 - Revisión de ingeniería del diseño de hormigón armado y comparación con ejemplos publicados.
