@@ -348,10 +348,12 @@ def test_memoria_con_capitulo_de_diseno(ventana, tmp_path):
     pytest.importorskip("reportlab")
     doc = ventana.sesion.memoria()
     assert not any(c.titulo.startswith("Diseño") for c in doc.capitulos)
+    assert doc.normas == []
     ventana.disenar()
     doc = ventana.sesion.memoria()
     assert doc.capitulos[-1].titulo == "Diseño de hormigón armado (ACI 318-19)"
     assert any("experimental" in a.lower() for a in doc.avisos)
+    assert [n[:10] for n in doc.normas] == ["ACI 318-19"]  # hoja de normativa
     assert ventana.exportar_memoria(tmp_path / "m.pdf")
 
 

@@ -18,6 +18,7 @@ try:
     from reportlab.lib.pagesizes import A4
     from reportlab.lib.styles import ParagraphStyle
     from reportlab.lib.units import cm
+    from reportlab.lib.utils import simpleSplit
     from reportlab.platypus import (
         BaseDocTemplate,
         CondPageBreak,
@@ -36,6 +37,7 @@ try:
 except ImportError as e:  # pragma: no cover - depende del entorno
     raise ImportError("La memoria en PDF necesita ReportLab: pip install 'nervi[memoria]'") from e
 
+from . import marca
 from .documento import Capitulo, Figura, Memoria, Parrafo, Tabla
 
 # --- Texto -------------------------------------------------------------------------
@@ -225,6 +227,132 @@ def _color_valor(texto: str):
     return NEGATIVO if texto.startswith("-") else POSITIVO
 
 
+# --- Carátula ----------------------------------------------------------------------
+NORMAS_VACIO = (
+    "Esta memoria no incluye verificaciones de diseño según una norma: documenta el "
+    "análisis estructural según los principios de la mecánica descritos en el capítulo "
+    "de método."
+)
+_AZUL = colors.HexColor("#3B82F6")
+_TINTA_CARATULA = colors.HexColor("#0F172A")
+_TENUE_CARATULA = colors.HexColor("#64748B")
+_LINEA_CARATULA = colors.HexColor("#CBD5E1")
+_FONDO_DATOS = colors.HexColor("#F6F9FF")
+_BORDE_DATOS = colors.HexColor("#DCE8FB")
+#: Datos que no van en el recuadro de la carátula: la fecha y la revisión van en
+#: letra chica debajo del título.
+_FUERA_DEL_RECUADRO = ("Fecha", "Revisión")
+
+
+def _lineas(texto: str, fuente: str, tam: float, ancho: float) -> list[str]:
+    salida = []
+    for parrafo in _plano(texto).split("\n"):
+        salida += simpleSplit(parrafo, fuente, tam, ancho) or [""]
+    return salida
+
+
+def _dibujar_caratula(c, m: Memoria) -> None:
+    """Carátula minimalista y apta para imprimir: patrón tenue de isotipos arriba,
+    rótulo del proyecto alineado al margen derecho, recuadro de datos centrado,
+    aviso y, abajo, el logotipo de Nervi con la mención de software libre."""
+    ancho_pag, alto_pag = A4
+    margen = 2.2 * cm
+    xd = ancho_pag - margen
+    marca.patron(c, 0, alto_pag * 0.42, ancho_pag, alto_pag)
+
+    # Rótulo: lo primero que se lee. El título es el proyecto (o el título de la
+    # memoria si no hay proyecto); se achica si no entra en tres líneas.
+    titulo = m.datos.get("Proyecto") or m.titulo
+    tam = 30.0
+    lineas = _lineas(titulo, "Helvetica-Bold", tam, ancho_pag - 2 * margen)
+    while len(lineas) > 3 and tam > 18:
+        tam -= 2
+        lineas = _lineas(titulo, "Helvetica-Bold", tam, ancho_pag - 2 * margen)
+    y = alto_pag - 9.0 * cm + (len(lineas) - 2) * tam * 1.08
+    c.setFillColor(_AZUL)
+    c.setFont("Helvetica-Bold", 9)
+    c.drawRightString(xd, y + 1.9 * cm, _plano(m.titulo).upper())
+    c.setFillColor(_TINTA_CARATULA)
+    c.setFont("Helvetica-Bold", tam)
+    for linea in lineas:
+        c.drawRightString(xd, y, linea)
+        y -= tam * 1.08
+    c.setFillColor(_AZUL)
+    c.rect(xd - 2.2 * cm, y + 0.35 * cm, 2.2 * cm, 3, stroke=0, fill=1)
+    subtitulo = m.datos.get("Ubicación", "") if m.datos.get("Proyecto") else ""
+    if subtitulo:
+        c.setFillColor(_TENUE_CARATULA)
+        c.setFont("Helvetica", 12)
+        c.drawRightString(xd, y - 0.4 * cm, _plano(subtitulo))
+        y -= 0.65 * cm
+    chico = [m.datos.get("Fecha", "")]
+    if m.datos.get("Revisión"):
+        chico.append(f"Revisión {m.datos['Revisión']}")
+    c.setFillColor(_TENUE_CARATULA)
+    c.setFont("Helvetica", 8.5)
+    c.drawRightString(xd, y - 0.4 * cm, _plano("   ·   ".join(t for t in chico if t)))
+
+    # Datos del proyecto: recuadro azul muy claro, centrado, en dos columnas.
+    ancho_caja = 14.5 * cm
+    xc = (ancho_pag - ancho_caja) / 2
+    datos = [(k, v) for k, v in m.datos.items() if k not in _FUERA_DEL_RECUADRO]
+    if datos:
+        filas = (len(datos) + 1) // 2
+        alto_caja = filas * 1.45 * cm + 0.7 * cm
+        tope = alto_pag * 0.42 - 0.2 * cm
+        c.setFillColor(_FONDO_DATOS)
+        c.setStrokeColor(_BORDE_DATOS)
+        c.setLineWidth(0.6)
+        c.roundRect(xc, tope - alto_caja, ancho_caja, alto_caja, 6, stroke=1, fill=1)
+        ancho_col = ancho_caja / 2
+        for k, (clave, valor) in enumerate(datos):
+            cx = xc + (k % 2) * ancho_col + 0.8 * cm
+            cy = tope - 0.85 * cm - (k // 2) * 1.45 * cm
+            c.setFillColor(_TENUE_CARATULA)
+            c.setFont("Helvetica-Bold", 7.5)
+            c.drawString(cx, cy, _plano(clave).upper())
+            c.setFillColor(_TINTA_CARATULA)
+            texto = _lineas(str(valor), "Helvetica", 11.5, ancho_col - 1.2 * cm)
+            texto = texto[0] + ("…" if len(texto) > 1 else "")
+            c.setFont("Helvetica", 11.5)
+            c.drawString(cx, cy - 0.55 * cm, texto)
+        if len(datos) > 1:
+            c.setStrokeColor(_BORDE_DATOS)
+            c.line(ancho_pag / 2, tope - 0.45 * cm, ancho_pag / 2, tope - alto_caja + 0.45 * cm)
+
+    # Avisos, con un filete azul a la izquierda (sin fondo, para imprimir).
+    lineas = []
+    for aviso in m.avisos:
+        if aviso:
+            lineas += _lineas(aviso, "Helvetica", 8, ancho_caja - 0.45 * cm)
+    if lineas:
+        abajo = 6.85 * cm  # línea de base de la última línea
+        arriba = abajo + (len(lineas) - 1) * 0.4 * cm
+        c.setFillColor(_AZUL)
+        c.rect(xc, abajo - 0.2 * cm, 2, arriba - abajo + 0.55 * cm, stroke=0, fill=1)
+        c.setFillColor(_TENUE_CARATULA)
+        c.setFont("Helvetica", 8)
+        for k, linea in enumerate(lineas):
+            c.drawString(xc + 0.45 * cm, arriba - k * 0.4 * cm, linea)
+
+    # Abajo: el logotipo, con el borde visible del isotipo alineado con el recuadro.
+    alto_logo = 0.85 * cm
+    base = 2.3 * cm
+    x = xc - marca.borde_isotipo(alto_logo)
+    ancho = marca.logotipo(c, x, base + alto_logo, alto_logo)
+    xs = x + ancho + 0.35 * cm
+    c.setStrokeColor(_LINEA_CARATULA)
+    c.setLineWidth(0.6)
+    c.line(xs, base + 0.1 * cm, xs, base + alto_logo - 0.1 * cm)
+    c.setFillColor(_TENUE_CARATULA)
+    c.setFont("Helvetica", 7.5)
+    generada = f"Generada con Nervi {m.version}".strip()
+    c.drawString(xs + 0.3 * cm, base + 0.5 * cm, generada)
+    c.drawString(
+        xs + 0.3 * cm, base + 0.15 * cm, "Software libre de análisis y diseño estructural (GPL-3.0)"
+    )
+
+
 # --- Documento ---------------------------------------------------------------------
 class _Documento(BaseDocTemplate):
     def __init__(self, ruta: str, memoria: Memoria) -> None:
@@ -244,10 +372,15 @@ class _Documento(BaseDocTemplate):
         marco = Frame(self.leftMargin, self.bottomMargin, self.width, self.height, id="normal")
         self.addPageTemplates(
             [
-                PageTemplate(id="portada", frames=[marco]),
+                PageTemplate(id="portada", frames=[marco], onPage=self._caratula),
                 PageTemplate(id="cuerpo", frames=[marco], onPage=self._pie),
             ]
         )
+
+    def _caratula(self, c, doc) -> None:
+        c.saveState()
+        _dibujar_caratula(c, self.memoria)
+        c.restoreState()
 
     def _pie(self, c, doc) -> None:
         c.saveState()
@@ -381,35 +514,21 @@ class _Armador:
         return [KeepTogether(salida)] if len(t.filas) <= 25 else salida
 
     def portada(self, m: Memoria) -> list:
-        salida: list = [Spacer(1, 3 * cm), Paragraph(_texto(m.titulo), ESTILOS["portada_titulo"])]
-        if m.datos:
-            filas = [
-                [
-                    Paragraph(f"<b>{_texto(k)}</b>", ESTILOS["normal"]),
-                    Paragraph(_texto(str(v)), ESTILOS["normal"]),
-                ]
-                for k, v in m.datos.items()
-            ]
-            t = Table(filas, colWidths=[0.25 * self.ancho, 0.75 * self.ancho])
-            t.setStyle(
-                TableStyle(
-                    [
-                        ("LINEBELOW", (0, 0), (-1, -1), 0.3, TENUE),
-                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ]
-                )
-            )
-            salida += [t, Spacer(1, 1.2 * cm)]
-        for aviso in m.avisos:
-            if aviso:
-                salida.append(Paragraph(_texto(aviso), ESTILOS["aviso"]))
+        """La carátula se dibuja en el lienzo (:func:`_dibujar_caratula`); acá va la
+        hoja que la sigue, con la normativa de referencia y el índice."""
+        salida: list = [
+            Spacer(1, 1),
+            NextPageTemplate("cuerpo"),
+            PageBreak(),
+            Paragraph("Normativa de referencia", ESTILOS["h1"]),
+        ]
+        if m.normas:
+            salida += [Paragraph(f"• {_texto(n)}", ESTILOS["normal"]) for n in m.normas]
+        else:
+            salida.append(Paragraph(_texto(NORMAS_VACIO), ESTILOS["normal"]))
         indice = TableOfContents()
         indice.levelStyles = [ESTILOS["indice1"], ESTILOS["indice2"]]
-        salida += [
-            Spacer(1, 1 * cm),
-            Paragraph("Índice", ESTILOS["h2"]),
-            indice,
-        ]
+        salida += [Spacer(1, 0.8 * cm), Paragraph("Índice", ESTILOS["h1"]), indice]
         return salida
 
 
@@ -419,7 +538,6 @@ def escribir_pdf(memoria: Memoria, ruta: Path) -> Path:
     doc = _Documento(str(ruta), memoria)
     armador = _Armador(doc.width)
     historia: list = armador.portada(memoria)
-    historia.append(NextPageTemplate("cuerpo"))
     for k, s in enumerate(memoria.capitulos):
         if k == 0:
             s = Capitulo(s.titulo, s.bloques, s.nivel, pagina_nueva=True)

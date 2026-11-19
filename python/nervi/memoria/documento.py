@@ -130,6 +130,11 @@ class Memoria:
     pie: str = ""
     #: Avisos que van en la portada (por ejemplo, módulos experimentales).
     avisos: list[str] = field(default_factory=list)
+    #: Normas y documentos de referencia, en la hoja que sigue a la carátula. Los
+    #: módulos de diseño suman la suya (por ejemplo ``"ACI 318-19 · …"``).
+    normas: list[str] = field(default_factory=list)
+    #: Versión de Nervi que generó la memoria (va al pie de la carátula).
+    version: str = ""
 
     def agregar(self, capitulo: Capitulo, antes_de: str | None = None) -> Capitulo:
         """Agrega un capítulo al final o antes del primero cuyo título empiece

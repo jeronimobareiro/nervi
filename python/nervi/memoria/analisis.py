@@ -518,6 +518,7 @@ def memoria_de_calculo(
         datos=orden,
         pie=pl.texto("pie").strip(" ·"),
         avisos=[pl.texto("portada.aviso")],
+        version=version,
     )
     c = _Constructor(
         modelo,

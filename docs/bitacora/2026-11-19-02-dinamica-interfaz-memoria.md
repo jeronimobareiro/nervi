@@ -1,4 +1,4 @@
-# 2026-11-19-02 · Modos y espectros en la interfaz y en la memoria de cálculo
+# 2026-11-19-02 · Modos y espectros en la interfaz y en la memoria de cálculo, y carátula nueva
 
 - **Agente:** Claude (Claude Code)
 - **Pedido por:** Jerónimo Bareiro
@@ -7,7 +7,7 @@
 
 ## Qué se pidió
 
-Que el análisis modal y espectral de la entrada 2026-11-18-01 se vea: periodos, masa participante y formas modales (dibujadas y animadas) y resultados de espectros en la interfaz, y un capítulo de análisis dinámico en la memoria PDF. En el mismo hilo se pidió una muestra en PNG de una carátula nueva para la memoria, que se entregó aparte y no entra en este aporte hasta que el usuario la apruebe.
+Que el análisis modal y espectral de la entrada 2026-11-18-01 se vea: periodos, masa participante y formas modales (dibujadas y animadas) y resultados de espectros en la interfaz, y un capítulo de análisis dinámico en la memoria PDF. En el mismo hilo se pidió una carátula nueva para la memoria, con el logo de Nervi y un fondo de N en patrón: se iteró con muestras en PNG hasta que el usuario la aprobó y después se llevó al PDF. Los cambios de diseño son solo para la carátula.
 
 ## Qué se hizo
 
@@ -18,6 +18,11 @@ Que el análisis modal y espectral de la entrada 2026-11-18-01 se vea: periodos,
   - `gui/dinamica.py` (nuevo): pestaña **Dinámica** con la tabla de masa por caso, la cantidad de modos, el editor de espectros (nombre, dirección, combinación, amortiguamiento y puntos, con un gráfico de `Sa/g` y los periodos de los modos), la tabla de modos (T, f y masa participante y acumulada en X e Y, en rojo si no llega al 90 %) y el cortante basal de cada espectro. Elegir un modo muestra su deformada; elegir un espectro, su momento. **Animar modo** hace oscilar la forma en la vista 2D (`Vista2D.fase`).
   - `gui/ventana.py`: la pestaña, el comando "Análisis modal y espectral" en el buscador y la animación.
 - `python/nervi/memoria/dinamica.py` (nuevo): capítulo "Análisis dinámico" con el método, los casos de masa y la masa total, la tabla de periodos y masa participante (con aviso si no llega al 90 %), las formas de hasta 6 modos y, por espectro, sus datos, la curva `Sa/g` con `T1` marcado, la tabla de puntos, el cortante basal por modo y combinado, los diagramas `|M|`, `|V|`, `|N|` y los desplazamientos, reacciones y esfuerzos máximos. La sesión lo agrega a la memoria antes del capítulo de diseño si el proyecto tiene datos de dinámica con masa.
+- Carátula de la memoria (aprobada por el usuario sobre muestras en PNG):
+  - `python/nervi/memoria/marca.py` (nuevo): isotipo y logotipo de Nervi como vectores (copiados de `docs/marca/nervi-logotipo-claro.svg`), el patrón de isotipos aclarados y la medida del borde visible del isotipo.
+  - `pdf.py`: la carátula se dibuja en el lienzo de la primera página. Arriba, el patrón muy tenue (más presente arriba a la izquierda); el rótulo alineado al margen derecho (título de la memoria en mayúsculas, el proyecto como título grande, que se parte o se achica si es largo, la ubicación y, en letra chica, fecha y revisión); el recuadro de datos azul muy claro centrado en la página, con el texto a la izquierda en dos columnas; los avisos con un filete azul; abajo, el logotipo de Nervi con "Generada con Nervi …" y la mención de software libre, alineado con el recuadro. Sin pie de página en la carátula.
+  - Hoja nueva "Normativa de referencia" antes del índice: `Memoria.normas` (vacía, dice que no hay verificaciones según norma). La sesión suma ACI 318-19 (`design.proyecto.NORMA`) cuando la memoria lleva el capítulo de diseño. `Memoria.version` para el pie de la carátula y `"Revisión"` entre los campos de la plantilla.
+  - `examples/memoria_portico_simple.py` completa ubicación, comitente y revisión.
 - Documentación: `formato-nrv.md` (§4c, módulo en la tabla y en el historial), `convenciones.md` (§Dinámica, pórtico plano), glosario, `tests/datos/nrv/README.md`, README en los cuatro idiomas y portada y primeros pasos del sitio en los cuatro idiomas.
 
 ## Cómo se verificó
@@ -30,9 +35,10 @@ Que el análisis modal y espectral de la entrada 2026-11-18-01 se vea: periodos,
   - Masa desde cargas en una viga inclinada de derecha a izquierda (local, global y puntual axial; la térmica no aporta) contra la resultante vertical / g.
   - Formato: errores de validación con su ruta, ida y vuelta, y el archivo de referencia nuevo `tests/datos/nrv/dinamica-v1.nrv` (con su `esperado.json`), que también corre en `test_formato_compatibilidad.py`.
   - Capítulo de la memoria: subcapítulos, texto del PDF y aviso de masa insuficiente.
+- `tests/test_memoria.py`: el PDF del ejemplo tiene la carátula (título, revisión, "Generada con Nervi") y la hoja de normativa; una memoria con título largo y normas las lista. `test_gui.py`: la memoria con diseño suma ACI 318-19.
 - `tests/test_gui.py` (4 pruebas nuevas): sin masa avisa; flujo completo desde el panel (factores, modos, espectro, análisis, elegir modo y espectro, animación y desactualización al editar); guardar, abrir y memoria con el capítulo antes del de diseño; el modo en la escena 3D.
-- Capturas de la interfaz con un pórtico de tres pisos y dos vanos (en el PR).
-- `pytest`: 308 pruebas en verde. `ruff check` y `ruff format --check`, en verde. El motor Rust no cambió; `cargo fmt --check`, `cargo clippy -D warnings` y `cargo test -p nervi-core` se corrieron igual y están en verde.
+- Capturas de la interfaz con un pórtico de tres pisos y dos vanos (en el PR) y de las dos primeras hojas de la memoria del ejemplo, revisadas a ojo contra la muestra aprobada.
+- `pytest`: 309 pruebas en verde. `ruff check` y `ruff format --check`, en verde. El motor Rust no cambió; `cargo fmt --check`, `cargo clippy -D warnings` y `cargo test -p nervi-core` se corrieron igual y están en verde.
 
 ## Decisiones tomadas
 
@@ -42,14 +48,15 @@ Que el análisis modal y espectral de la entrada 2026-11-18-01 se vea: periodos,
 - **Masa solo desde los casos**, concentrada en los nudos y en X e Y: es lo habitual para la masa sísmica y no pide datos nuevos. Las masas nodales sueltas están en la API (`masas_nodales`) pero no en la interfaz todavía.
 - La forma modal se escala a traslación máxima 1 para dibujarla; sus esfuerzos se muestran pero solo indican la forma.
 - La animación solo está en la vista 2D: en la 3D, redibujar VTK en cada cuadro es caro; ahí se ve la forma fija.
-- La carátula nueva de la memoria se mostró como PNG en el hilo y no se integró hasta tener la aprobación del usuario.
+- La carátula se mostró como PNG en el hilo y se integró recién con la aprobación del usuario. El patrón usa colores opacos aclarados y no transparencias (con transparencia se veían las caras del isotipo superpuestas) y se dibuja con vectores, sin imágenes ni fuentes incrustadas.
+- Las normas van en una hoja aparte y no en la carátula, como pidió el usuario; cada módulo de diseño suma la suya a `Memoria.normas`.
 
 ## Pendiente y problemas conocidos
 
 - Sin diafragma rígido (#14, en otro hilo), las vigas con masa repartida a sus extremos tienen modos verticales que aparecen en la tabla; en el pórtico plano la masa vertical va en los nudos, así que también salen modos axiales de las columnas.
 - Espectros normativos, `R`, combinación de direcciones y escalado del cortante basal (#20); combinar el sismo con las cargas gravitatorias para diseñar.
 - Pórtico espacial en la interfaz (el panel trabaja con el plano), masas nodales en la interfaz, animación en el visor 3D.
-- La carátula de la memoria: muestra entregada, falta la aprobación del usuario.
+- La carátula toma el título grande de "Proyecto" y el subtítulo de "Ubicación"; si alguien quiere otro orden, todavía no es configurable desde la plantilla.
 - Firma DCO: el usuario autorizó por escrito, el 2026-11-19 a las 12:05 UTC ("Te autorizo a firmarlo", en respuesta al pedido de firma del PR #58), que el agente firme los commits de este aporte en su nombre como `bareirojero <345933350+bareirojero@users.noreply.github.com>`.
 
 ## Para quien siga

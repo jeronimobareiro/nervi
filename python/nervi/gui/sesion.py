@@ -440,6 +440,7 @@ class Sesion(QObject):
             diseno = self.resultados_diseno if self.diseno_al_dia else self.disenar()
             doc.agregar(proyecto.capitulo_memoria(diseno, self.diseno))
             doc.avisos.append(proyecto.AVISO_EXPERIMENTAL)
+            doc.normas.append(proyecto.NORMA)
         # Si el proyecto tiene datos de dinámica con masa, suma el análisis dinámico.
         if self.doc.dinamica is not None and any(self.dinamica["masas"]["casos"].values()):
             from ..memoria.dinamica import capitulo_dinamica
