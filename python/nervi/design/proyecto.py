@@ -42,6 +42,10 @@ AVISO_EXPERIMENTAL = (
     "por un ingeniero estructural. No usar para dimensionar estructuras reales sin "
     "verificar los resultados."
 )
+#: Norma de diseño, para la hoja de normativa de la memoria.
+NORMA = (
+    "ACI 318-19 · Building Code Requirements for Structural Concrete (American Concrete Institute)"
+)
 _A_MM = {"mm": 1.0, "cm": 10.0, "m": 1000.0}
 
 

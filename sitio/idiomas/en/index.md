@@ -58,6 +58,7 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 - **Space frames (3D)**, for now only from Python and as a preview: members with bending in two planes and torsion, space trusses, and rectangular and circular sections.
 - **Modal and response spectrum analysis** of space frames, from Python and as a preview: periods, mode shapes, participating mass and seismic response with SRSS or CQC combination from the spectrum given by the code.
 - **Buildings with rigid floor diaphragms and rigid end offsets** in the space frame, from Python and as a preview: each floor's mass at its master node, center of mass, story drifts and beam forces at the column face.
+- **Modes and spectra in the interface**, as a preview: in the **Dinámica** tab you choose which load cases give the mass and enter the spectrum; you get the table of periods and participating mass, each mode shape drawn and animated, and the base shear and diagrams of each spectrum. Everything is saved in the project and goes into the calculation report.
 
 ## What is coming
 

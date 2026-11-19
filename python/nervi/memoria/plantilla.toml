@@ -17,7 +17,9 @@ cifras = 4
 
 [portada]
 # Datos de la portada, en este orden. Se completan con datos_proyecto.
-campos = ["Proyecto", "Ubicación", "Comitente", "Autor", "Fecha"]
+# "Proyecto" es el título grande de la carátula; "Fecha" y "Revisión" van en
+# letra chica debajo de él y el resto en el recuadro de datos.
+campos = ["Proyecto", "Ubicación", "Comitente", "Autor", "Fecha", "Revisión"]
 aviso = """Esta memoria fue generada con Nervi {version}, software libre en etapa \
 preliminar. Los resultados deben ser revisados por un profesional habilitado, que \
 es quien firma y se responsabiliza por el cálculo."""

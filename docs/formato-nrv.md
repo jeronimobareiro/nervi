@@ -1,4 +1,4 @@
-# Formato de archivo `.nrv` (contenedor 1, módulos `modelo` 1 y `diseno` 1, borrador)
+# Formato de archivo `.nrv` (contenedor 1, módulos `modelo` 1, `diseno` 1 y `dinamica` 1, borrador)
 
 > **Estado: borrador.** Se congela con la primera versión publicada de la GUI (v0.1.0). Hasta entonces se puede cambiar sin migración; después, todo cambio sigue §6.
 >
@@ -28,6 +28,7 @@ proyecto.nrv
 ├── nervi.json          # obligatorio: manifiesto (versión del contenedor, módulos, generador, fechas)
 ├── modelo.json         # módulo "modelo", obligatorio: el modelo analítico (§4)
 ├── diseno.json         # módulo "diseno", opcional: datos de diseño (§4b)
+├── dinamica.json       # módulo "dinamica", opcional: masas, modos y espectros (§4c)
 ├── resultados/         # módulo "resultados", caché (previsto, §5)
 ├── vista.json          # módulo "vista", estado de la GUI (previsto)
 └── adjuntos/           # módulo "adjuntos": imágenes, memorias (previsto)
@@ -91,6 +92,7 @@ Nombres de módulo: minúsculas, dígitos y `_`, con `.` para separar un prefijo
 |---|---|---|---|
 | `modelo` | versión 1 | siempre | Modelo analítico: nudos, barras, apoyos, cargas, casos y combinaciones (§4). |
 | `diseno` | versión 1 | no | Norma, materiales, criterios y, por barra, tipo de elemento y sección de hormigón (§4b). Solo está si el proyecto tiene datos de diseño. |
+| `dinamica` | versión 1 | no | Casos de los que sale la masa, cantidad de modos y espectros de respuesta del pórtico plano (§4c). Solo está si el proyecto tiene datos de dinámica. |
 | `resultados` | previsto (§5) | no | Caché de resultados. |
 | `vista` | previsto | no | Cámara, capas, selección. |
 | `adjuntos` | previsto | no | Imágenes, memorias, planos. |
@@ -162,7 +164,7 @@ Cubre lo que hoy modela `nervi.Modelo` (Fase 1, pórtico plano). El esquema form
 
 ### 4.2 Lo que viene después (no es parte de la versión 1)
 
-Materiales y secciones con nombre (en lugar de `E, A, I` por barra), modelo 3D (Fase 2) y masas y espectros entran al módulo `modelo` subiendo su versión. Normas y criterios de diseño (Fase 3) van en el módulo propio `diseno`. Las trapezoidales, las térmicas y los momentos en el tramo entraron a la versión 1 antes de congelarla (issues #2, #4 y #3), porque solo agregan un valor de `tipo` y los archivos anteriores siguen siendo válidos. Después del congelamiento, cada agregado sube la versión del módulo que toca y trae su migración (§6). Un `tipo: "portico_2d"` sigue siendo válido para siempre: el 3D se agrega como otro `tipo`, no reemplaza al plano.
+Materiales y secciones con nombre (en lugar de `E, A, I` por barra), y modelo 3D (Fase 2) entran al módulo `modelo` subiendo su versión. Normas y criterios de diseño (Fase 3) van en el módulo propio `diseno`, y las masas y los espectros (Fase 2b) en el módulo propio `dinamica` (§4c), siguiendo la regla de que lo que agrega una fase nueva va en un módulo propio. Las trapezoidales, las térmicas y los momentos en el tramo entraron a la versión 1 antes de congelarla (issues #2, #4 y #3), porque solo agregan un valor de `tipo` y los archivos anteriores siguen siendo válidos. Después del congelamiento, cada agregado sube la versión del módulo que toca y trae su migración (§6). Un `tipo: "portico_2d"` sigue siendo válido para siempre: el 3D se agrega como otro `tipo`, no reemplaza al plano.
 
 ## 4b. Módulo `diseno` (`diseno.json`), versión 1
 
@@ -189,6 +191,33 @@ Lo escribe la etapa **Diseño** de la interfaz (Fase 3, `nervi.design.proyecto`)
 - `modelo_sha256` es el SHA-256 de los bytes de `modelo.json` con los que se guardó (§3.1). Si al abrir no coincide, otro programa cambió el modelo sin conocer el diseño: el proyecto se abre igual y se avisa que hay que revisar tipos y secciones.
 - `extensiones` (opcional) es un objeto libre, como en `modelo.json`.
 - Se valida con `nervi.formato.diseno.validar`; un error dice `diseno.json`, la ruta y el motivo.
+
+## 4c. Módulo `dinamica` (`dinamica.json`), versión 1
+
+Lo escribe la pestaña **Dinámica** de la interfaz (Fase 2b, `nervi.dinamica_plana`). Un proyecto sin datos de dinámica no tiene este módulo. Como `diseno`, guarda **lo que eligió el usuario**: periodos, modos y respuestas se recalculan desde el modelo.
+
+```json
+{
+  "masas": {"casos": {"D": 1.0, "L": 0.25}},
+  "n_modos": 12,
+  "espectros": [
+    {
+      "nombre": "Sismo X",
+      "direccion": "X",
+      "combinacion": "CQC",
+      "amortiguamiento": 0.05,
+      "puntos": [[0.0, 0.4], [0.1, 1.0], [0.5, 1.0], [1.0, 0.5], [4.0, 0.125]]
+    }
+  ]
+}
+```
+
+- `masas.casos`: `{nombre de caso: factor ≥ 0}`. La masa de cada nudo es `-Fy · factor / g`, con las cargas de barra repartidas a sus nudos por estática, y actúa en X y en Y. `g` sale de la unidad de longitud de `modelo.json` (9,80665 m/s², 980,665 cm/s² o 9806,65 mm/s²). Un caso que ya no existe en el modelo no es un error de formato: el análisis lo informa.
+- `n_modos`: entero entre 1 y 200. Si el modelo tiene menos GDL con masa, se calculan los que haya.
+- `espectros`: lista, con `nombre` no vacío y sin repetir, `direccion` ∈ {`X`, `Y`} (Y es la vertical del plano), `combinacion` ∈ {`CQC`, `SRSS`} y `amortiguamiento` como fracción del crítico en `[0, 1)`.
+- `puntos`: pares `[T, Sa]` con `T` en segundos, estrictamente creciente, y **`Sa` como fracción de `g`** (adimensional), como se dan los espectros de diseño. Entre puntos se interpola linealmente y fuera del rango se toma el extremo.
+- `extensiones` (opcional) es un objeto libre.
+- Se valida con `nervi.formato.dinamica.validar`; un error dice `dinamica.json`, la ruta y el motivo.
 
 ## 5. Resultados (`resultados/`, reservado)
 
@@ -283,3 +312,4 @@ Implementado en `python/nervi/formato/`:
 | Contenedor 1, `modelo` 1 | 2026-11-09 (borrador) | Versión inicial: pórtico 2D de la Fase 1. |
 | Contenedor 1, `modelo` 1 | 2026-11-12 (borrador) | Manifiesto con `modulos` (§3.1), versión y migraciones por módulo, archivos de referencia permanentes (§6.3). Los archivos sin `modulos` se siguen leyendo. |
 | `diseno` 1 | 2026-11-17 (borrador) | Módulo opcional de datos de diseño (§4b): norma, materiales, criterios, tipo y sección por barra, huella del modelo. Archivo de referencia `tests/datos/nrv/diseno-v1.nrv`. |
+| `dinamica` 1 | 2026-11-19 (borrador) | Módulo opcional de análisis dinámico (§4c): casos de masa, cantidad de modos y espectros con `Sa` en fracción de `g`. Archivo de referencia `tests/datos/nrv/dinamica-v1.nrv`. |

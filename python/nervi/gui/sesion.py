@@ -51,6 +51,28 @@ class Inestabilidad:
 
 
 @dataclass
+class ResultadosDinamica:
+    """Análisis modal y espectral del proyecto (``nervi.dinamica_plana``).
+
+    ``modos`` y ``espectros`` son resultados del pórtico plano que las vistas
+    dibujan como cualquier caso: ``Modo 1``, ``Modo 2``… y un resultado por
+    espectro, con su nombre."""
+
+    modal: object  # nervi.dinamica_plana.ResultadosModalPlano
+    modos: dict[str, ResultadoCaso]
+    espectros: dict[str, ResultadoCaso]
+    #: Gravedad usada (unidades de longitud del modelo por s²).
+    gravedad: float
+
+    def resultado(self, nombre: str) -> ResultadoCaso | None:
+        return self.modos.get(nombre) or self.espectros.get(nombre)
+
+    @property
+    def nombres(self) -> list[str]:
+        return [*self.modos, *self.espectros]
+
+
+@dataclass
 class Aviso:
     nivel: str  # "ok", "info", "error"
     texto: str
@@ -92,6 +114,7 @@ class Sesion(QObject):
     seleccion_cambiada = Signal()
     archivo_cambiado = Signal()
     diseno_cambiado = Signal()
+    dinamica_cambiada = Signal()
 
     def __init__(self, doc: formato.Documento | None = None) -> None:
         super().__init__()
@@ -107,6 +130,8 @@ class Sesion(QObject):
         self.inestabilidad: Inestabilidad | None = None
         self.resultados_diseno: list | None = None
         self.diseno_al_dia = False
+        self.resultados_dinamica: ResultadosDinamica | None = None
+        self.dinamica_al_dia = False
         self.revisar()
 
     # --- Archivo ---------------------------------------------------------------
@@ -148,12 +173,15 @@ class Sesion(QObject):
         self.inestabilidad = None
         self.resultados_diseno = None
         self.diseno_al_dia = False
+        self.resultados_dinamica = None
+        self.dinamica_al_dia = False
         self.revisar()
         self.archivo_cambiado.emit()
         self.modelo_cambiado.emit()
         self.resultados_cambiados.emit()
         self.seleccion_cambiada.emit()
         self.diseno_cambiado.emit()
+        self.dinamica_cambiada.emit()
 
     # --- Edición -----------------------------------------------------------------
     @property
@@ -168,11 +196,13 @@ class Sesion(QObject):
         self.al_dia = False
         self.inestabilidad = None
         self.diseno_al_dia = False
+        self.dinamica_al_dia = False
         self.revisar()
         self.archivo_cambiado.emit()
         self.modelo_cambiado.emit()
         self.resultados_cambiados.emit()
         self.diseno_cambiado.emit()
+        self.dinamica_cambiada.emit()
 
     def copia_modelo(self) -> dict:
         return copy.deepcopy(self.doc.modelo)
@@ -224,7 +254,11 @@ class Sesion(QObject):
     def nombres_resultado(self) -> list[str]:
         """Casos y combinaciones disponibles para mostrar."""
         m = self.modelo
-        return [c["nombre"] for c in m.get("combinaciones", [])] + [c["nombre"] for c in m["casos"]]
+        nombres = [c["nombre"] for c in m.get("combinaciones", [])]
+        nombres += [c["nombre"] for c in m["casos"]]
+        if self.dinamica_al_dia and self.resultados_dinamica is not None:
+            nombres += [n for n in self.resultados_dinamica.nombres if n not in nombres]
+        return nombres
 
     def calcular(self) -> None:
         """Resuelve el modelo. Lanza ``FormatoError``, ``ValueError`` o ``MecanismoError``."""
@@ -261,7 +295,75 @@ class Sesion(QObject):
                 return self.resultados.combinar(c["nombre"], c["factores"])
         if self.combinacion in self.resultados.casos:
             return self.resultados[self.combinacion]
+        if self.dinamica_al_dia and self.resultados_dinamica is not None:
+            return self.resultados_dinamica.resultado(self.combinacion)
         return None
+
+    # --- Dinámica ------------------------------------------------------------------
+    @property
+    def dinamica(self) -> dict:
+        """Datos de ``dinamica.json`` (los de por defecto si el proyecto no tiene)."""
+        return self.doc.dinamica if self.doc.dinamica is not None else formato.dinamica.nuevo()
+
+    def editar_dinamica(self, nuevo: dict) -> None:
+        """Reemplaza los datos de dinámica. Lanza ``FormatoError`` si no son válidos."""
+        formato.dinamica.validar(nuevo)
+        self.doc.dinamica = nuevo
+        self.modificado = True
+        self.dinamica_al_dia = False
+        self.archivo_cambiado.emit()
+        self.dinamica_cambiada.emit()
+        self.resultados_cambiados.emit()
+
+    def gravedad(self) -> float:
+        """g en las unidades de longitud del modelo (por s²)."""
+        from ..dinamica_plana import GRAVEDAD
+
+        return GRAVEDAD[self.modelo["unidades"]["longitud"]]
+
+    def analizar_dinamica(self) -> ResultadosDinamica:
+        """Análisis modal y por espectro con los datos de :attr:`dinamica`.
+
+        Calcula el modelo si hace falta. Lanza ``ValueError`` si no hay masa o
+        un caso de masa no existe, y lo mismo que :meth:`calcular`."""
+        from .. import dinamica_plana
+
+        if not self.al_dia:
+            self.calcular()
+        datos = self.dinamica
+        casos = {c["nombre"] for c in self.modelo["casos"]}
+        masas = {k: v for k, v in datos["masas"]["casos"].items() if v > 0}
+        if not masas:
+            raise ValueError(
+                "Elegí de qué casos de carga sale la masa (por ejemplo D con factor 1)."
+            )
+        faltan = sorted(set(masas) - casos)
+        if faltan:
+            raise ValueError("La masa usa casos que no existen: " + ", ".join(faltan) + ".")
+        g = self.gravedad()
+        modelo, _indices = formato.construir_modelo(self.modelo)
+        modal = dinamica_plana.modal(modelo, masas, g, n_modos=datos["n_modos"])
+        modos = {r.nombre: r for r in modal.modos()}
+        espectros = {}
+        for e in datos["espectros"]:
+            puntos = [(t, sa * g) for t, sa in e["puntos"]]
+            espectros[e["nombre"]] = modal.espectro(
+                puntos,
+                e["direccion"],
+                amortiguamiento=e["amortiguamiento"],
+                combinacion=e["combinacion"],
+                nombre=e["nombre"],
+            )
+        if self.doc.dinamica is None:
+            # Desde que se analiza, los datos de dinámica son parte del proyecto.
+            self.doc.dinamica = datos
+            self.modificado = True
+            self.archivo_cambiado.emit()
+        self.resultados_dinamica = ResultadosDinamica(modal, modos, espectros, g)
+        self.dinamica_al_dia = True
+        self.dinamica_cambiada.emit()
+        self.resultados_cambiados.emit()
+        return self.resultados_dinamica
 
     # --- Diseño --------------------------------------------------------------------
     @property
@@ -338,6 +440,24 @@ class Sesion(QObject):
             diseno = self.resultados_diseno if self.diseno_al_dia else self.disenar()
             doc.agregar(proyecto.capitulo_memoria(diseno, self.diseno))
             doc.avisos.append(proyecto.AVISO_EXPERIMENTAL)
+            doc.normas.append(proyecto.NORMA)
+        # Si el proyecto tiene datos de dinámica con masa, suma el análisis dinámico.
+        if self.doc.dinamica is not None and any(self.dinamica["masas"]["casos"].values()):
+            from ..memoria.dinamica import capitulo_dinamica
+
+            din = self.resultados_dinamica if self.dinamica_al_dia else self.analizar_dinamica()
+            capitulo = capitulo_dinamica(
+                modelo,
+                din.modal,
+                self.dinamica,
+                din.espectros,
+                din.gravedad,
+                fuerza=u["fuerza"],
+                longitud=u["longitud"],
+                nombre_nudo=lambda k: f"N{indices.id_nudo(k)}",
+                nombre_barra=lambda k: f"B{indices.id_barra(k)}",
+            )
+            doc.agregar(capitulo, antes_de="Diseño")
         return doc
 
     def elegir_combinacion(self, nombre: str) -> None:

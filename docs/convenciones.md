@@ -162,3 +162,11 @@ Las del modelo: con fuerzas en kN y longitudes en m, la masa va en **t** (kN·s�
 - Respuesta de cada modo: la estática con `uₙ = Γₙ Sa(Tₙ)/ωₙ² φₙ` y fuerzas `fₙ = Γₙ Sa(Tₙ) M φₙ`. Cortante basal del modo: suma de sus reacciones.
 - **Combinación** de cada magnitud por separado (desplazamientos, reacciones, fuerzas de extremo, cada esfuerzo en cada estación y el cortante basal de cada modo): SRSS o CQC con el coeficiente de Der Kiureghian para amortiguamiento igual en todos los modos (Chopra, ec. 13.7.10). El resultado es un **valor absoluto**, sin signo: no se suma con signo a otros casos.
 - Los diagramas combinados se dan en estaciones equidistantes, porque la combinación no es lineal entre ellas.
+
+### Pórtico plano (`nervi.dinamica_plana`)
+
+- El pórtico plano no tiene motor dinámico propio: `modelo_espacial` lo lleva al plano XZ (`(x, y) → (x, 0, y)`), con `Iz = I`, el vector de referencia igual al eje `y` local plano y `uy`, `rx`, `rz` restringidos en todos los nudos. Así `N`, `Vy` y `Mz` espaciales son `N`, `V` y `M` del plano y el giro plano `rz` es `-ry` (ver «Ejes locales» del pórtico espacial).
+- La masa sale solo de los casos (`-Fy · factor / g`) o de masas nodales, siempre concentrada en los nudos y en X e Y del plano. Las cargas térmicas y los momentos en el tramo no aportan masa.
+- Las magnitudes vuelven al plano como `ux, uy, rz`, `Rx, Ry, Mz` y `N, V, M`. La dirección `"Y"` del espectro es la vertical del plano.
+- **Forma modal dibujada** (`ResultadosModalPlano.modos`): el modo escalado para que su mayor traslación valga 1 en unidades de longitud, con los esfuerzos de esa deformada. Se obtiene resolviendo el modelo con las fuerzas `ω² M φ`, que con masa concentrada reproducen `φ` exactamente. Sus esfuerzos solo muestran la forma: no son solicitaciones.
+- En la interfaz y en `.nrv` (módulo `dinamica`), los espectros se dan en **`Sa/g`** y se multiplican por `g` de la unidad de longitud del modelo antes de calcular.
