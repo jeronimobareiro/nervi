@@ -28,9 +28,14 @@
 //! ```
 
 pub mod analisis;
+pub mod dinamica;
 pub mod elemento;
 pub mod modelo;
 
 pub use analisis::{analizar_3d, Resultados3d, ResultadosCaso3d, Seccion3d};
+pub use dinamica::{
+    analizar_espectro_3d, analizar_modal_3d, coeficiente_cqc, CombinacionModal, Espectro, Masas3d,
+    MetodoModal, ResultadosEspectro3d, ResultadosModal3d, TipoMasa,
+};
 pub use elemento::{ejes_locales, CargaLocal3d};
 pub use modelo::{Barra3d, CargaBarra3d, CasoCarga3d, Modelo3d, TipoCargaBarra3d};

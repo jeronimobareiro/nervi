@@ -19,10 +19,14 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 import numpy as np
 
 from . import _core
+
+if TYPE_CHECKING:
+    from .dinamica import ResultadosModal3D
 
 _EJES = {"local": 0, "global": 1}
 _DIAGRAMA = ("N", "Vy", "Vz", "T", "My", "Mz", "u", "v", "w", "rx")
@@ -51,6 +55,10 @@ class Modelo3D:
         self._resortes: dict[int, tuple[float, ...]] = {}
         self._casos: list[_Caso] = []
         self._cargas_barra: list[tuple[float, ...]] = []
+        self._masas_nodales: dict[int, np.ndarray] = {}
+        self._masas_lineales: dict[int, float] = {}
+        self._masas_casos: dict[str, float] = {}
+        self._gravedad = 9.80665
 
     # --- Geometría -------------------------------------------------------------
     def agregar_nudo(self, x: float, y: float, z: float) -> int:
@@ -241,6 +249,50 @@ class Modelo3D:
         c = self._casos[self._indice_caso(caso)]
         c.impuestos[int(nudo)] = np.array([ux, uy, uz, rx, ry, rz], dtype=np.float64)
 
+    # --- Masas (Fase 2b) -------------------------------------------------------
+    def masa_nodal(
+        self,
+        nudo: int,
+        m: float = 0.0,
+        *,
+        mx: float | None = None,
+        my: float | None = None,
+        mz: float | None = None,
+        Jx: float = 0.0,
+        Jy: float = 0.0,
+        Jz: float = 0.0,
+    ) -> None:
+        """Suma una masa en el nudo: ``m`` en las tres traslaciones (o ``mx, my,
+        mz`` por separado) e inercias de rotación ``Jx, Jy, Jz`` (ejes globales
+        por el nudo). Se acumula con las anteriores."""
+        v = np.array(
+            [
+                m if mx is None else mx,
+                m if my is None else my,
+                m if mz is None else mz,
+                Jx,
+                Jy,
+                Jz,
+            ],
+            dtype=np.float64,
+        )
+        self._masas_nodales.setdefault(int(nudo), np.zeros(6))
+        self._masas_nodales[int(nudo)] += v
+
+    def masa_lineal(self, barra: int, m: float) -> None:
+        """Masa por unidad de longitud de la barra (densidad por área, ``rho * A``); se
+        acumula. Se reparte según ``masa`` de :meth:`modal`."""
+        self._masas_lineales[int(barra)] = self._masas_lineales.get(int(barra), 0.0) + float(m)
+
+    def masa_desde_casos(self, factores: dict[str, float], gravedad: float = 9.80665) -> None:
+        """Convierte en masa las cargas verticales de los casos, p. ej.
+        ``{"D": 1.0, "L": 0.25}``: ``m = -Fz · factor / g`` en los nudos (las
+        cargas en barras se reparten a sus nudos por estática). ``gravedad`` en
+        las unidades del modelo (9.80665 para m/s², 980.665 para cm/s²).
+        Reemplaza lo dado antes con este método."""
+        self._masas_casos = {str(k): float(v) for k, v in factores.items()}
+        self._gravedad = float(gravedad)
+
     # --- Análisis --------------------------------------------------------------
     def arreglos(self) -> dict[str, np.ndarray]:
         """Arreglos del contrato de datos 3D (ver ``docs/contrato-datos.md``)."""
@@ -293,6 +345,62 @@ class Modelo3D:
             _core.VERSION_CONTRATO_3D, **self.arreglos(), n_estaciones=n_estaciones
         )
         return Resultados3D([c.nombre for c in self._casos], crudo)
+
+    def modal(
+        self,
+        n_modos: int = 12,
+        masa: str = "concentrada",
+        metodo: str = "automatico",
+    ) -> ResultadosModal3D:
+        """Análisis modal: los ``n_modos`` modos de menor frecuencia.
+
+        ``masa`` es ``"concentrada"`` (``m L/2`` en cada extremo, sin inercia
+        rotacional) o ``"consistente"``; vale para las masas lineales (las
+        nodales y las de los casos son siempre concentradas). ``metodo`` es
+        ``"automatico"`` (denso exacto hasta 1500 GDL con masa, Lanczos por
+        encima), ``"denso"`` o ``"lanczos"``. Devuelve
+        :class:`nervi.dinamica.ResultadosModal3D`.
+        """
+        from .dinamica import ResultadosModal3D
+
+        tipos = {"concentrada": 0, "consistente": 1}
+        metodos = {"automatico": 0, "denso": 1, "lanczos": 2}
+        if masa not in tipos:
+            raise ValueError(f"masa {masa!r} desconocida ('concentrada' o 'consistente')")
+        if metodo not in metodos:
+            raise ValueError(f"método {metodo!r} desconocido ('automatico', 'denso' o 'lanczos')")
+        if int(n_modos) < 1:
+            raise ValueError("hay que pedir al menos un modo")
+        n, m = len(self._nudos), len(self._barras)
+        nodales = np.zeros((n, 6), dtype=np.float64)
+        for k, v in self._masas_nodales.items():
+            if not 0 <= k < n:
+                raise ValueError(f"masa en el nudo inexistente {k}")
+            nodales[k] = v
+        lineales = np.zeros(m, dtype=np.float64)
+        for k, v in self._masas_lineales.items():
+            if not 0 <= k < m:
+                raise ValueError(f"masa en la barra inexistente {k}")
+            lineales[k] = v
+        nombres = [c.nombre for c in self._casos]
+        casos = np.zeros(len(nombres), dtype=np.float64)
+        for nombre, f in self._masas_casos.items():
+            if nombre not in nombres:
+                raise ValueError(f"masa desde el caso inexistente {nombre!r}")
+            casos[nombres.index(nombre)] = f
+        arreglos = self.arreglos()
+        crudo = _core.resolver_modal_3d(
+            _core.VERSION_CONTRATO_DINAMICA,
+            arreglos,
+            nodales,
+            lineales,
+            casos,
+            self._gravedad,
+            tipos[masa],
+            int(n_modos),
+            metodos[metodo],
+        )
+        return ResultadosModal3D(arreglos, crudo)
 
 
 class ResultadoCaso3D:

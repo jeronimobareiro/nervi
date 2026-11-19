@@ -105,3 +105,57 @@ Errores: los mismos que en el plano. `MecanismoError.gdl` puede valer además `"
 | Versión | Cambio |
 |---|---|
 | 1 | Versión inicial (issues #11 y #12): cargas uniformes, puntuales y trapezoidales. |
+
+# Contrato de datos de la dinámica del pórtico espacial (versión 1)
+
+Funciones: `nervi._core.resolver_modal_3d(version, modelo, masas_nodales, masas_lineales, masas_casos, gravedad, tipo_masa, n_modos, metodo=0)` y `nervi._core.espectro_3d(version, modelo, omegas, modos, inercias, periodos_espectro, aceleraciones_espectro, direccion, amortiguamiento, combinacion, n_estaciones=11)` (issues #16, #17 y #18).
+
+Se versiona aparte con `nervi._core.VERSION_CONTRATO_DINAMICA` (hoy 1). `modelo` es un diccionario con los diez arreglos de entrada del contrato 3D (las claves de la tabla de arriba, lo que devuelve `Modelo3D.arreglos()`); los dos contratos anteriores no cambian. Convenciones en [`convenciones.md`](convenciones.md) §Dinámica.
+
+## Entrada de `resolver_modal_3d`
+
+| Argumento | dtype | Forma | Contenido |
+|---|---|---|---|
+| `masas_nodales` | float64 | `(n_nudos, 6)` | `[mx, my, mz, Jx, Jy, Jz]` globales |
+| `masas_lineales` | float64 | `(n_barras,)` | masa por unidad de longitud de cada barra |
+| `masas_casos` | float64 | `(n_casos,)` | factor de cada caso para convertir sus cargas verticales en masa (0 = no se usa) |
+| `gravedad` | float | — | en las unidades del modelo |
+| `tipo_masa` | int | — | 0 = concentrada, 1 = consistente |
+| `n_modos` | int | — | cantidad de modos pedidos (al menos 1) |
+| `metodo` | int | — | 0 = automático, 1 = denso, 2 = Lanczos |
+
+## Salida de `resolver_modal_3d`
+
+| Clave | Forma | Contenido |
+|---|---|---|
+| `omegas`, `periodos`, `frecuencias` | `(n_modos,)` | `ω`, `T = 2π/ω`, `f = 1/T`, de menor a mayor frecuencia |
+| `modos` | `(n_modos, n_nudos, 6)` | formas modales normalizadas a masa, globales |
+| `inercias` | `(n_modos, n_nudos, 6)` | `M φ` de cada modo (cero en los GDL restringidos) |
+| `factores_participacion` | `(n_modos, 3)` | `Γ` en X, Y y Z |
+| `masas_efectivas` | `(n_modos, 3)` | `Γ²` en X, Y y Z |
+| `masa_total` | `(3,)` | `rᵀ M r` en X, Y y Z |
+| `n_gdl_masa` | int | GDL libres con masa |
+| `metodo` | `"denso"` o `"lanczos"` | método usado |
+| `gdl_sin_rigidez` | lista de `(nudo, gdl)` | GDL libres sin rigidez ni masa fijados automáticamente |
+
+## Entrada y salida de `espectro_3d`
+
+`omegas (n_modos,)`, `modos` e `inercias (n_modos, n_nudos, 6)` son los de `resolver_modal_3d` con el mismo modelo. `periodos_espectro` y `aceleraciones_espectro` (float64, mismo largo, periodos estrictamente crecientes y aceleraciones no negativas), `direccion` (float64 `(3,)`), `amortiguamiento` en `[0, 1)` y `combinacion` 0 = SRSS, 1 = CQC.
+
+| Clave | Forma | Contenido |
+|---|---|---|
+| `desplazamientos`, `reacciones` | `(n_nudos, 6)` | combinados, valores absolutos |
+| `fuerzas_extremo` | `(n_barras, 12)` | combinadas, valores absolutos |
+| `cortante_basal` | `(3,)` | combinación de los cortantes basales de cada modo |
+| `cortante_basal_modal` | `(n_modos, 3)` | suma de reacciones de cada modo, con signo |
+| `aceleraciones`, `factores` | `(n_modos,)` | `Sa(Tₙ)` y `Γₙ` en la dirección de excitación |
+| `correlacion` | `(n_modos, n_modos)` | coeficientes `ρᵢⱼ` (identidad en SRSS) |
+| `diagramas` | diccionario | como un caso de `resolver_portico_3d`, combinado, en `n_estaciones` estaciones equidistantes por barra |
+
+Errores: `ValueError` por datos inválidos (masas negativas, modelo sin masa, espectro mal definido) y `MecanismoError` si la estructura es inestable o hay masa en un GDL sin rigidez.
+
+### Historial de versiones (dinámica)
+
+| Versión | Cambio |
+|---|---|
+| 1 | Versión inicial (issues #16, #17 y #18): masas nodales, lineales y desde casos; modal denso y Lanczos; espectro con SRSS y CQC. |

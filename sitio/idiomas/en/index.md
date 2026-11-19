@@ -56,10 +56,11 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 - **Projects** saved as `.nrv` files.
 - **Calculation report in PDF** (in Spanish), with model data, loads, combinations, result tables, diagrams and, if you designed, the beam reinforcement and checks, from an editable template.
 - **Space frames (3D)**, for now only from Python and as a preview: members with bending in two planes and torsion, space trusses, and rectangular and circular sections.
+- **Modal and response spectrum analysis** of space frames, from Python and as a preview: periods, mode shapes, participating mass and seismic response with SRSS or CQC combination from the spectrum given by the code.
 
 ## What is coming
 
-3D frames in the interface, seismic analysis, deflections, cracking and reinforcement detailing, exchange with BIM programs (IFC) and calculation reports. The order and the tasks are in the [roadmap](hoja-de-ruta.md).
+3D frames in the interface, code seismic spectra and P-Δ, deflections, cracking and reinforcement detailing, exchange with BIM programs (IFC) and calculation reports. The order and the tasks are in the [roadmap](hoja-de-ruta.md).
 
 ## Keep reading
 

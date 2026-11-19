@@ -88,10 +88,7 @@ pub fn analizar_3d(modelo: &Modelo3d) -> Resultado<Resultados3d> {
         .iter()
         .map(|b| BarraAnalisis3d::new(b, modelo.longitud(b), modelo.ejes_barra(b)?))
         .collect::<Resultado<_>>()?;
-    let gdl_barra = |k: usize| -> [usize; 12] {
-        let (i, j) = (modelo.barras[k].nudo_i, modelo.barras[k].nudo_j);
-        std::array::from_fn(|d| if d < 6 { 6 * i + d } else { 6 * j + d - 6 })
-    };
+    let gdl_barra = |k: usize| gdl_barra(modelo, k);
 
     let mut cargas_locales = vec![vec![Vec::new(); barras.len()]; n_casos];
     let mut feq = vec![vec![[0.0; 12]; barras.len()]; n_casos];
@@ -229,50 +226,20 @@ pub fn analizar_3d(modelo: &Modelo3d) -> Resultado<Resultados3d> {
                 u[g] = u_libres[(libre_idx[g], c)];
             }
         }
-        let mut suma_fuerzas = vec![0.0; n_gdl];
-        let mut fuerzas_extremo = Vec::with_capacity(barras.len());
-        let mut desplazamientos_extremo = Vec::with_capacity(barras.len());
-        for (k, ba) in barras.iter().enumerate() {
-            let gdl = gdl_barra(k);
-            let ug: Vec12 = std::array::from_fn(|d| u[gdl[d]]);
-            let ul = ba.completar_desplazamientos(&a_local_3d(&ba.ejes, &ug), &feq[c][k]);
-            let mut f: Vec12 = [0.0; 12];
-            for p in 0..12 {
-                f[p] = (0..12).map(|q| ba.k[p][q] * ul[q]).sum::<f64>() - feq[c][k][p];
-            }
-            for &r in &ba.liberados {
-                f[r] = 0.0;
-            }
-            let fg = a_global_3d(&ba.ejes, &f);
-            for d in 0..12 {
-                suma_fuerzas[gdl[d]] += fg[d];
-            }
-            fuerzas_extremo.push(f);
-            desplazamientos_extremo.push(ul);
-        }
         let mut f_nodal = vec![0.0; n_gdl];
         for (nudo, f) in &modelo.casos[c].nodales {
             for d in 0..6 {
                 f_nodal[6 * nudo + d] += f[d];
             }
         }
-        let mut reacciones = vec![[0.0; 6]; modelo.nudos.len()];
-        for g in 0..n_gdl {
-            let (nudo, d) = (g / 6, g % 6);
-            if modelo.restringido(nudo, d) || modelo.rigidez_resorte(nudo, d) != 0.0 {
-                reacciones[nudo][d] = suma_fuerzas[g] - f_nodal[g];
-            }
-        }
-        let desplazamientos = (0..modelo.nudos.len())
-            .map(|n| std::array::from_fn(|d| u[6 * n + d]))
-            .collect();
-        casos.push(ResultadosCaso3d {
-            desplazamientos,
-            reacciones,
-            fuerzas_extremo,
-            desplazamientos_extremo,
-            cargas_locales: std::mem::take(&mut cargas_locales[c]),
-        });
+        casos.push(recuperar_caso(
+            modelo,
+            &barras,
+            &u,
+            &feq[c],
+            &f_nodal,
+            std::mem::take(&mut cargas_locales[c]),
+        ));
     }
 
     Ok(Resultados3d {
@@ -280,6 +247,65 @@ pub fn analizar_3d(modelo: &Modelo3d) -> Resultado<Resultados3d> {
         gdl_sin_rigidez,
         barras,
     })
+}
+
+/// Índices globales de los 12 GDL de extremo de la barra `k`.
+pub(crate) fn gdl_barra(modelo: &Modelo3d, k: usize) -> [usize; 12] {
+    let (i, j) = (modelo.barras[k].nudo_i, modelo.barras[k].nudo_j);
+    std::array::from_fn(|d| if d < 6 { 6 * i + d } else { 6 * j + d - 6 })
+}
+
+/// Fuerzas de extremo y reacciones a partir de los desplazamientos globales `u`
+/// de todos los GDL: `f = k u - F_eq` en cada barra y reacción = suma de las
+/// fuerzas de las barras menos la carga nodal `f_nodal` en los GDL restringidos
+/// o con resorte. Lo comparten el análisis estático y la respuesta modal.
+pub(crate) fn recuperar_caso(
+    modelo: &Modelo3d,
+    barras: &[BarraAnalisis3d],
+    u: &[f64],
+    feq: &[Vec12],
+    f_nodal: &[f64],
+    cargas_locales: Vec<Vec<CargaLocal3d>>,
+) -> ResultadosCaso3d {
+    let n_gdl = modelo.n_gdl();
+    let mut suma_fuerzas = vec![0.0; n_gdl];
+    let mut fuerzas_extremo = Vec::with_capacity(barras.len());
+    let mut desplazamientos_extremo = Vec::with_capacity(barras.len());
+    for (k, ba) in barras.iter().enumerate() {
+        let gdl = gdl_barra(modelo, k);
+        let ug: Vec12 = std::array::from_fn(|d| u[gdl[d]]);
+        let ul = ba.completar_desplazamientos(&a_local_3d(&ba.ejes, &ug), &feq[k]);
+        let mut f: Vec12 = [0.0; 12];
+        for p in 0..12 {
+            f[p] = (0..12).map(|q| ba.k[p][q] * ul[q]).sum::<f64>() - feq[k][p];
+        }
+        for &r in &ba.liberados {
+            f[r] = 0.0;
+        }
+        let fg = a_global_3d(&ba.ejes, &f);
+        for d in 0..12 {
+            suma_fuerzas[gdl[d]] += fg[d];
+        }
+        fuerzas_extremo.push(f);
+        desplazamientos_extremo.push(ul);
+    }
+    let mut reacciones = vec![[0.0; 6]; modelo.nudos.len()];
+    for g in 0..n_gdl {
+        let (nudo, d) = (g / 6, g % 6);
+        if modelo.restringido(nudo, d) || modelo.rigidez_resorte(nudo, d) != 0.0 {
+            reacciones[nudo][d] = suma_fuerzas[g] - f_nodal[g];
+        }
+    }
+    let desplazamientos = (0..modelo.nudos.len())
+        .map(|n| std::array::from_fn(|d| u[6 * n + d]))
+        .collect();
+    ResultadosCaso3d {
+        desplazamientos,
+        reacciones,
+        fuerzas_extremo,
+        desplazamientos_extremo,
+        cargas_locales,
+    }
 }
 
 impl Resultados3d {
