@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QElapsedTimer, QSize, Qt, QTimer
 from PySide6.QtGui import QAction, QColor, QIcon, QKeySequence
 from PySide6.QtWidgets import (
     QButtonGroup,
@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
 from .. import MecanismoError, formato
 from . import estilo, vista3d
 from .consola import Consola
+from .dinamica import PanelDinamica, fase
 from .diseno import PanelDiseno, color_estado
 from .paleta import Entrada, Paleta
 from .sesion import Seleccion, Sesion, documento_ejemplo
@@ -122,6 +123,7 @@ class Ventana(QMainWindow):
         self.a_guardar_como = self._accion("Guardar como…", self.guardar_como, QKeySequence.SaveAs)
         self.a_calcular = self._accion("Calcular", self.calcular, "F5")
         self.a_disenar = self._accion("Diseñar elementos de hormigón armado", self.disenar)
+        self.a_dinamica = self._accion("Análisis modal y espectral", self.analizar_dinamica)
         self.a_memoria = self._accion(
             "Exportar memoria de cálculo (PDF)…", self.exportar_memoria, "Ctrl+P"
         )
@@ -314,6 +316,15 @@ class Ventana(QMainWindow):
         self.panel_diseno = PanelDiseno(self.sesion)
         self.panel_diseno.disenado.connect(lambda: self.ir_a_etapa(4))
         tabs.addTab(self.panel_diseno, "Diseño")
+
+        self.panel_dinamica = PanelDinamica(self.sesion)
+        self.panel_dinamica.resultado_elegido.connect(self.ver_resultado_dinamica)
+        self.panel_dinamica.animar.connect(self.animar_modo)
+        tabs.addTab(self.panel_dinamica, "Dinámica")
+        self._reloj = QTimer(self)
+        self._reloj.setInterval(40)
+        self._reloj.timeout.connect(self._cuadro_animacion)
+        self._tiempo = QElapsedTimer()
 
         self.revision = QListWidget()
         tabs.addTab(self.revision, "Revisión del modelo")
@@ -630,6 +641,40 @@ class Ventana(QMainWindow):
             if self.centro.sizes()[1] < 0.42 * alto:
                 self.centro.setSizes([int(0.55 * alto), alto - int(0.55 * alto)])
         self._actualizar_diseno()
+
+    def mostrar_dinamica(self) -> None:
+        self.panel_inferior.setCurrentWidget(self.panel_dinamica)
+        alto = sum(self.centro.sizes())
+        if self.centro.sizes()[1] < 0.42 * alto:
+            self.centro.setSizes([int(0.55 * alto), alto - int(0.55 * alto)])
+
+    def analizar_dinamica(self) -> bool:
+        """Va a la pestaña Dinámica y hace el análisis modal y espectral."""
+        self.mostrar_dinamica()
+        return self.panel_dinamica.analizar()
+
+    def ver_resultado_dinamica(self, nombre: str) -> None:
+        """Muestra un modo (su forma, como deformada) o un espectro (su momento)."""
+        self.combo.setCurrentText(nombre)
+        din = self.sesion.resultados_dinamica
+        if din is not None and nombre in din.modos:
+            self.elegir_diagrama("D")
+        elif self.vista.diagrama == "D":
+            self.elegir_diagrama("M")
+
+    def animar_modo(self, activo: bool) -> None:
+        if activo:
+            self.elegir_diagrama("D")
+            self._tiempo.start()
+            self._reloj.start()
+        else:
+            self._reloj.stop()
+            self.vista.fase = 1.0
+            self.vista.update()
+
+    def _cuadro_animacion(self) -> None:
+        self.vista.fase = fase(self._tiempo.elapsed() / 1000.0)
+        self.vista.update()
 
     def disenar(self) -> bool:
         """Va a la etapa Diseño y diseña todas las barras."""

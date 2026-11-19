@@ -108,6 +108,8 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | combinación modal SRSS / CQC (`combinacion`) | SRSS / CQC modal combination | combinação modal SRSS / CQC | сочетание форм SRSS / CQC |
 | cortante basal (`cortante_basal`) | base shear | cortante basal | сдвигающая сила в основании |
 | inercias (`inercias`, `M φ`) | modal inertia forces | forças de inércia modais | инерционные силы формы |
+| masa participante (`masa_participante`) | mass participation ratio | massa participante | доля участвующей массы |
+| dinámica del pórtico plano (`dinamica_plana`) | plane frame dynamics | dinâmica do pórtico plano | динамика плоской рамы |
 | memoria de cálculo (`memoria`, `memoria_de_calculo`) | calculation report, design report | memória de cálculo | расчётная записка |
 | plantilla (`plantilla.toml`) | template | modelo, template | шаблон |
 | capítulo de la memoria (`Capitulo`) | report chapter, section | capítulo | раздел, глава |

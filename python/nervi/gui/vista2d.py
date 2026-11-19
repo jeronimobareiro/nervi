@@ -37,6 +37,8 @@ class Vista2D(QWidget):
         self.sesion = sesion
         self.diagrama = "M"
         self.mostrar_valores = True
+        #: Factor de la deformada dibujada (la animación de un modo lo hace oscilar).
+        self.fase = 1.0
         #: Color de cada barra (id -> color), por ejemplo el estado de su diseño.
         self.colores_barra: dict[int, str] = {}
         self._cursor: QPointF | None = None
@@ -244,7 +246,7 @@ class Vista2D(QWidget):
         )
         if maximo <= 1e-15:
             return
-        amplif = 0.1 * tam / maximo
+        amplif = 0.1 * tam / maximo * self.fase
         p.setPen(QPen(QColor(estilo.ACENTO), 1.75, Qt.DashLine))
         for _bid, k, pi, pj in barras:
             d = res.diagrama(k)
@@ -298,7 +300,7 @@ class Vista2D(QWidget):
         if res is None:
             texto = "Sin resultados: calculá con F5" if self.sesion.modelo["barras"] else ""
         elif self.diagrama == "D":
-            texto = "Deformada (amplificada)"
+            texto = f"Deformada (amplificada) · {res.nombre}"
         else:
             texto = (
                 f"{DIAGRAMAS[self.diagrama]} [{UNIDAD[self.diagrama].format(**u)}] · {res.nombre}"
