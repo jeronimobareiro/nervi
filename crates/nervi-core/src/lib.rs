@@ -28,6 +28,7 @@
 #![allow(clippy::needless_range_loop)]
 
 pub mod analisis;
+pub mod diseno;
 pub mod elemento;
 pub mod error;
 pub mod espacial;

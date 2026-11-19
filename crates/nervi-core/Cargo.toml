@@ -9,3 +9,4 @@ rust-version.workspace = true
 
 [dependencies]
 faer = "0.24"
+rayon = "1.10"
