@@ -171,7 +171,7 @@ class Vista2D(QWidget):
         p.setPen(QPen(QColor(estilo.TEXTO_2), 1.5))
         if apoyo.get("ux") and apoyo.get("uy") and apoyo.get("rz"):
             p.drawLine(q + QPointF(-20, 0), q + QPointF(20, 0))
-            p.setPen(QPen(QColor("#9CA3AF"), 1))
+            p.setPen(QPen(QColor(estilo.TEXTO_3), 1))
             for dx in range(-18, 22, 9):
                 p.drawLine(q + QPointF(dx, 0), q + QPointF(dx - 7, 9))
         else:
@@ -230,7 +230,9 @@ class Vista2D(QWidget):
                     ancho = p.fontMetrics().horizontalAdvance(texto) + 8
                     caja = QRectF(punto.x() - ancho / 2, punto.y() - 8, ancho, 16)
                     p.setPen(Qt.NoPen)
-                    p.setBrush(QColor(255, 255, 255, 220))
+                    fondo = QColor(estilo.PANEL)
+                    fondo.setAlpha(220)
+                    p.setBrush(fondo)
                     p.drawRoundedRect(caja, 3, 3)
                     p.setBrush(Qt.NoBrush)
                     p.setPen(QColor(estilo.POSITIVO if v > 0 else estilo.NEGATIVO))
@@ -291,7 +293,7 @@ class Vista2D(QWidget):
         p.drawRoundedRect(caja, 6, 6)
         p.setFont(QFont(self.font().family(), 8))
         for n, texto in enumerate(lineas):
-            p.setPen(QColor("#A7AEBA" if n == 0 else "#FFFFFF"))
+            p.setPen(QColor(estilo.DESHABILITADO if n == 0 else estilo.PANEL))
             p.drawText(caja.adjusted(10, 6 + 16 * n, -6, 0), Qt.AlignLeft | Qt.AlignTop, texto)
         p.setBrush(Qt.NoBrush)
 

@@ -20,6 +20,8 @@ Todo o trabalho é feito em uma única janela. No alto está o percurso **Geomet
 
 Com **Ctrl+K** você abre uma busca para encontrar qualquer comando ou elemento do modelo pelo nome.
 
+No menu do logo você pode escolher **Tema claro** ou **Tema oscuro** (escuro); o Nervi lembra a escolha.
+
 ## Com Python
 
 O mesmo cálculo, escrito como programa:

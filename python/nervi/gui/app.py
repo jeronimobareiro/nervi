@@ -7,6 +7,7 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
+from . import estilo
 from .sesion import Sesion, documento_ejemplo
 from .ventana import Ventana, icono
 
@@ -59,7 +60,7 @@ def main(argv: list[str] | None = None) -> int:
     app.setApplicationName("Nervi")
     app.setOrganizationName("Nervi")
     app.setWindowIcon(icono())
-    app.setStyle("Fusion")
+    estilo.aplicar(app)
     ventana = crear_ventana(argv[1:])
     ventana.show()
     return app.exec()

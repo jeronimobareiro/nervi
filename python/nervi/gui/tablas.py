@@ -449,8 +449,8 @@ class TablaResultados(QAbstractTableModel):
         if rol == Qt.ForegroundRole and c > 0:
             v = float(valores[c - 1])
             if abs(v) < 1e-12:
-                return QColor("#9CA3AF")
-            return QColor("#1E40AF" if v > 0 else "#9A3412")
+                return QColor(estilo.TEXTO_3)
+            return QColor(estilo.POSITIVO if v > 0 else estilo.NEGATIVO)
         return None
 
 
