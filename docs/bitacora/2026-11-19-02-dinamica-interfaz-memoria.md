@@ -32,7 +32,7 @@ Que el análisis modal y espectral de la entrada 2026-11-18-01 se vea: periodos,
   - Capítulo de la memoria: subcapítulos, texto del PDF y aviso de masa insuficiente.
 - `tests/test_gui.py` (4 pruebas nuevas): sin masa avisa; flujo completo desde el panel (factores, modos, espectro, análisis, elegir modo y espectro, animación y desactualización al editar); guardar, abrir y memoria con el capítulo antes del de diseño; el modo en la escena 3D.
 - Capturas de la interfaz con un pórtico de tres pisos y dos vanos (en el PR).
-- `pytest`: 308 pruebas en verde. `ruff check` y `ruff format --check`, en verde. El motor Rust no cambió (`cargo fmt`, `clippy` y `cargo test -p nervi-core` se corrieron igual; detalle en el PR).
+- `pytest`: 308 pruebas en verde. `ruff check` y `ruff format --check`, en verde. El motor Rust no cambió; `cargo fmt --check`, `cargo clippy -D warnings` y `cargo test -p nervi-core` se corrieron igual y están en verde.
 
 ## Decisiones tomadas
 
@@ -50,7 +50,7 @@ Que el análisis modal y espectral de la entrada 2026-11-18-01 se vea: periodos,
 - Espectros normativos, `R`, combinación de direcciones y escalado del cortante basal (#20); combinar el sismo con las cargas gravitatorias para diseñar.
 - Pórtico espacial en la interfaz (el panel trabaja con el plano), masas nodales en la interfaz, animación en el visor 3D.
 - La carátula de la memoria: muestra entregada, falta la aprobación del usuario.
-- Firma DCO: pendiente; se pidió al usuario que confirme si autoriza firmar en su nombre, como en el PR #57.
+- Firma DCO: el usuario autorizó por escrito, el 2026-11-19 a las 12:05 UTC ("Te autorizo a firmarlo", en respuesta al pedido de firma del PR #58), que el agente firme los commits de este aporte en su nombre como `bareirojero <345933350+bareirojero@users.noreply.github.com>`.
 
 ## Para quien siga
 
