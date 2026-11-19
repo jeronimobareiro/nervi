@@ -165,6 +165,72 @@ pub fn rigidez_a_global_3d(r: &Rot, k: &Mat12) -> Mat12 {
     out
 }
 
+/// Desplazamientos de los extremos de la parte flexible a partir de los de
+/// los nudos (ejes globales, 12 GDL): con un brazo rígido `r` del nudo a la
+/// cara, `u_cara = u_nudo + θ × r` y `θ_cara = θ_nudo`.
+///
+/// Es la transformación de brazo rígido `[I, -[r]ₓ; 0, I]` de cada extremo:
+/// la cinemática de un cuerpo rígido con giros pequeños. Las fuerzas se
+/// transforman con la traspuesta (contragradiente, por trabajos virtuales) y
+/// la rigidez con `Bᵀ k B`. Es el tratamiento de las zonas rígidas de extremo
+/// («rigid end zones», «end offsets») de los textos de análisis matricial, por
+/// ejemplo McGuire, Gallagher y Ziemian, op. cit., y W. Weaver y J. M. Gere,
+/// *Matrix Analysis of Framed Structures*, 3.ª ed., Van Nostrand Reinhold 1990.
+/// Se verifica contra una barra partida en tres con las extremas casi rígidas
+/// (`tests/diafragma_brazos.rs`).
+pub fn a_caras(brazos: &[[f64; 3]; 2], u: &Vec12) -> Vec12 {
+    let mut out = *u;
+    for (e, r) in brazos.iter().enumerate() {
+        let o = 6 * e;
+        let t = cruz([u[o + 3], u[o + 4], u[o + 5]], *r);
+        for d in 0..3 {
+            out[o + d] += t[d];
+        }
+    }
+    out
+}
+
+/// Fuerzas en los nudos equivalentes a las de las caras (ejes globales): la
+/// traspuesta de [`a_caras`], `F_nudo = F_cara` y `M_nudo = M_cara + r × F_cara`.
+pub fn a_nudos(brazos: &[[f64; 3]; 2], f: &Vec12) -> Vec12 {
+    let mut out = *f;
+    for (e, r) in brazos.iter().enumerate() {
+        let o = 6 * e;
+        let m = cruz(*r, [f[o], f[o + 1], f[o + 2]]);
+        for d in 0..3 {
+            out[o + 3 + d] += m[d];
+        }
+    }
+    out
+}
+
+/// `[k_nudos] = [B]^T [k_caras] [B]` con `[B]` la transformación de
+/// [`a_caras`]. Sirve para la rigidez y para la masa en ejes globales.
+pub fn matriz_a_nudos(brazos: &[[f64; 3]; 2], k: &Mat12) -> Mat12 {
+    if brazos.iter().flatten().all(|v| *v == 0.0) {
+        return *k;
+    }
+    let mut out = [[0.0; 12]; 12];
+    for c in 0..12 {
+        let mut e = [0.0; 12];
+        e[c] = 1.0;
+        let be = a_caras(brazos, &e);
+        let kbe: Vec12 = std::array::from_fn(|p| (0..12).map(|q| k[p][q] * be[q]).sum());
+        let col = a_nudos(brazos, &kbe);
+        for p in 0..12 {
+            out[p][c] = col[p];
+        }
+    }
+    for p in 0..12 {
+        for q in (p + 1)..12 {
+            let m = 0.5 * (out[p][q] + out[q][p]);
+            out[p][q] = m;
+            out[q][p] = m;
+        }
+    }
+    out
+}
+
 /// Carga en el tramo de la barra espacial en ejes locales, separada en sus dos
 /// planos de flexión, cada uno como carga de barra plana: `xy` lleva `(qx, qy)`
 /// y `xz` lleva `(0, qz)` (el axil se cuenta una sola vez, en `xy`).
@@ -266,8 +332,11 @@ pub struct BarraAnalisis3d {
     pub k: Mat12,
     /// Rigidez local condensada (filas y columnas liberadas en cero).
     pub k_cond: Mat12,
-    /// Rigidez condensada en ejes globales.
+    /// Rigidez condensada en ejes globales, referida a los nudos (con los
+    /// brazos rígidos).
     pub k_global: Mat12,
+    /// Brazos rígidos de los extremos `i` y `j` en ejes globales.
+    pub brazos: [[f64; 3]; 2],
     pub liberados: Vec<usize>,
     pub retenidos: Vec<usize>,
     krr_inv: Vec<Vec<f64>>,
@@ -307,7 +376,8 @@ impl BarraAnalisis3d {
                 k_cond[q][p] = m;
             }
         }
-        let k_global = rigidez_a_global_3d(&ejes, &k_cond);
+        let brazos = [barra.brazo_i, barra.brazo_j];
+        let k_global = matriz_a_nudos(&brazos, &rigidez_a_global_3d(&ejes, &k_cond));
         Ok(BarraAnalisis3d {
             l,
             ejes,
@@ -318,10 +388,22 @@ impl BarraAnalisis3d {
             k,
             k_cond,
             k_global,
+            brazos,
             liberados,
             retenidos,
             krr_inv,
         })
+    }
+
+    /// Desplazamientos de extremo en ejes locales de la parte flexible a partir
+    /// de los de los nudos en globales.
+    pub fn nudos_a_local(&self, ug: &Vec12) -> Vec12 {
+        a_local_3d(&self.ejes, &a_caras(&self.brazos, ug))
+    }
+
+    /// Fuerzas de extremo en ejes locales llevadas a los nudos, en globales.
+    pub fn local_a_nudos(&self, f: &Vec12) -> Vec12 {
+        a_nudos(&self.brazos, &a_global_3d(&self.ejes, f))
     }
 
     /// Cargas equivalentes condensadas (ejes locales): `F_c - k_cr k_rr⁻¹ F_r`.

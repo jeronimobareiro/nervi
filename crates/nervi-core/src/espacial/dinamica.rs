@@ -45,9 +45,14 @@ use faer::{Mat, Side};
 
 use crate::analisis::resolver_sistema;
 use crate::error::{ErrorNervi, Gdl, Resultado};
-use crate::espacial::analisis::{gdl_barra, recuperar_caso, Resultados3d, Seccion3d};
-use crate::espacial::elemento::{rigidez_a_global_3d, BarraAnalisis3d, Mat12, Vec12};
+use crate::espacial::analisis::{
+    gdl_barra, recuperar_caso, rigidez_reducida, Resultados3d, Seccion3d,
+};
+use crate::espacial::elemento::{
+    matriz_a_nudos, rigidez_a_global_3d, BarraAnalisis3d, Mat12, Vec12,
+};
 use crate::espacial::modelo::{Modelo3d, TipoCargaBarra3d};
+use crate::espacial::restricciones::Restricciones;
 use crate::modelo::Ejes;
 
 /// Cantidad máxima de GDL con masa para usar el método denso exacto en
@@ -187,6 +192,22 @@ pub struct ResultadosModal3d {
     pub n_gdl_masa: usize,
     /// Método que se usó.
     pub metodo: MetodoModal,
+    /// Masa de cada diafragma rígido, en el orden de [`Modelo3d::diafragmas`].
+    pub diafragmas: Vec<MasaDiafragma>,
+}
+
+/// Masa de un diafragma rígido, concentrada en su maestro: la de sus nudos
+/// (nodal, de las barras que llegan a ellos y desde los casos) con la inercia
+/// de rotación de cada nudo respecto del maestro.
+#[derive(Clone, Debug, PartialEq)]
+pub struct MasaDiafragma {
+    pub maestro: usize,
+    /// Masa traslacional en X y en Y.
+    pub masa: [f64; 2],
+    /// Centro de masa `[x, y]` en ejes globales.
+    pub centro_masa: [f64; 2],
+    /// Inercia de rotación alrededor del eje vertical por el centro de masa.
+    pub inercia: f64,
 }
 
 /// Matriz de masa consistente local 12×12 de una barra con masa `m` por unidad
@@ -251,17 +272,23 @@ pub fn ensamblar_masa(
         let l = modelo.longitud(b);
         let gdl = gdl_barra(modelo, k);
         let consistente = masas.tipo == TipoMasa::Consistente && !b.liberaciones.iter().any(|x| *x);
-        if consistente {
+        let brazos = [b.brazo_i, b.brazo_j];
+        let mg = if consistente {
             let ejes = modelo.ejes_barra(b)?;
-            let mg = rigidez_a_global_3d(&ejes, &masa_consistente_local(m, (b.iy + b.iz) / b.a, l));
-            for p in 0..12 {
-                for q in 0..12 {
-                    sumar(gdl[p], gdl[q], mg[p][q]);
-                }
-            }
+            rigidez_a_global_3d(&ejes, &masa_consistente_local(m, (b.iy + b.iz) / b.a, l))
         } else {
+            let mut mc = [[0.0; 12]; 12];
             for d in [0, 1, 2, 6, 7, 8] {
-                sumar(gdl[d], gdl[d], 0.5 * m * l);
+                mc[d][d] = 0.5 * m * l;
+            }
+            mc
+        };
+        // Con brazos rígidos la masa está en las caras y se lleva a los nudos
+        // con la misma transformación que la rigidez.
+        let mg = matriz_a_nudos(&brazos, &mg);
+        for p in 0..12 {
+            for q in 0..12 {
+                sumar(gdl[p], gdl[q], mg[p][q]);
             }
         }
     }
@@ -301,7 +328,23 @@ pub fn ensamblar_masa(
                     )
                 }
             };
-            let wj = mom / l;
+            // Punto de la resultante sobre la parte flexible, repartido entre
+            // los nudos según su posición en la recta que los une (con brazos
+            // rígidos la parte flexible no empieza en el nudo).
+            let wj = if w == 0.0 {
+                0.0
+            } else if b.tiene_brazos() {
+                let (pi, _) = modelo.extremos(b);
+                let (ni, nj) = (modelo.nudos[b.nudo_i], modelo.nudos[b.nudo_j]);
+                let s = mom / w;
+                let p: [f64; 3] = std::array::from_fn(|d| pi[d] + s * ejes[0][d] - ni[d]);
+                let e: [f64; 3] = std::array::from_fn(|d| nj[d] - ni[d]);
+                let t = (0..3).map(|d| p[d] * e[d]).sum::<f64>()
+                    / (0..3).map(|d| e[d] * e[d]).sum::<f64>();
+                w * t.clamp(0.0, 1.0)
+            } else {
+                mom / l
+            };
             desde_cargas[b.nudo_i] -= (w - wj) * escala;
             desde_cargas[b.nudo_j] -= wj * escala;
         }
@@ -344,19 +387,28 @@ pub fn analizar_modal_3d(
         .map(|b| BarraAnalisis3d::new(b, modelo.longitud(b), modelo.ejes_barra(b)?))
         .collect::<Resultado<_>>()?;
 
+    // Rigidez y masa llevadas a los GDL independientes (diafragmas rígidos).
+    let rest = Restricciones::new(modelo);
+    let rigidez = rigidez_reducida(modelo, &barras, &rest);
+    let mut m_red: BTreeMap<(usize, usize), f64> = BTreeMap::new();
+    for (&(p, q), &v) in &mm {
+        rest.transformar(p, q, v, &mut |a, b, x| {
+            if x != 0.0 {
+                *m_red.entry((a, b)).or_insert(0.0) += x;
+            }
+        });
+    }
+
     // Diagonal de rigidez y de masa para decidir qué GDL quedan libres.
     let mut diag = vec![0.0; n_gdl];
-    for (k, ba) in barras.iter().enumerate() {
-        for (d, &gd) in gdl_barra(modelo, k).iter().enumerate() {
-            diag[gd] += ba.k_global[d][d];
+    for &(a, b, v) in &rigidez {
+        if a == b {
+            diag[a] += v;
         }
-    }
-    for (g, dg) in diag.iter_mut().enumerate() {
-        *dg += modelo.rigidez_resorte(g / 6, g % 6);
     }
     let diag_max = diag.iter().fold(0.0_f64, |m, v| m.max(v.abs()));
     let mut masa_diag = vec![0.0; n_gdl];
-    for (&(p, q), &v) in &mm {
+    for (&(p, q), &v) in &m_red {
         if p == q {
             masa_diag[p] += v;
         }
@@ -365,7 +417,7 @@ pub fn analizar_modal_3d(
     let mut gdl_sin_rigidez = Vec::new();
     for g in 0..n_gdl {
         let (nudo, d) = (g / 6, g % 6);
-        if modelo.restringido(nudo, d) {
+        if rest.dependiente[g] || modelo.restringido(nudo, d) {
             restringido[g] = true;
         } else if diag[g] <= 1e-14 * diag_max {
             if masa_diag[g] > 0.0 {
@@ -388,34 +440,18 @@ pub fn analizar_modal_3d(
     }
     let n_libres = gdl_global.len();
 
-    let mut tripletas = Vec::with_capacity(78 * barras.len() + n_libres);
-    for (k, ba) in barras.iter().enumerate() {
-        let gdl = gdl_barra(modelo, k);
-        for p in 0..12 {
-            let lp = libre_idx[gdl[p]];
-            if lp == usize::MAX {
-                continue;
-            }
-            for q in 0..12 {
-                let lq = libre_idx[gdl[q]];
-                let v = ba.k_global[p][q];
-                if v != 0.0 && lq != usize::MAX && lq <= lp {
-                    tripletas.push(Triplet::new(lp, lq, v));
-                }
-            }
-        }
-    }
-    for g in 0..n_gdl {
-        let ks = modelo.rigidez_resorte(g / 6, g % 6);
-        if libre_idx[g] != usize::MAX && ks != 0.0 {
-            tripletas.push(Triplet::new(libre_idx[g], libre_idx[g], ks));
+    let mut tripletas = Vec::with_capacity(rigidez.len() / 2 + n_libres);
+    for &(a, b, v) in &rigidez {
+        let (la, lb) = (libre_idx[a], libre_idx[b]);
+        if la != usize::MAX && lb != usize::MAX && lb <= la {
+            tripletas.push(Triplet::new(la, lb, v));
         }
     }
     let diag_libre_max = gdl_global.iter().fold(0.0_f64, |m, &g| m.max(diag[g]));
 
     // Masa sobre los GDL libres, por filas.
     let mut filas_m: Vec<Vec<(usize, f64)>> = vec![Vec::new(); n_libres];
-    for (&(p, q), &v) in &mm {
+    for (&(p, q), &v) in &m_red {
         let (lp, lq) = (libre_idx[p], libre_idx[q]);
         if lp != usize::MAX && lq != usize::MAX {
             filas_m[lp].push((lq, v));
@@ -500,16 +536,20 @@ pub fn analizar_modal_3d(
         let signo = mayor.1 / norma;
         phi.iter_mut().for_each(|v| *v *= signo);
         mphi.iter_mut().for_each(|v| *v *= signo);
-        let mut modo = vec![[0.0; 6]; modelo.nudos.len()];
+        let mut u = vec![0.0; n_gdl];
         let mut inercia = vec![[0.0; 6]; modelo.nudos.len()];
         let mut gamma = [0.0; 3];
         for (i, &g) in gdl_global.iter().enumerate() {
-            modo[g / 6][g % 6] = phi[i];
+            u[g] = phi[i];
             inercia[g / 6][g % 6] = mphi[i];
             if g % 6 < 3 {
                 gamma[g % 6] += mphi[i];
             }
         }
+        rest.expandir(&mut u);
+        let modo: Vec<[f64; 6]> = (0..modelo.nudos.len())
+            .map(|n| std::array::from_fn(|d| u[6 * n + d]))
+            .collect();
         omegas.push(1.0 / mu.sqrt());
         modos.push(modo);
         inercias.push(inercia);
@@ -517,7 +557,7 @@ pub fn analizar_modal_3d(
         efectivas.push(gamma.map(|x| x * x));
     }
     let mut masa_total = [0.0; 3];
-    for (&(p, q), &v) in &mm {
+    for (&(p, q), &v) in &m_red {
         if p % 6 == q % 6 && p % 6 < 3 && libre_idx[p] != usize::MAX && libre_idx[q] != usize::MAX {
             masa_total[p % 6] += v;
         }
@@ -526,7 +566,28 @@ pub fn analizar_modal_3d(
         .iter()
         .map(|w| 2.0 * std::f64::consts::PI / w)
         .collect();
+    let diafragmas = modelo
+        .diafragmas
+        .iter()
+        .map(|d| {
+            let m = d.maestro;
+            let pm = modelo.nudos[m];
+            let val =
+                |a: usize, b: usize| m_red.get(&(6 * m + a, 6 * m + b)).copied().unwrap_or(0.0);
+            let (mx, my, jz) = (val(0, 0), val(1, 1), val(5, 5));
+            // M̂(ux, rz) = -Σ m dy y M̂(uy, rz) = Σ m dx.
+            let ex = if my > 0.0 { val(1, 5) / my } else { 0.0 };
+            let ey = if mx > 0.0 { -val(0, 5) / mx } else { 0.0 };
+            MasaDiafragma {
+                maestro: m,
+                masa: [mx, my],
+                centro_masa: [pm[0] + ex, pm[1] + ey],
+                inercia: jz - 0.5 * (mx + my) * (ex * ex + ey * ey),
+            }
+        })
+        .collect();
     Ok(ResultadosModal3d {
+        diafragmas,
         frecuencias: periodos.iter().map(|t| 1.0 / t).collect(),
         periodos,
         omegas,
@@ -963,6 +1024,7 @@ pub fn analizar_espectro_3d(
         .collect::<Resultado<_>>()?;
     let n_gdl = modelo.n_gdl();
     let feq = vec![[0.0; 12]; barras.len()];
+    let rest = Restricciones::new(modelo);
 
     let mut aceleraciones = Vec::with_capacity(n_modos);
     let mut factores = Vec::with_capacity(n_modos);
@@ -988,6 +1050,7 @@ pub fn analizar_espectro_3d(
         let rc = recuperar_caso(
             modelo,
             &barras,
+            &rest,
             &u,
             &feq,
             &f,

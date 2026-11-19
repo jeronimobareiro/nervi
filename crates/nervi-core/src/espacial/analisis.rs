@@ -14,10 +14,11 @@ use crate::analisis::{raices_cuadratica_en_intervalo, resolver_sistema, seccion_
 use crate::elemento::CargaLocal;
 use crate::error::{ErrorNervi, Gdl, Resultado};
 use crate::espacial::elemento::{
-    a_global_3d, a_local_3d, carga_a_local_3d, cargas_equivalentes_3d, plano_xy, plano_xz,
-    BarraAnalisis3d, CargaLocal3d, Vec12,
+    carga_a_local_3d, cargas_equivalentes_3d, plano_xy, plano_xz, BarraAnalisis3d, CargaLocal3d,
+    Vec12,
 };
 use crate::espacial::modelo::Modelo3d;
+use crate::espacial::restricciones::Restricciones;
 
 /// Resultados de un caso de carga del pórtico espacial.
 #[derive(Clone, Debug)]
@@ -104,6 +105,8 @@ pub fn analizar_3d(modelo: &Modelo3d) -> Resultado<Resultados3d> {
         }
     }
 
+    let rest = Restricciones::new(modelo);
+    // Cargas en los nudos (ejes globales) y llevadas a los GDL independientes.
     let mut f_glob = vec![vec![0.0; n_gdl]; n_casos];
     for (c, caso) in modelo.casos.iter().enumerate() {
         for (nudo, f) in &caso.nodales {
@@ -112,36 +115,35 @@ pub fn analizar_3d(modelo: &Modelo3d) -> Resultado<Resultados3d> {
             }
         }
         for (k, ba) in barras.iter().enumerate() {
-            let g = a_global_3d(&ba.ejes, &ba.condensar_cargas(&feq[c][k]));
+            let g = ba.local_a_nudos(&ba.condensar_cargas(&feq[c][k]));
             for (d, &gd) in gdl_barra(k).iter().enumerate() {
                 f_glob[c][gd] += g[d];
             }
         }
     }
+    let f_red: Vec<Vec<f64>> = f_glob.iter().map(|f| rest.reducir(f)).collect();
 
+    let rigidez = rigidez_reducida(modelo, &barras, &rest);
     let mut diag = vec![0.0; n_gdl];
-    for (k, ba) in barras.iter().enumerate() {
-        for (d, &gd) in gdl_barra(k).iter().enumerate() {
-            diag[gd] += ba.k_global[d][d];
+    for &(a, b, v) in &rigidez {
+        if a == b {
+            diag[a] += v;
         }
-    }
-    for (g, dg) in diag.iter_mut().enumerate() {
-        *dg += modelo.rigidez_resorte(g / 6, g % 6);
     }
     let diag_max = diag.iter().fold(0.0_f64, |m, v| m.max(v.abs()));
 
     let mut restringido = vec![false; n_gdl];
     let mut gdl_sin_rigidez = Vec::new();
-    let escala_f = f_glob
+    let escala_f = f_red
         .iter()
         .flat_map(|f| f.iter())
         .fold(0.0_f64, |m, v| m.max(v.abs()));
     for g in 0..n_gdl {
         let (nudo, d) = (g / 6, g % 6);
-        if modelo.restringido(nudo, d) {
+        if rest.dependiente[g] || modelo.restringido(nudo, d) {
             restringido[g] = true;
         } else if diag[g] <= 1e-14 * diag_max {
-            if f_glob
+            if f_red
                 .iter()
                 .any(|f| f[g].abs() > 1e-14 * escala_f.max(f64::MIN_POSITIVE))
             {
@@ -174,43 +176,27 @@ pub fn analizar_3d(modelo: &Modelo3d) -> Resultado<Resultados3d> {
         }
     }
 
-    let mut tripletas = Vec::with_capacity(78 * barras.len() + n_libres);
+    let mut tripletas = Vec::with_capacity(rigidez.len() / 2 + n_libres);
     let mut rhs = Mat::<f64>::zeros(n_libres, n_casos);
-    for (c, f) in f_glob.iter().enumerate() {
+    for (c, f) in f_red.iter().enumerate() {
         for g in 0..n_gdl {
             if libre_idx[g] != usize::MAX {
                 rhs[(libre_idx[g], c)] = f[g];
             }
         }
     }
-    for (k, ba) in barras.iter().enumerate() {
-        let gdl = gdl_barra(k);
-        for p in 0..12 {
-            let lp = libre_idx[gdl[p]];
-            if lp == usize::MAX {
-                continue;
-            }
-            for q in 0..12 {
-                let v = ba.k_global[p][q];
-                if v == 0.0 {
-                    continue;
-                }
-                let lq = libre_idx[gdl[q]];
-                if lq == usize::MAX {
-                    for c in 0..n_casos {
-                        rhs[(lp, c)] -= v * u_imp[c][gdl[q]];
-                    }
-                } else if lq <= lp {
-                    tripletas.push(Triplet::new(lp, lq, v));
-                }
-            }
+    for &(a, b, v) in &rigidez {
+        let la = libre_idx[a];
+        if la == usize::MAX {
+            continue;
         }
-    }
-    for g in 0..n_gdl {
-        let lg = libre_idx[g];
-        let ks = modelo.rigidez_resorte(g / 6, g % 6);
-        if lg != usize::MAX && ks != 0.0 {
-            tripletas.push(Triplet::new(lg, lg, ks));
+        let lb = libre_idx[b];
+        if lb == usize::MAX {
+            for c in 0..n_casos {
+                rhs[(la, c)] -= v * u_imp[c][b];
+            }
+        } else if lb <= la {
+            tripletas.push(Triplet::new(la, lb, v));
         }
     }
 
@@ -226,6 +212,7 @@ pub fn analizar_3d(modelo: &Modelo3d) -> Resultado<Resultados3d> {
                 u[g] = u_libres[(libre_idx[g], c)];
             }
         }
+        rest.expandir(&mut u);
         let mut f_nodal = vec![0.0; n_gdl];
         for (nudo, f) in &modelo.casos[c].nodales {
             for d in 0..6 {
@@ -235,6 +222,7 @@ pub fn analizar_3d(modelo: &Modelo3d) -> Resultado<Resultados3d> {
         casos.push(recuperar_caso(
             modelo,
             &barras,
+            &rest,
             &u,
             &feq[c],
             &f_nodal,
@@ -255,26 +243,65 @@ pub(crate) fn gdl_barra(modelo: &Modelo3d, k: usize) -> [usize; 12] {
     std::array::from_fn(|d| if d < 6 { 6 * i + d } else { 6 * j + d - 6 })
 }
 
+/// Rigidez de las barras y de los resortes llevada a los GDL independientes
+/// (`Tᵀ K T`, ver [`Restricciones`]), como lista de términos `(fila, columna,
+/// valor)` con índices globales y las dos mitades de la matriz. Los términos
+/// repetidos se suman al armar la matriz dispersa.
+pub(crate) fn rigidez_reducida(
+    modelo: &Modelo3d,
+    barras: &[BarraAnalisis3d],
+    rest: &Restricciones,
+) -> Vec<(usize, usize, f64)> {
+    let mut out = Vec::with_capacity(144 * barras.len() + modelo.n_gdl());
+    let mut agregar = |a: usize, b: usize, v: f64| {
+        if v != 0.0 {
+            out.push((a, b, v));
+        }
+    };
+    for (k, ba) in barras.iter().enumerate() {
+        let gdl = gdl_barra(modelo, k);
+        for p in 0..12 {
+            for q in 0..12 {
+                let v = ba.k_global[p][q];
+                if v != 0.0 {
+                    rest.transformar(gdl[p], gdl[q], v, &mut agregar);
+                }
+            }
+        }
+    }
+    for g in 0..modelo.n_gdl() {
+        let ks = modelo.rigidez_resorte(g / 6, g % 6);
+        if ks != 0.0 && !modelo.restringido(g / 6, g % 6) {
+            rest.transformar(g, g, ks, &mut agregar);
+        }
+    }
+    out
+}
+
 /// Fuerzas de extremo y reacciones a partir de los desplazamientos globales `u`
-/// de todos los GDL: `f = k u - F_eq` en cada barra y reacción = suma de las
-/// fuerzas de las barras menos la carga nodal `f_nodal` en los GDL restringidos
-/// o con resorte. Lo comparten el análisis estático y la respuesta modal.
+/// de todos los GDL: `f = k u - F_eq` en cada barra (en las caras, si tiene
+/// brazos rígidos) y reacción = suma de las fuerzas de las barras menos la
+/// carga nodal `f_nodal` en los GDL restringidos o con resorte. En un
+/// diafragma, la reacción de un GDL restringido del maestro suma lo de todo el
+/// piso (`Tᵀ`), y la de un resorte es `-k u`. Lo comparten el análisis
+/// estático y la respuesta modal.
 pub(crate) fn recuperar_caso(
     modelo: &Modelo3d,
     barras: &[BarraAnalisis3d],
+    rest: &Restricciones,
     u: &[f64],
     feq: &[Vec12],
     f_nodal: &[f64],
     cargas_locales: Vec<Vec<CargaLocal3d>>,
 ) -> ResultadosCaso3d {
     let n_gdl = modelo.n_gdl();
-    let mut suma_fuerzas = vec![0.0; n_gdl];
+    let mut residuo = vec![0.0; n_gdl];
     let mut fuerzas_extremo = Vec::with_capacity(barras.len());
     let mut desplazamientos_extremo = Vec::with_capacity(barras.len());
     for (k, ba) in barras.iter().enumerate() {
         let gdl = gdl_barra(modelo, k);
         let ug: Vec12 = std::array::from_fn(|d| u[gdl[d]]);
-        let ul = ba.completar_desplazamientos(&a_local_3d(&ba.ejes, &ug), &feq[k]);
+        let ul = ba.completar_desplazamientos(&ba.nudos_a_local(&ug), &feq[k]);
         let mut f: Vec12 = [0.0; 12];
         for p in 0..12 {
             f[p] = (0..12).map(|q| ba.k[p][q] * ul[q]).sum::<f64>() - feq[k][p];
@@ -282,18 +309,47 @@ pub(crate) fn recuperar_caso(
         for &r in &ba.liberados {
             f[r] = 0.0;
         }
-        let fg = a_global_3d(&ba.ejes, &f);
+        let fg = ba.local_a_nudos(&f);
         for d in 0..12 {
-            suma_fuerzas[gdl[d]] += fg[d];
+            residuo[gdl[d]] += fg[d];
         }
         fuerzas_extremo.push(f);
         desplazamientos_extremo.push(ul);
     }
+    for g in 0..n_gdl {
+        residuo[g] -= f_nodal[g];
+    }
+    let hay_diafragmas = !modelo.diafragmas.is_empty();
+    let mut en_diafragma = vec![false; modelo.nudos.len()];
+    if hay_diafragmas {
+        // Los resortes de los esclavos actúan sobre el piso: su fuerza entra en
+        // el equilibrio de los GDL del maestro.
+        for g in 0..n_gdl {
+            let ks = modelo.rigidez_resorte(g / 6, g % 6);
+            if rest.dependiente[g] && ks != 0.0 {
+                residuo[g] += ks * u[g];
+            }
+        }
+        residuo = rest.reducir(&residuo);
+        for d in &modelo.diafragmas {
+            en_diafragma[d.maestro] = true;
+            for &e in &d.esclavos {
+                en_diafragma[e] = true;
+            }
+        }
+    }
     let mut reacciones = vec![[0.0; 6]; modelo.nudos.len()];
     for g in 0..n_gdl {
         let (nudo, d) = (g / 6, g % 6);
-        if modelo.restringido(nudo, d) || modelo.rigidez_resorte(nudo, d) != 0.0 {
-            reacciones[nudo][d] = suma_fuerzas[g] - f_nodal[g];
+        let ks = modelo.rigidez_resorte(nudo, d);
+        if modelo.restringido(nudo, d) {
+            reacciones[nudo][d] = residuo[g];
+        } else if ks != 0.0 {
+            reacciones[nudo][d] = if en_diafragma[nudo] {
+                -ks * u[g]
+            } else {
+                residuo[g]
+            };
         }
     }
     let desplazamientos = (0..modelo.nudos.len())

@@ -7,6 +7,11 @@
 //! ([`crate::elemento`]), la solución del sistema y el diagnóstico de
 //! mecanismos ([`crate::analisis`]).
 //!
+//! Para modelar edificios, las barras admiten brazos rígidos en sus extremos
+//! ([`Barra3d::con_brazos`], issue #13) y los nudos de un piso se pueden unir
+//! con un diafragma rígido ([`Modelo3d::agregar_diafragma`], issue #14), que
+//! se impone por transformación maestro-esclavo.
+//!
 //! ```
 //! use nervi_core::espacial::{analizar_3d, Barra3d, CasoCarga3d, Modelo3d};
 //!
@@ -31,11 +36,12 @@ pub mod analisis;
 pub mod dinamica;
 pub mod elemento;
 pub mod modelo;
+pub(crate) mod restricciones;
 
 pub use analisis::{analizar_3d, Resultados3d, ResultadosCaso3d, Seccion3d};
 pub use dinamica::{
-    analizar_espectro_3d, analizar_modal_3d, coeficiente_cqc, CombinacionModal, Espectro, Masas3d,
-    MetodoModal, ResultadosEspectro3d, ResultadosModal3d, TipoMasa,
+    analizar_espectro_3d, analizar_modal_3d, coeficiente_cqc, CombinacionModal, Espectro,
+    MasaDiafragma, Masas3d, MetodoModal, ResultadosEspectro3d, ResultadosModal3d, TipoMasa,
 };
 pub use elemento::{ejes_locales, CargaLocal3d};
-pub use modelo::{Barra3d, CargaBarra3d, CasoCarga3d, Modelo3d, TipoCargaBarra3d};
+pub use modelo::{Barra3d, CargaBarra3d, CasoCarga3d, Diafragma, Modelo3d, TipoCargaBarra3d};
