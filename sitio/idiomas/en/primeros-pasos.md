@@ -19,6 +19,8 @@ All the work is done in a single window. At the top is the path **Geometry › L
 
 With **Ctrl+K** you open a search box to find any command or model element by name.
 
+In the logo menu you can choose **Tema claro** (light) or **Tema oscuro** (dark); Nervi remembers your choice.
+
 ## With Python
 
 The same calculation, written as a program:

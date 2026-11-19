@@ -195,3 +195,4 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | buen primer aporte (`buen-primer-aporte`) | good first issue | boa primeira contribuição | хорошая первая задача |
 | proyecto académico (`proyecto-academico`) | academic project | projeto acadêmico | учебный проект |
 | tesis posible (`tesis-posible`) | possible thesis | tese possível | возможная тема диссертации |
+| tema de la interfaz (`Tema`, `estilo.aplicar`), claro / oscuro | UI theme, light / dark | tema da interface, claro / escuro | тема интерфейса, светлая / тёмная |

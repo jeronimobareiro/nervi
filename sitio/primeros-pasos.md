@@ -19,6 +19,8 @@ Todo el trabajo se hace en una sola ventana. Arriba está el recorrido **Geometr
 
 Con **Ctrl+K** abrís un buscador para encontrar cualquier comando o elemento del modelo por su nombre.
 
+En el menú del logo podés elegir **Tema claro** o **Tema oscuro**; Nervi recuerda la elección.
+
 ## Con Python
 
 El mismo cálculo, escrito como programa:
