@@ -19,6 +19,8 @@ use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
+mod diseno;
+
 /// Versión del contrato de datos del pórtico plano que entiende este módulo.
 const VERSION_CONTRATO: u32 = 2;
 /// Versión del contrato de datos del pórtico espacial (`resolver_portico_3d`).
@@ -67,7 +69,7 @@ fn error_a_python(py: Python<'_>, e: ErrorNervi) -> PyErr {
     }
 }
 
-fn verificar_forma(nombre: &str, forma: &[usize], esperada: &[usize]) -> PyResult<()> {
+pub(crate) fn verificar_forma(nombre: &str, forma: &[usize], esperada: &[usize]) -> PyResult<()> {
     if forma != esperada {
         return Err(PyValueError::new_err(format!(
             "'{nombre}' tiene forma {forma:?}; se esperaba {esperada:?}"
@@ -983,5 +985,10 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("VERSION_CONTRATO_DINAMICA", VERSION_CONTRATO_DINAMICA)?;
     m.add_function(wrap_pyfunction!(resolver_modal_3d, m)?)?;
     m.add_function(wrap_pyfunction!(espectro_3d, m)?)?;
+    m.add("VERSION_CONTRATO_DISENO", diseno::VERSION_CONTRATO_DISENO)?;
+    m.add_function(wrap_pyfunction!(diseno::columna_seccion_en, m)?)?;
+    m.add_function(wrap_pyfunction!(diseno::columna_capacidad, m)?)?;
+    m.add_function(wrap_pyfunction!(diseno::columna_razones, m)?)?;
+    m.add_function(wrap_pyfunction!(diseno::columna_elegir_armadura, m)?)?;
     Ok(())
 }

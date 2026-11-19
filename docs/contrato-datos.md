@@ -165,3 +165,24 @@ Errores: `ValueError` por datos inválidos (masas negativas, modelo sin masa, es
 |---|---|
 | 1 | Versión inicial (issues #16, #17 y #18): masas nodales, lineales y desde casos; modal denso y Lanczos; espectro con SRSS y CQC. |
 | 2 | El modelo admite brazos rígidos y diafragmas (contrato 3D 2); `resolver_modal_3d` devuelve además `diafragmas`, y las `inercias` se dan en los GDL independientes. |
+
+# Contrato de datos del diseño (versión 1)
+
+Funciones de `nervi._core` que usa `nervi.design.aci318.columna` (issue #24) para la flexocompresión biaxial de columnas, calculada en `nervi_core::diseno::columna`. No son API pública: se llaman a través de `verificar_columna`, `diagrama_interaccion`, `elegir_armadura_columna` y `disenar_columna`, que no cambiaron. Se versiona aparte con `nervi._core.VERSION_CONTRATO_DISENO` (hoy 1); los contratos del análisis no cambian.
+
+Argumentos comunes (float64 contiguos, mm y MPa): `contorno (k, 2)` con los vértices `(y, z)` del polígono convexo antihorario con el origen en el baricentro, `barras (n, 2)` con las posiciones `(y, z)`, `areas (n,)` en mm² (las barras de área nula se ignoran), `fc`, `fy` y `zunchada`. Signos de [`convenciones.md`](convenciones.md) y del módulo de Python: `Pn` y `Pu` positivos en compresión.
+
+| Función | Entrada propia | Salida |
+|---|---|---|
+| `columna_seccion_en(version, contorno, barras, areas, fc, fy, zunchada, theta, c)` | `theta (m,)` inclinación del eje neutro (rad), `c (m,)` profundidad (mm) | diccionario con `pn` (N), `mz`, `my` (N·mm), `eps_t` y `phi`, cada uno `(m,)` |
+| `columna_capacidad(version, contorno, barras, areas, fc, fy, zunchada, p_obj, alfa)` | `p_obj (m,)` en N y `alfa (m,)` dirección en el plano `(Mz, My)` | `(phi_mn (N·mm), theta, c, ok)`, cada uno `(m,)` |
+| `columna_razones(version, contorno, barras, areas, fc, fy, zunchada, solicitaciones_kn, phi_pn_max, phi_pnt)` | `solicitaciones_kn (m, 3)` = `(Pu, Mz, My)` en kN y kN·m; `φPn,max` y `φPnt` en kN | `(phi_mn (kN·m), razon_momento, razon_axial, razon)`, cada uno `(m,)` |
+| `columna_elegir_armadura(version, contorno, barras, areas, phi_pn_max, phi_pnt, fc, fy, zunchada, solicitaciones_kn)` | `barras (K, n, 2)` y `areas (K, n)` con K armaduras candidatas ordenadas por área (completadas con barras de área nula), `phi_pn_max` y `phi_pnt (K,)` en kN | índice de la primera candidata que resiste todas las solicitaciones, o `None` |
+
+Errores: `ValueError` si la versión no coincide, las formas no son las esperadas, el contorno tiene menos de 3 vértices o `f'c` o `fy` no son positivos.
+
+### Historial de versiones (diseño)
+
+| Versión | Cambio |
+|---|---|
+| 1 | Versión inicial: flexocompresión biaxial de columnas (antes en NumPy, mismos resultados). |

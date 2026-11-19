@@ -13,6 +13,7 @@ Este archivo es para cualquier IA que trabaje en Nervi (Claude, Gemini, ChatGPT/
 ## 2. Mientras trabajás
 
 - No afirmes que algo "está implementado" si no hay código y pruebas que lo demuestren.
+- **Rendimiento (regla prioritaria).** Todo cálculo que recorra barras, nudos, combinaciones, estaciones o iteraciones numéricas (análisis, combinaciones y envolventes, diseño y verificación según norma, diagramas de interacción, búsqueda de armaduras) va en Rust (`nervi-core`) y se expone a Python por `nervi-py` con la misma API pública. Python queda para la interfaz, la memoria PDF, el formato `.nrv`, la orquestación, los ejemplos y los prototipos. Un prototipo en Python pasa a Rust antes de entrar en la interfaz o en la memoria, o en cuanto el banco de tiempos (`scripts/medir_diseno.py`) muestre que pesa, con las mismas pruebas de verificación más una comparación cruzada contra la versión anterior. Todo cambio que toque cálculo informa en el PR el tiempo del pórtico de referencia antes y después.
 - Toda fórmula nueva lleva su **fuente** (norma con artículo, libro o fórmula cerrada) en un comentario y una **prueba de verificación** en `crates/nervi-core/tests/` o `tests/`.
 - Antes de terminar, corré y dejá en verde:
   ```

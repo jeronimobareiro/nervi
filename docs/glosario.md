@@ -198,3 +198,6 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | proyecto académico (`proyecto-academico`) | academic project | projeto acadêmico | учебный проект |
 | tesis posible (`tesis-posible`) | possible thesis | tese possível | возможная тема диссертации |
 | tema de la interfaz (`Tema`, `estilo.aplicar`), claro / oscuro | UI theme, light / dark | tema da interface, claro / escuro | тема интерфейса, светлая / тёмная |
+| banco de tiempos (`scripts/medir_diseno.py`), pórtico de referencia | benchmark, reference frame | benchmark, pórtico de referência | замер времени, эталонная рама |
+| comparación cruzada (`test_columna_rust.py`) | cross-check test | comparação cruzada | перекрёстная проверка |
+| armadura candidata (`elegir_armadura`) | candidate reinforcement layout | armadura candidata | вариант армирования |
