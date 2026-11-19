@@ -13,7 +13,7 @@ Software livre e de código aberto para análise e dimensionamento estrutural, c
 
 Site: **[jeronimobareiro.github.io/nervi](https://jeronimobareiro.github.io/nervi/)**.
 
-> **Estado: Fase 1 (pórtico plano linear elástico), com uma interface de desktop preliminar.** Ainda não há dimensionamento segundo normas nem IFC. Veja o [roteiro](docs/hoja-de-ruta.md) (em espanhol).
+> **Estado: versão preliminar em desenvolvimento.** O pórtico plano linear elástico (Fase 1) está quase completo e tem interface de desktop. O pórtico espacial e a dinâmica (Fase 2) e o dimensionamento de concreto armado segundo a ACI 318-19 (Fase 3) já começaram e são preliminares ou experimentais. Ainda não há norma regional nem IFC. Detalhes em [`docs/ESTADO.md`](docs/ESTADO.md) e o plano no [roteiro](docs/hoja-de-ruta.md) (ambos em espanhol).
 >
 > Este software auxilia o engenheiro; não substitui seu critério nem sua responsabilidade profissional. Verifique sempre os resultados.
 
@@ -30,23 +30,31 @@ Veja o [guia de contribuição](CONTRIBUTING.md#contributing-from-other-countrie
 
 ## O que faz hoje
 
-- Pórticos planos com barras de Euler-Bernoulli (3 graus de liberdade por nó).
-- **Novo, preliminar:** pórticos espaciais a partir do Python (`nervi.Modelo3D`): barras de 12 graus de liberdade com flexão em dois planos, esforço normal e torção, eixos locais definidos por um vetor de referência, barras de treliça espacial e seções usuais em `nervi.secciones`. Ainda sem interface nem formato `.nrv`.
-- **Novo, preliminar:** análise modal e por espectro de resposta do pórtico espacial (`Modelo3D.modal`): massas nodais, das barras (concentradas ou consistentes) e a partir das cargas dos casos; períodos, formas modais e massa participante por direção; resposta espectral com combinação SRSS ou CQC. O espectro da norma é fornecido por quem projeta.
-- **Novo, preliminar:** edifícios reais no pórtico espacial: **diafragma rígido por pavimento** (`Modelo3D.diafragma`, restrição mestre-escravo por transformação, com a massa do pavimento concentrada no nó mestre, seu centro de massa e os deslocamentos relativos entre pavimentos) e **trechos rígidos** nas extremidades das barras (`brazo_i`, `brazo_j`), com esforços na face do nó.
-- **Novo, preliminar:** modos e espectros do pórtico plano na interface (aba **Dinámica**): massa a partir dos casos de carga, tabela de períodos e massa participante, formas modais desenhadas e animadas, espectros de resposta com cortante basal e diagramas, salvos no `.nrv` e com seu capítulo na memória de cálculo (`nervi.dinamica_plana`).
-- Cargas nodais e cargas em barras uniformes, concentradas, trapezoidais ou parciais, em eixos locais ou globais; momentos concentrados no vão; ações térmicas.
-- Articulações e liberações de extremidade; treliças.
-- Apoios rígidos e elásticos, e recalques impostos.
-- Vários casos de carga com uma única fatoração, e combinações lineares (combinações e envoltórias da ACI 318-19, experimentais).
-- Dimensionamento de vigas retangulares de concreto armado segundo a ACI 318-19 (`nervi.design.aci318`, experimental): armadura de flexão simples ou dupla, escolha de barras comerciais e estribos para cortante, a partir das envoltórias; flechas imediatas e diferidas com inércia efetiva, controle de fissuração e comprimentos de ancoragem, ganchos e emendas (`aci318.servicio`, `aci318.detalle`).
-- Dimensionamento de pilares de concreto armado segundo a ACI 318-19 (`nervi.design.aci318`, experimental): flexo-compressão oblíqua com diagrama de interação, esbeltez por amplificação de momentos e escolha da armadura, a partir do pórtico espacial ou plano.
-- Na interface, a etapa **Diseño** (dimensionamento) dimensiona todas as vigas e pilares do pórtico, mostra cada verificação com o artigo da norma e adiciona o capítulo de dimensionamento à memória de cálculo.
-- Reações, esforços nas extremidades, diagramas `N`, `V`, `M` e deformada, incluindo os pontos de momento máximo.
-- Detecção de mecanismos e validação de dados com mensagens claras.
-- Memória de cálculo em PDF (em espanhol, com modelo editável): dados do modelo, seções, cargas, combinações, tabelas de resultados, diagramas e envoltórias (`nervi.memoria`, `pip install "nervi[memoria]"` ou Ctrl+P na interface).
+### Análise
 
-Os apoios são tratados por partição dos graus de liberdade (sem penalização) e o sistema é resolvido com Cholesky esparso do [`faer`](https://github.com/sarah-quinones/faer-rs). Um pórtico de 8 100 barras é resolvido em cerca de 45 ms (release).
+- **Pórtico plano** com barras de Euler-Bernoulli (3 graus de liberdade por nó): cargas nodais; cargas uniformes, concentradas, trapezoidais ou parciais e térmicas nas barras, em eixos locais ou globais; momentos concentrados no vão; articulações, liberações de extremidade e treliças; apoios rígidos, elásticos e recalques impostos.
+- Vários casos de carga com uma única fatoração e combinações lineares. Reações, esforços nas extremidades, diagramas `N`, `V`, `M` e deformada, com os pontos de momento máximo.
+- Detecção de mecanismos (indica qual nó e qual grau de liberdade se movem sem rigidez) e validação de dados com mensagens claras.
+- **Pórtico espacial** a partir do Python (`nervi.Modelo3D`, preliminar): barras de 12 graus de liberdade com flexão em dois planos, esforço normal e torção, eixos locais definidos por um vetor de referência, barras de treliça espacial e seções usuais em `nervi.secciones`. **Diafragma rígido por pavimento** (`Modelo3D.diafragma`, restrição mestre-escravo por transformação, com centro de massa e deslocamentos relativos entre pavimentos) e **trechos rígidos** nas extremidades das barras (`brazo_i`, `brazo_j`), com esforços na face do nó. Ainda sem interface nem `.nrv`.
+- **Dinâmica** (preliminar): massas nodais, das barras (concentradas ou consistentes) e a partir dos casos de carga; análise modal com períodos, formas e massa participante por direção; espectro de resposta com SRSS ou CQC (`Modelo3D.modal`). O espectro da norma é fornecido por quem projeta. No pórtico plano, também pela interface (`nervi.dinamica_plana`).
+
+### Dimensionamento de concreto armado segundo a ACI 318-19 (experimental)
+
+- Combinações de carga e envoltórias por seção (`nervi.design`).
+- **Vigas** retangulares: armadura de flexão simples ou dupla, escolha de barras comerciais e estribos para cortante; flechas imediatas e diferidas com inércia efetiva, fissuração e comprimentos de ancoragem, ganchos e emendas (`aci318.servicio`, `aci318.detalle`).
+- **Pilares**: flexo-compressão oblíqua com diagrama de interação, esbeltez por amplificação de momentos e escolha da armadura, a partir do pórtico plano ou espacial. O cálculo roda em Rust.
+
+Ainda não foi revisado por um engenheiro estrutural: não use em projetos reais.
+
+### Interface de desktop e documentos
+
+- **Interface** (`nervi-gui`, PySide6) em uma única janela, com as etapas Geometria › Cargas › Análise › Resultados › Dimensionamento: tabelas do modelo, cálculo com F5, diagramas com leitura de esforços sob o cursor, visualizador 3D opcional, aba **Dinámica** (massas, modos animados e espectros), etapa **Diseño** (todas as vigas e pilares, cada verificação com seu artigo), revisão do modelo, console Python e paleta de comandos (Ctrl+K). Tema claro por padrão e tema escuro com as cores da marca. Por enquanto a interface está em espanhol.
+- **Projetos** no formato [`.nrv`](docs/formato-nrv.md), com módulos versionados (modelo, dimensionamento, dinâmica) e migrações para que projetos antigos sempre abram.
+- **Memória de cálculo em PDF**, em espanhol e com modelo editável: capa, normas de referência, dados do modelo, cargas, combinações, resultados, diagramas, envoltórias e, quando houver, os capítulos de dimensionamento e de análise dinâmica (`nervi.memoria`, ou Ctrl+P na interface).
+
+### Desempenho
+
+Apoios por partição dos graus de liberdade (sem penalização) e Cholesky esparso com [`faer`](https://github.com/sarah-quinones/faer-rs): um pórtico de 8 100 barras é resolvido em cerca de 45 ms (release). Levar o dimensionamento de pilares para Rust reduziu a etapa de dimensionamento do pórtico de referência de 130 barras de 132 s para 4,6 s (`scripts/medir_diseno.py`).
 
 ## Uso
 
@@ -70,7 +78,7 @@ print(combo.reacciones[a])                 # reações [Rx, Ry, Mz]
 print(combo.diagrama(viga)["M"].max())     # 0,125 · 40 · 6² = 180 kN·m
 ```
 
-Mais exemplos em [`examples/`](examples/). Convenções de sinais em [`docs/convenciones.md`](docs/convenciones.md).
+Mais exemplos em [`examples/`](examples/) (pórtico plano, pórtico espacial, edifício com diafragma, dimensionamento de vigas e pilares). Convenções de sinais em [`docs/convenciones.md`](docs/convenciones.md).
 
 ### Interface de desktop (preliminar)
 
@@ -80,9 +88,9 @@ pip install "nervi[visor3d]"   # opcional: visualizador 3D (PyVista e VTK)
 nervi-gui                      # ou: python -m nervi.gui projeto.nrv
 ```
 
-Tudo acontece em uma única janela: tabelas de nós, barras, apoios, cargas e combinações, cálculo com F5, diagramas N, V, M e deformada com leitura de esforços sob o cursor, visualizador 3D opcional do modelo, das cargas e dos diagramas, propriedades da seleção, revisão do modelo, console Python e paleta de comandos (Ctrl+K). Os projetos são salvos no formato [`.nrv`](docs/formato-nrv.md). Os instaladores para Windows (`.exe`) e Linux (AppImage) são gerados em [Releases](https://github.com/jeronimobareiro/nervi/releases) ao publicar uma tag `v*`; não são assinados. Por enquanto a interface está em espanhol.
+O tema claro ou escuro é escolhido no menu do logotipo. Os instaladores para Windows (`.exe`) e Linux (AppImage) são gerados em [Releases](https://github.com/jeronimobareiro/nervi/releases) ao publicar uma tag `v*`; não são assinados. Um guia passo a passo está no [site](https://jeronimobareiro.github.io/nervi/pt/).
 
-> **Versão preliminar, não apta para projetos reais.** A análise linear elástica está verificada contra soluções analíticas; o dimensionamento segundo normas ainda não existe.
+> **Versão preliminar, não apta para projetos reais.** A análise linear elástica está verificada contra soluções analíticas; o pórtico espacial e a dinâmica são preliminares, e o dimensionamento segundo a ACI 318-19 é experimental e ainda não foi revisado por um engenheiro estrutural.
 
 ## Compilar a partir do código-fonte
 
@@ -99,23 +107,42 @@ cargo test -p nervi-core
 ## Estrutura
 
 ```
-crates/nervi-core/   núcleo MEF em Rust puro (sem Python)
-  src/elemento.rs     rigidez, transformação, cargas equivalentes, liberações
-  src/analisis.rs     montagem, solução, reações, diagramas
-  tests/verificacion.rs  casos contra soluções analíticas
-crates/nervi-py/     ponte PyO3 (contrato em docs/contrato-datos.md)
-python/nervi/        pacote Python
-tests/              testes da API Python
-verification/       casos de verificação em TOML, sem precisar de Rust
-docs/               especificação, convenções, contrato de dados, glossário
-sitio/              site
+crates/nervi-core/   núcleo numérico em Rust puro (sem Python)
+  src/                pórtico plano: elementos, análise, mecanismos
+  src/espacial/       pórtico espacial, diafragmas e trechos rígidos, dinâmica
+  src/diseno/         cálculo pesado do dimensionamento (flexo-compressão de pilares)
+  tests/              casos contra soluções analíticas
+crates/nervi-py/     ponte PyO3 (contratos em docs/contrato-datos.md)
+python/nervi/        pacote Python: API, formato .nrv, memória PDF
+  design/             dimensionamento segundo normas (ACI 318-19)
+  gui/                interface de desktop e seu sistema de design (estilo.py)
+tests/               testes da API Python e da interface
+verification/        casos de verificação em TOML, sem Rust
+examples/            exemplos de uso
+scripts/             banco de tempos, controles do CI e montagem do site
+docs/                especificação, convenções, contratos, estado e registro
+sitio/               site público
 ```
 
 ## Verificação
 
-Cada caso de `crates/nervi-core/tests/verificacion.rs` e de `verification/` é comparado com uma solução fechada ou um exemplo publicado: balanços, vigas biapoiadas, biengastadas e contínuas, carga concentrada excêntrica, pórtico com carga lateral, treliça, barras inclinadas, recalques, apoios elásticos, viga Gerber com articulação, equilíbrio global de um pórtico de vários andares e detecção de mecanismos.
+Cada caso de `crates/nervi-core/tests/` e de `verification/` é comparado com uma solução fechada ou um exemplo publicado, com tolerância relativa de 1e-9 na análise: balanços, vigas biapoiadas, biengastadas e contínuas, pórticos com carga lateral, treliças, recalques, apoios elásticos, mecanismos, pórticos espaciais, diafragmas, modos e espectros. O dimensionamento é verificado com cálculos à mão e contra outras bibliotecas livres; falta compará-lo com exemplos publicados.
 
-**Regra para contribuir:** toda funcionalidade nova chega com seus casos de verificação e a fonte de cada fórmula (veja [`CONTRIBUTING.md`](CONTRIBUTING.md)).
+## Como trabalhamos
+
+Estas regras valem para toda contribuição, de pessoas ou de agentes de IA. Detalhes em [`CONTRIBUTING.md`](CONTRIBUTING.md) e [`AGENTS.md`](AGENTS.md).
+
+1. **Verificação e fontes.** Toda funcionalidade nova chega com seus casos de verificação e a fonte de cada fórmula.
+2. **Desempenho em primeiro lugar.** Todo cálculo que percorra barras, nós, combinações ou pontos (análise, dimensionamento, envoltórias, diagramas de interação) vai em Rust e é exposto ao Python com a mesma API. O Python fica para a interface, a memória PDF, os exemplos e os protótipos. Cada migração ou otimização é medida antes e depois com o banco de tempos e passa pelos mesmos testes.
+3. **Um único sistema de design na interface.** Todo controle toma seu estilo de [`estilo.py`](python/nervi/gui/estilo.py), seguindo a [linha de design](docs/diseno-interfaz.md): tema claro por padrão e o tema escuro da marca. As mudanças de design são combinadas com uma amostra visual antes de serem implementadas.
+4. **Documentação em dia.** Cada contribuição atualiza, no mesmo pull request, os arquivos informativos afetados: o README e suas traduções, `CONTRIBUTING.md`, `AGENTS.md`, `docs/ESTADO.md`, o roteiro, o site e a documentação técnica relacionada, além de sua entrada no registro. Assim quem chega sabe onde o projeto está.
+
+## O que vem a seguir
+
+- Desempenho: levar o dimensionamento de vigas para Rust e incluir o banco de tempos no CI.
+- Fechar a Fase 1: exemplos resolvidos de livros em `verification/` ([#6](https://github.com/jeronimobareiro/nervi/issues/6)) e material didático ([#10](https://github.com/jeronimobareiro/nervi/issues/10)).
+- Pórtico espacial na interface e no `.nrv`, verificação contra exemplos 3D publicados ([#15](https://github.com/jeronimobareiro/nervi/issues/15)), P-Δ ([#19](https://github.com/jeronimobareiro/nervi/issues/19)) e espectro da norma regional ([#20](https://github.com/jeronimobareiro/nervi/issues/20)).
+- Revisão de engenharia do dimensionamento de concreto armado e comparação com exemplos publicados.
 
 ## Contribuir
 

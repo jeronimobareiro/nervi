@@ -25,7 +25,7 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 ![The Nervi window with the moment diagrams of a frame](img/interfaz.png){ .nv-captura }
 
 !!! warning "Preliminary version, not suitable for design work"
-    Nervi is under development. Today it analyses plane frames with linear elastic analysis; reinforced concrete beam design to code is experimental and has not yet been reviewed by a structural engineer. It assists the engineer; it does not replace their judgment or their signature.
+    Nervi is under development. Today it analyses plane frames with linear elastic analysis; space frames and dynamics are preliminary, and reinforced concrete beam and column design to code is experimental and has not yet been reviewed by a structural engineer. It assists the engineer; it does not replace their judgment or their signature.
 
 <div class="grid cards nv-tarjetas" markdown>
 
@@ -54,7 +54,7 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 - **Results**: reactions, axial force, shear and moment diagrams, and the deformed shape. Hovering over a member shows the values at that point. The optional 3D viewer shows the model, loads and diagrams in perspective.
 - **Desktop interface** in a single window, with tables to enter the model, or use from Python for those who program.
 - **Projects** saved as `.nrv` files.
-- **Calculation report in PDF** (in Spanish), with model data, loads, combinations, result tables, diagrams and, if you designed, the beam reinforcement and checks, from an editable template.
+- **Calculation report in PDF** (in Spanish), with model data, loads, combinations, result tables, diagrams and, if you designed, the beam and column reinforcement and checks and, if you ran a dynamic analysis, the modes and spectra, from an editable template.
 - **Space frames (3D)**, for now only from Python and as a preview: members with bending in two planes and torsion, space trusses, and rectangular and circular sections.
 - **Modal and response spectrum analysis** of space frames, from Python and as a preview: periods, mode shapes, participating mass and seismic response with SRSS or CQC combination from the spectrum given by the code.
 - **Buildings with rigid floor diaphragms and rigid end offsets** in the space frame, from Python and as a preview: each floor's mass at its master node, center of mass, story drifts and beam forces at the column face.
@@ -62,7 +62,7 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 
 ## What is coming
 
-3D frames in the interface, code seismic spectra and P-Δ, deflections, cracking and reinforcement detailing, exchange with BIM programs (IFC) and calculation reports. The order and the tasks are in the [roadmap](hoja-de-ruta.md).
+Faster design (all computation in Rust), 3D frames in the interface, code seismic spectra and P-Δ, deflections, cracking and anchorage in the Design stage, and exchange with BIM programs (IFC). The order and the tasks are in the [roadmap](hoja-de-ruta.md).
 
 ## Keep reading
 

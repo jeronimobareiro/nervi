@@ -36,6 +36,9 @@ cargo test -p nervi-core
 6. **Encabezado de licencia** en cada archivo nuevo de código:
    - Rust: `// SPDX-License-Identifier: GPL-3.0-or-later`
    - Python: `# SPDX-License-Identifier: GPL-3.0-or-later`
+7. **Rendimiento primero.** Todo cálculo que recorra barras, nudos, combinaciones, estaciones o puntos (análisis, diseño, envolventes, diagramas de interacción, búsqueda de armaduras) va en Rust (`nervi-core`) y se expone a Python por `nervi-py` con la misma API. Python queda para la interfaz, la memoria PDF, el formato `.nrv`, los ejemplos y los prototipos. Un prototipo en Python pasa a Rust antes de llegar a la interfaz o en cuanto se mide que pesa en un modelo grande. Toda migración u optimización se mide antes y después con el banco de tiempos (`python scripts/medir_diseno.py --guardar antes.json` en `main` y `--comparar antes.json` con tu cambio), informa los tiempos en el PR y pasa las mismas pruebas de verificación.
+8. **Interfaz con un único sistema de diseño.** Todo control nuevo de `nervi.gui` toma su estilo de [`estilo.py`](python/nervi/gui/estilo.py), sin colores sueltos ni aspecto nativo antiguo, y sigue la [línea de diseño de la interfaz](docs/diseno-interfaz.md): tema claro por defecto y tema oscuro de la marca. Para un cambio de diseño, mostrá antes una muestra visual (captura o maqueta) en el issue o el PR y acordala.
+9. **Documentación al día.** Ver la sección siguiente.
 
 Antes de enviar, corré y dejá en verde:
 
@@ -67,6 +70,21 @@ Signed-off-by: Tu Nombre <tu@correo>
 
 El CI rechaza los PR con commits sin firma. Si sos estudiante o trabajás en una empresa o universidad, confirmá que tu reglamento o contrato te permite donar el código.
 
+## Documentación al día
+
+Cada aporte actualiza **en el mismo PR** los archivos informativos que cambian con él, para que quien llegue después sepa dónde está el proyecto sin leer el historial:
+
+| Si tu aporte… | Actualizá |
+|---|---|
+| cambia lo que Nervi hace (funciones, API, interfaz, instalación) | [`README.md`](README.md) y sus traducciones (`README.en.md`, `README.pt.md`, `README.ru.md`), y las páginas públicas de [`sitio/`](sitio/) en los cuatro idiomas |
+| cambia el estado de una fase o de un issue | [`docs/ESTADO.md`](docs/ESTADO.md) y [`docs/hoja-de-ruta.md`](docs/hoja-de-ruta.md) |
+| cambia cómo se trabaja (reglas, controles, herramientas) | este archivo, [`AGENTS.md`](AGENTS.md) y la plantilla de PR |
+| toca convenciones, contratos o el formato `.nrv` | [`docs/convenciones.md`](docs/convenciones.md), [`docs/contrato-datos.md`](docs/contrato-datos.md) o [`docs/formato-nrv.md`](docs/formato-nrv.md) |
+| agrega un término al código | [`docs/glosario.md`](docs/glosario.md) |
+| cambia la interfaz | [`docs/diseno-interfaz.md`](docs/diseno-interfaz.md) si cambia la línea de diseño, y las capturas o pasos de [Primeros pasos](sitio/primeros-pasos.md) |
+
+La entrada de la bitácora tiene una sección **Documentación actualizada** donde se listan esos archivos (o se dice por qué no hizo falta tocar ninguno); el CI controla que esté. Si no traducís bien a otro idioma, actualizá el texto en español y pedí ayuda en el PR para las traducciones.
+
 ## Bitácora de aportes
 
 Los cambios de código o configuración agregan una entrada en [`docs/bitacora/`](docs/bitacora/) (copiando `_plantilla.md`) y actualizan [`docs/ESTADO.md`](docs/ESTADO.md). El CI lo controla. Si es tu primer aporte y no sabés qué poner, abrí el PR igual y pedí ayuda: un mantenedor la completa con vos. Los agentes de IA siguen además [`AGENTS.md`](AGENTS.md).
@@ -81,8 +99,8 @@ Al enviar un aporte aceptás que se distribuya bajo GPL-3.0-or-later, la licenci
 
 ## Contributing from other countries
 
-*English.* You do not need to speak Spanish to contribute. Write your issue or pull request in English, Portuguese or Russian and we will answer in your language. The code uses Spanish names: the [glossary](docs/glosario.md) translates every structural term and code name, and in review we help you adapt new names to that vocabulary. The rules above still apply: cite the source of every formula, add a verification test, sign your commits (`git commit -s`) and add an entry to `docs/bitacora/` (ask for help if you are not sure how). Good starting points are the issues labelled `buen-primer-aporte` (good first issue) and new verification cases in [`verification/`](verification/README.md), which need no Rust. See also [README.en.md](README.en.md).
+*English.* You do not need to speak Spanish to contribute. Write your issue or pull request in English, Portuguese or Russian and we will answer in your language. The code uses Spanish names: the [glossary](docs/glosario.md) translates every structural term and code name, and in review we help you adapt new names to that vocabulary. The rules above still apply: cite the source of every formula, keep heavy computations in Rust, add a verification test, update the README and related docs in the same pull request, sign your commits (`git commit -s`) and add an entry to `docs/bitacora/` (ask for help if you are not sure how). Good starting points are the issues labelled `buen-primer-aporte` (good first issue) and new verification cases in [`verification/`](verification/README.md), which need no Rust. See also [README.en.md](README.en.md).
 
-*Português.* Não é preciso falar espanhol para contribuir. Escreva sua issue ou seu pull request em português, inglês ou russo e responderemos no seu idioma. O código usa nomes em espanhol: o [glossário](docs/glosario.md) traduz cada termo estrutural e cada nome do código, e na revisão ajudamos a adaptar os nomes novos. As regras acima continuam valendo: cite a fonte de cada fórmula, inclua um teste de verificação, assine seus commits (`git commit -s`) e adicione uma entrada em `docs/bitacora/` (peça ajuda se não souber como). Bons pontos de partida são as issues com a etiqueta `buen-primer-aporte` e novos casos de verificação em [`verification/`](verification/README.md), que não exigem Rust. Veja também o [README.pt.md](README.pt.md).
+*Português.* Não é preciso falar espanhol para contribuir. Escreva sua issue ou seu pull request em português, inglês ou russo e responderemos no seu idioma. O código usa nomes em espanhol: o [glossário](docs/glosario.md) traduz cada termo estrutural e cada nome do código, e na revisão ajudamos a adaptar os nomes novos. As regras acima continuam valendo: cite a fonte de cada fórmula, mantenha os cálculos pesados em Rust, inclua um teste de verificação, atualize o README e a documentação relacionada no mesmo pull request, assine seus commits (`git commit -s`) e adicione uma entrada em `docs/bitacora/` (peça ajuda se não souber como). Bons pontos de partida são as issues com a etiqueta `buen-primer-aporte` e novos casos de verificação em [`verification/`](verification/README.md), que não exigem Rust. Veja também o [README.pt.md](README.pt.md).
 
-*Русский.* Чтобы участвовать, не нужно знать испанский. Пишите issue или pull request на русском, английском или португальском — мы ответим на вашем языке. В коде используются испанские имена: [глоссарий](docs/glosario.md) переводит все строительные термины и имена из кода, а при ревью мы поможем привести новые имена к этой терминологии. Правила выше остаются в силе: указывайте источник каждой формулы, добавляйте верификационный тест, подписывайте коммиты (`git commit -s`) и добавляйте запись в `docs/bitacora/` (если не знаете как — попросите помощи). Хорошее начало — задачи с меткой `buen-primer-aporte` и новые верификационные примеры в [`verification/`](verification/README.md), для которых не нужен Rust. См. также [README.ru.md](README.ru.md).
+*Русский.* Чтобы участвовать, не нужно знать испанский. Пишите issue или pull request на русском, английском или португальском — мы ответим на вашем языке. В коде используются испанские имена: [глоссарий](docs/glosario.md) переводит все строительные термины и имена из кода, а при ревью мы поможем привести новые имена к этой терминологии. Правила выше остаются в силе: указывайте источник каждой формулы, пишите тяжёлые расчёты на Rust, добавляйте верификационный тест, обновляйте README и связанную документацию в том же pull request, подписывайте коммиты (`git commit -s`) и добавляйте запись в `docs/bitacora/` (если не знаете как — попросите помощи). Хорошее начало — задачи с меткой `buen-primer-aporte` и новые верификационные примеры в [`verification/`](verification/README.md), для которых не нужен Rust. См. также [README.ru.md](README.ru.md).

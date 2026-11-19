@@ -15,6 +15,7 @@ Nervi lo hacemos entre todos: estudiantes, docentes, investigadores e ingenieros
 - El código, los comentarios y la documentación técnica están escritos en **español**. Para entenderlos, el [glosario de términos](https://github.com/jeronimobareiro/nervi/blob/main/docs/glosario.md) da el equivalente de cada término en inglés, portugués y ruso.
 - La conversación (issues, pull requests y revisiones) puede ser en **español, inglés, portugués o ruso**.
 - Cada commit lleva un certificado de origen (DCO): se agrega con `git commit -s`. Está explicado en [Cómo contribuir](contribuir.md).
+- Los cálculos que recorren barras, nudos o combinaciones se escriben en Rust, por rendimiento; Python queda para la interfaz, la memoria y los ejemplos. Y cada aporte actualiza en el mismo pull request la documentación que cambia con él (README, hoja de ruta, este sitio), para que todos sepan dónde está el proyecto.
 - Todo aporte sigue el [Código de conducta](codigo-de-conducta.md). Las reglas de decisión están en [Gobierno del proyecto](gobierno.md).
 
 ## Guías

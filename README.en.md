@@ -13,7 +13,7 @@ Free and open-source structural analysis and design software, with a numerical c
 
 Website: **[jeronimobareiro.github.io/nervi](https://jeronimobareiro.github.io/nervi/)**.
 
-> **Status: Phase 1 (linear elastic plane frames), with a preliminary desktop interface.** There is no code-based design or IFC support yet. See the [roadmap](docs/hoja-de-ruta.md) (in Spanish).
+> **Status: preliminary version under development.** Linear elastic plane frames (Phase 1) are nearly complete and have a desktop interface. Space frames and dynamics (Phase 2) and reinforced concrete design per ACI 318-19 (Phase 3) have started and are preliminary or experimental. There is no regional design code or IFC support yet. Details in [`docs/ESTADO.md`](docs/ESTADO.md) and the plan in the [roadmap](docs/hoja-de-ruta.md) (both in Spanish).
 >
 > This software assists the engineer; it does not replace their judgment or professional responsibility. Always check the results.
 
@@ -30,23 +30,31 @@ See the [contributing guide](CONTRIBUTING.md#contributing-from-other-countries).
 
 ## What it does today
 
-- Plane frames with Euler-Bernoulli members (3 DOF per node).
-- **New, preliminary:** space frames from Python (`nervi.Modelo3D`): 12-DOF members with biaxial bending, axial force and torsion, local axes set by a reference vector, space-truss bars and common sections in `nervi.secciones`. No interface or `.nrv` support yet.
-- **New, preliminary:** modal and response spectrum analysis of space frames (`Modelo3D.modal`): nodal masses, member masses (lumped or consistent) and masses from load cases; periods, mode shapes and participating mass per direction; spectral response with SRSS or CQC combination. The code spectrum is supplied by the designer.
-- **New, preliminary:** real buildings in the space frame: **rigid floor diaphragms** (`Modelo3D.diafragma`, master-slave constraint by transformation, with the floor mass lumped at the master node, its center of mass and story drifts) and **rigid end offsets** (`brazo_i`, `brazo_j`), with member forces at the joint face.
-- **New, preliminary:** plane frame modes and spectra in the desktop interface (**Dinámica** tab): masses from load cases, table of periods and participating mass, drawn and animated mode shapes, response spectra with base shear and diagrams, saved in the `.nrv` file and with their chapter in the calculation report (`nervi.dinamica_plana`).
-- Nodal loads and uniform, point, trapezoidal or partial member loads, in local or global axes; concentrated moments within a member; thermal loads.
-- Hinges and end releases; trusses.
-- Rigid and elastic supports, and prescribed settlements.
-- Several load cases with a single factorization, and linear combinations (ACI 318-19 combinations and envelopes, experimental).
-- Rectangular reinforced concrete beam design per ACI 318-19 (`nervi.design.aci318`, experimental): flexural reinforcement (singly or doubly reinforced), choice of commercial bars, and shear stirrups, from the envelopes; immediate and long-term deflections with effective moment of inertia, crack control, and development, hook and lap splice lengths (`aci318.servicio`, `aci318.detalle`).
-- Reinforced concrete column design per ACI 318-19 (`nervi.design.aci318`, experimental): biaxial bending with axial load and interaction diagram, slenderness by moment magnification, and choice of reinforcement, from the 3D or plane frame.
-- In the desktop interface, the **Design** stage designs every beam and column of the frame, shows each check with its code article and adds the design chapter to the calculation report.
-- Reactions, member end forces, `N`, `V`, `M` diagrams and deflected shape, including the points of maximum moment.
-- Mechanism detection and input validation with clear messages.
-- Calculation report in PDF (in Spanish, with an editable template): model data, sections, loads, combinations, result tables, diagrams and envelopes (`nervi.memoria`, `pip install "nervi[memoria]"`, or Ctrl+P in the desktop interface).
+### Analysis
 
-Supports are handled by partitioning degrees of freedom (no penalty method), and the system is solved with sparse Cholesky from [`faer`](https://github.com/sarah-quinones/faer-rs). A frame with 8,100 members solves in about 45 ms (release build).
+- **Plane frames** with Euler-Bernoulli members (3 DOF per node): nodal loads; uniform, point, trapezoidal or partial and thermal member loads, in local or global axes; concentrated moments within a member; hinges, end releases and trusses; rigid and elastic supports and prescribed settlements.
+- Several load cases with a single factorization and linear combinations. Reactions, member end forces, `N`, `V`, `M` diagrams and deflected shape, with the points of maximum moment.
+- Mechanism detection (it tells which node and degree of freedom move without stiffness) and input validation with clear messages.
+- **Space frames** from Python (`nervi.Modelo3D`, preliminary): 12-DOF members with biaxial bending, axial force and torsion, local axes set by a reference vector, space-truss bars and common sections in `nervi.secciones`. **Rigid floor diaphragms** (`Modelo3D.diafragma`, master-slave constraint by transformation, with center of mass and story drifts) and **rigid end offsets** (`brazo_i`, `brazo_j`), with member forces at the joint face. No interface or `.nrv` support yet.
+- **Dynamics** (preliminary): nodal masses, member masses (lumped or consistent) and masses from load cases; modal analysis with periods, mode shapes and participating mass per direction; response spectrum analysis with SRSS or CQC (`Modelo3D.modal`). The code spectrum is supplied by the designer. For plane frames, also from the desktop interface (`nervi.dinamica_plana`).
+
+### Reinforced concrete design per ACI 318-19 (experimental)
+
+- Load combinations and envelopes per section (`nervi.design`).
+- Rectangular **beams**: singly or doubly reinforced flexural design, choice of commercial bars and shear stirrups; immediate and long-term deflections with effective moment of inertia, crack control, and development, hook and lap splice lengths (`aci318.servicio`, `aci318.detalle`).
+- **Columns**: biaxial bending with axial load and interaction diagram, slenderness by moment magnification and choice of reinforcement, from plane or space frames. The computation runs in Rust.
+
+It has not yet been reviewed by a structural engineer: do not use it for real projects.
+
+### Desktop interface and documents
+
+- **Interface** (`nervi-gui`, PySide6) in a single window, following the stages Geometry › Loads › Analysis › Results › Design: model tables, analysis with F5, diagrams with values under the cursor, optional 3D viewer, **Dinámica** tab (masses, animated modes and spectra), **Design** stage (every beam and column, each check with its code clause), model check, Python console and command palette (Ctrl+K). Light theme by default and a dark theme in the brand colors. The interface is currently in Spanish.
+- **Projects** in the [`.nrv`](docs/formato-nrv.md) format, with versioned modules (model, design, dynamics) and migrations so that old projects always open.
+- **Calculation report in PDF**, in Spanish with an editable template: cover page, reference codes, model data, loads, combinations, results, diagrams, envelopes and, when applicable, the design and dynamic analysis chapters (`nervi.memoria`, or Ctrl+P in the interface).
+
+### Performance
+
+Supports are handled by partitioning degrees of freedom (no penalty method), and the system is solved with sparse Cholesky from [`faer`](https://github.com/sarah-quinones/faer-rs): a frame with 8,100 members solves in about 45 ms (release build). Moving column design to Rust cut the Design stage of the 130-member reference frame from 132 s to 4.6 s (`scripts/medir_diseno.py`).
 
 ## Usage
 
@@ -70,7 +78,7 @@ print(combo.reacciones[a])                 # reactions [Rx, Ry, Mz]
 print(combo.diagrama(viga)["M"].max())     # 0.125 · 40 · 6² = 180 kN·m
 ```
 
-More examples in [`examples/`](examples/). Sign conventions in [`docs/convenciones.md`](docs/convenciones.md).
+More examples in [`examples/`](examples/) (plane frame, space frame, building with diaphragms, beam and column design). Sign conventions in [`docs/convenciones.md`](docs/convenciones.md).
 
 ### Desktop interface (preliminary)
 
@@ -80,9 +88,9 @@ pip install "nervi[visor3d]"   # optional: 3D viewer (PyVista and VTK)
 nervi-gui                      # or: python -m nervi.gui project.nrv
 ```
 
-Everything happens in a single window: tables for nodes, members, supports, loads and combinations, analysis with F5, N, V, M and deflected-shape diagrams with values under the cursor, an optional 3D viewer of the model, loads and diagrams, selection properties, model check, a Python console and a command palette (Ctrl+K). Projects are saved in the [`.nrv`](docs/formato-nrv.md) format. Windows (`.exe`) and Linux (AppImage) installers are built in [Releases](https://github.com/jeronimobareiro/nervi/releases) when a `v*` tag is published; they are not signed. The interface is currently in Spanish.
+Choose the light or dark theme in the logo menu. Windows (`.exe`) and Linux (AppImage) installers are built in [Releases](https://github.com/jeronimobareiro/nervi/releases) when a `v*` tag is published; they are not signed. A step-by-step guide is on the [website](https://jeronimobareiro.github.io/nervi/en/).
 
-> **Preliminary version, not fit for real projects.** Linear elastic analysis is verified against analytical solutions; code-based design does not exist yet.
+> **Preliminary version, not fit for real projects.** Linear elastic analysis is verified against analytical solutions; space frames and dynamics are preliminary, and ACI 318-19 design is experimental and has not yet been reviewed by a structural engineer.
 
 ## Building from source
 
@@ -99,23 +107,42 @@ cargo test -p nervi-core
 ## Layout
 
 ```
-crates/nervi-core/   FEM core in pure Rust (no Python)
-  src/elemento.rs     stiffness, transformation, equivalent loads, releases ("elemento" = element)
-  src/analisis.rs     assembly, solution, reactions, diagrams ("análisis" = analysis)
-  tests/verificacion.rs  cases against analytical solutions
-crates/nervi-py/     PyO3 bridge (contract in docs/contrato-datos.md)
-python/nervi/        Python package
-tests/              Python API tests
-verification/       verification cases in TOML, no Rust needed
-docs/               specification, conventions, data contract, glossary
-sitio/              website ("sitio" = site)
+crates/nervi-core/   numerical core in pure Rust (no Python)
+  src/                plane frame: elements, analysis, mechanisms
+  src/espacial/       space frame, diaphragms and rigid offsets, dynamics
+  src/diseno/         heavy design computations (column biaxial bending)
+  tests/              cases against analytical solutions
+crates/nervi-py/     PyO3 bridge (contracts in docs/contrato-datos.md)
+python/nervi/        Python package: API, .nrv format, PDF report
+  design/             code-based design (ACI 318-19)
+  gui/                desktop interface and its design system (estilo.py)
+tests/               Python API and interface tests
+verification/        verification cases in TOML, no Rust needed
+examples/            usage examples
+scripts/             timing benchmark, CI checks and website build
+docs/                specification, conventions, contracts, status and log
+sitio/               public website ("sitio" = site)
 ```
 
 ## Verification
 
-Each case in `crates/nervi-core/tests/verificacion.rs` and `verification/` is compared against a closed-form solution or a published example: cantilevers, simply supported, fixed-end and continuous beams, eccentric point loads, a frame under lateral load, a truss, inclined members, settlements, elastic supports, a Gerber beam with a hinge, global equilibrium of a multi-storey frame and mechanism detection.
+Each case in `crates/nervi-core/tests/` and `verification/` is compared against a closed-form solution or a published example, with a relative tolerance of 1e-9 for analysis: cantilevers, simply supported, fixed-end and continuous beams, frames under lateral load, trusses, settlements, elastic supports, mechanisms, space frames, diaphragms, modes and spectra. Design is checked against hand calculations and other free libraries; comparison with published examples is pending.
 
-**Rule for contributors:** every new feature comes with its verification cases and the source of each formula (see [`CONTRIBUTING.md`](CONTRIBUTING.md)).
+## How we work
+
+These rules apply to every contribution, from people or from AI agents. Details in [`CONTRIBUTING.md`](CONTRIBUTING.md) and [`AGENTS.md`](AGENTS.md).
+
+1. **Verification and sources.** Every new feature comes with its verification cases and the source of each formula.
+2. **Performance first.** Every computation that loops over members, nodes, combinations or points (analysis, design, envelopes, interaction diagrams) goes in Rust and is exposed to Python with the same API. Python is for the interface, the PDF report, examples and prototypes. Every migration or optimization is timed before and after with the benchmark and passes the same tests.
+3. **One design system for the interface.** Every control takes its style from [`estilo.py`](python/nervi/gui/estilo.py), following the [interface design guidelines](docs/diseno-interfaz.md): light theme by default and the brand's dark theme. Design changes are agreed on with a visual sample before they are implemented.
+4. **Documentation kept up to date.** Every contribution updates, in the same pull request, the informative files it affects: the README and its translations, `CONTRIBUTING.md`, `AGENTS.md`, `docs/ESTADO.md`, the roadmap, the website and related technical documents, plus its entry in the log. That way newcomers know where the project stands.
+
+## What comes next
+
+- Performance: move beam design to Rust and add the timing benchmark to CI.
+- Close Phase 1: textbook examples in `verification/` ([#6](https://github.com/jeronimobareiro/nervi/issues/6)) and teaching material ([#10](https://github.com/jeronimobareiro/nervi/issues/10)).
+- Space frames in the interface and the `.nrv` format, verification against published 3D examples ([#15](https://github.com/jeronimobareiro/nervi/issues/15)), P-Δ ([#19](https://github.com/jeronimobareiro/nervi/issues/19)) and the regional code spectrum ([#20](https://github.com/jeronimobareiro/nervi/issues/20)).
+- Engineering review of reinforced concrete design and comparison with published examples.
 
 ## Contributing
 
