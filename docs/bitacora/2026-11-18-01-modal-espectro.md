@@ -51,6 +51,7 @@ Empezar la Fase 2b sobre el pórtico espacial que ya funciona: masas (nodales y 
 - P-Δ (#19), control de Sturm en Lanczos, análisis modal del pórtico plano, interfaz y módulo `.nrv` para la dinámica.
 - #16 pide masa consistente también para el pórtico plano: no se hizo (el plano se puede modelar en 3D).
 - Comparar con un ejemplo espectral publicado (criterio de salida de la Fase 2b).
+- Firma DCO: el usuario autorizó por escrito, el 2026-11-19 a las 11:30 UTC ("Esta ok, firmalo", en respuesta al pedido de firma de este PR), que el agente firme los commits de este aporte en su nombre como `bareirojero <345933350+bareirojero@users.noreply.github.com>`.
 
 ## Para quien siga
 
