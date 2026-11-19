@@ -41,7 +41,7 @@ Veja o [guia de contribuição](CONTRIBUTING.md#contributing-from-other-countrie
 ### Dimensionamento de concreto armado segundo a ACI 318-19 (experimental)
 
 - Combinações de carga e envoltórias por seção (`nervi.design`).
-- **Vigas** retangulares: armadura de flexão simples ou dupla, escolha de barras comerciais e estribos para cortante; flechas imediatas e diferidas com inércia efetiva, fissuração e comprimentos de ancoragem, ganchos e emendas (`aci318.servicio`, `aci318.detalle`).
+- **Vigas** retangulares: armadura de flexão simples ou dupla, escolha de barras comerciais e estribos para cortante; flechas imediatas e diferidas com inércia efetiva, fissuração e comprimentos de ancoragem, ganchos e emendas (`aci318.servicio`, `aci318.detalle`). A flexão e a escolha de barras rodam em Rust.
 - **Pilares**: flexo-compressão oblíqua com diagrama de interação, esbeltez por amplificação de momentos e escolha da armadura, a partir do pórtico plano ou espacial. O cálculo roda em Rust.
 
 Ainda não foi revisado por um engenheiro estrutural: não use em projetos reais.
@@ -54,7 +54,7 @@ Ainda não foi revisado por um engenheiro estrutural: não use em projetos reais
 
 ### Desempenho
 
-Apoios por partição dos graus de liberdade (sem penalização) e Cholesky esparso com [`faer`](https://github.com/sarah-quinones/faer-rs): um pórtico de 8 100 barras é resolvido em cerca de 45 ms (release). Levar o dimensionamento de pilares para Rust reduziu a etapa de dimensionamento do pórtico de referência de 130 barras de 132 s para 4,6 s (`scripts/medir_diseno.py`).
+Apoios por partição dos graus de liberdade (sem penalização) e Cholesky esparso com [`faer`](https://github.com/sarah-quinones/faer-rs): um pórtico de 8 100 barras é resolvido em cerca de 45 ms (release). Com o dimensionamento de pilares e de vigas em Rust, a etapa de dimensionamento do pórtico de referência de 130 barras caiu de 132 s para 2,4 s (`scripts/medir_diseno.py`).
 
 ## Uso
 
@@ -139,7 +139,7 @@ Estas regras valem para toda contribuição, de pessoas ou de agentes de IA. Det
 
 ## O que vem a seguir
 
-- Desempenho: levar o dimensionamento de vigas para Rust e incluir o banco de tempos no CI.
+- Desempenho: incluir o banco de tempos no CI e acelerar a busca da armadura de pilares, que hoje é quase todo o tempo do dimensionamento.
 - Fechar a Fase 1: exemplos resolvidos de livros em `verification/` ([#6](https://github.com/jeronimobareiro/nervi/issues/6)) e material didático ([#10](https://github.com/jeronimobareiro/nervi/issues/10)).
 - Pórtico espacial na interface e no `.nrv`, verificação contra exemplos 3D publicados ([#15](https://github.com/jeronimobareiro/nervi/issues/15)), P-Δ ([#19](https://github.com/jeronimobareiro/nervi/issues/19)) e espectro da norma regional ([#20](https://github.com/jeronimobareiro/nervi/issues/20)).
 - Revisão de engenharia do dimensionamento de concreto armado e comparação com exemplos publicados.

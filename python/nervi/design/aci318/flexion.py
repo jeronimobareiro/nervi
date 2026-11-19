@@ -18,21 +18,25 @@ Método (ACI 318-19, se cita el artículo y no se transcriben tablas):
 La resistencia se calcula por compatibilidad de deformaciones (equilibrio de la
 sección resuelto por bisección sobre la profundidad del eje neutro), así que vale
 también cuando la armadura de compresión no fluye.
+
+El cálculo (resistencia, armadura simple y búsqueda de barras) corre en Rust, en
+``nervi_core::diseno::viga``; este módulo valida los datos y arma los resultados.
 """
 
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from itertools import combinations
 
+import numpy as np
+
+from ... import _core
 from .materiales import (
     DIAMETROS_COMERCIALES,
     EPS_CU,
     ES,
     Materiales,
     SeccionRectangular,
-    area_barra,
     avisar,
 )
 
@@ -111,41 +115,11 @@ def _resistencia(
         raise ValueError("b y d tienen que ser positivos y las áreas no negativas")
     if As_comp > 0 and not 0 < d_comp < d:
         raise ValueError("d_comp tiene que estar entre 0 y d")
-    fc, fy, b1 = mat.fc, mat.fy, beta1(mat.fc)
-
-    def tension(eps: float) -> float:  # §20.2.2.1, elastoplástico
-        return max(-fy, min(fy, ES * eps))
-
-    def fuerzas(c: float) -> tuple[float, float, float, float]:
-        a = b1 * c
-        cc = 0.85 * fc * b * a  # §22.2.2.4.1
-        fs = tension(EPS_CU * (d - c) / c)  # tracción > 0
-        fsc = tension(EPS_CU * (c - d_comp) / c) if As_comp else 0.0  # compresión > 0
-        # Si la barra comprimida está dentro del bloque, se descuenta el hormigón que desplaza.
-        cs = As_comp * (fsc - (0.85 * fc if a > d_comp else 0.0))
-        return cc + cs - As * fs, a, fs, fsc
-
-    if As == 0.0:
-        return ResistenciaFlexion(0.0, 0.9, 0.0, 0.0, 0.0, math.inf, 0.0, 0.0)
-    lo, hi = 1e-9 * d, d
-    while fuerzas(hi)[0] < 0:  # en secciones muy armadas el eje neutro baja de d
-        hi *= 2.0
-    for _ in range(200):
-        mid = 0.5 * (lo + hi)
-        if fuerzas(mid)[0] < 0:
-            lo = mid
-        else:
-            hi = mid
-        if hi - lo < 1e-10 * d:
-            break
-    c = 0.5 * (lo + hi)
-    _, a, fs, fsc = fuerzas(c)
-    cc = 0.85 * fc * b * a
-    cs = As_comp * (fsc - (0.85 * fc if a > d_comp else 0.0))
-    mn = (cc * (d - a / 2.0) + cs * (d - d_comp)) / 1e6  # N·mm → kN·m
-    eps_t = EPS_CU * (dt - c) / c
-    phi = phi_flexion(eps_t, fy)
-    return ResistenciaFlexion(mn, phi, phi * mn, c, a, eps_t, fs, fsc)
+    return ResistenciaFlexion(
+        *_core.viga_resistencia(
+            _core.VERSION_CONTRATO_DISENO, b, d, As, mat.fc, mat.fy, As_comp, d_comp, dt
+        )
+    )
 
 
 @dataclass(frozen=True)
@@ -196,25 +170,15 @@ def armadura_flexion(
     mu = abs(Mu)
     as_min = armadura_minima(b, d, mat)
 
-    # Armadura simple que deja exactamente εt = lim en la capa extrema.
-    c_lim = EPS_CU * dt / (EPS_CU + lim)
-    as_lim = 0.85 * mat.fc * b * beta1(mat.fc) * c_lim / mat.fy
-    r_lim = _resistencia(b, d, as_lim, mat, 0.0, 0.0, dt)
-
-    if mu <= r_lim.phiMn:
-        lo, hi = 0.0, as_lim
-        for _ in range(200):
-            mid = 0.5 * (lo + hi)
-            if _resistencia(b, d, mid, mat, 0.0, 0.0, dt).phiMn < mu:
-                lo = mid
-            else:
-                hi = mid
-            if hi - lo < 1e-9 * as_lim:
-                break
-        as_req = hi
-        as_dis = max(as_req, min(as_min, 4.0 / 3.0 * as_req))  # §9.6.1.2 y §9.6.1.3
-        r = _resistencia(b, d, as_dis, mat, 0.0, 0.0, dt)
-        return ResultadoFlexion(Mu, as_req, as_min, as_dis, 0.0, False, r, lim)
+    # Armadura simple que deja exactamente εt = lim en la capa extrema y, si alcanza,
+    # la armadura simple por bisección sobre el área (en Rust).
+    as_lim, c_lim, t_lim, simple = _core.viga_armadura_simple(
+        _core.VERSION_CONTRATO_DISENO, mu, b, d, dt, mat.fc, mat.fy, lim
+    )
+    r_lim = ResistenciaFlexion(*t_lim)
+    if simple is not None:
+        as_req, as_dis, t = simple  # As de diseño según §9.6.1.2 y §9.6.1.3
+        return ResultadoFlexion(Mu, as_req, as_min, as_dis, 0.0, False, ResistenciaFlexion(*t), lim)
 
     if d_comp is None:
         raise ValueError(
@@ -282,45 +246,6 @@ class DisposicionBarras:
         return " · ".join(f"capa {i + 1}: {capa(c)}" for i, c in enumerate(self.capas))
 
 
-def _candidatas_una_capa(diametros: tuple[int, ...], max_barras: int):
-    """Un diámetro, o dos con el mayor en las esquinas (al menos dos barras)."""
-    for db in diametros:
-        for n in range(2, max_barras + 1):
-            yield ((db,) * n,)
-    for d1, d2 in combinations(sorted(diametros, reverse=True), 2):
-        for n1 in range(2, max_barras):
-            for n2 in range(1, max_barras - n1 + 1):
-                yield ((d1,) * n1 + (d2,) * n2,)
-
-
-def _candidatas_dos_capas(diametros: tuple[int, ...], max_barras: int):
-    """Un diámetro por capa, el de la segunda no mayor; la segunda capa va alineada
-    sobre la primera, con al menos dos barras y no más que la primera."""
-    for d1 in diametros:
-        for d2 in (x for x in diametros if x <= d1):
-            for n1 in range(2, max_barras - 1):
-                for n2 in range(2, min(n1, max_barras - n1) + 1):
-                    yield ((d1,) * n1, (d2,) * n2)
-
-
-def _geometria(capas, seccion: SeccionRectangular) -> tuple[float, float, float]:
-    """Área, altura útil al centroide y a la capa extrema."""
-    base = seccion.recubrimiento + seccion.d_estribo
-    area = momento = 0.0
-    y_min = math.inf
-    y_capa = base  # cara inferior de la capa actual
-    for capa in capas:
-        dmax = max(capa)
-        for db in capa:
-            y = y_capa + db / 2.0
-            a = area_barra(db)
-            area += a
-            momento += a * y
-            y_min = min(y_min, y)
-        y_capa += dmax + SEPARACION_ENTRE_CAPAS  # §25.2.2, barras alineadas
-    return area, seccion.h - momento / area, seccion.h - y_min
-
-
 def elegir_barras(
     Mu: float,
     seccion: SeccionRectangular,
@@ -347,52 +272,25 @@ def elegir_barras(
     lim = mat.eps_ty + 0.003 if eps_t_min is None else eps_t_min
     if lim < EPS_T_MIN_VIGAS:
         raise ValueError("en vigas eps_t_min no puede ser menor que 0.004 (§9.3.3.1)")
-    familias = [_candidatas_una_capa(tuple(diametros), max_barras)]
-    if max_capas == 2:
-        familias.append(_candidatas_dos_capas(tuple(diametros), max_barras))
-    requerida: dict[tuple[float, float], ResultadoFlexion | None] = {}
-    for familia in familias:
-        elegida = _mejor_disposicion(familia, mu, seccion, mat, lim, requerida)
-        if elegida is not None:
-            return elegida
-    raise ValueError(
-        f"no hay una disposición de barras con armadura simple para Mu = {mu:g} kN·m en "
-        f"{seccion.b:g} x {seccion.h:g} mm; agrandá la sección o usá armadura de compresión"
-    )
-
-
-def _mejor_disposicion(familia, mu, seccion, mat, lim, requerida) -> DisposicionBarras | None:
-    cands = []
-    for capas in familia:
-        area, d, dt = _geometria(capas, seccion)
-        cands.append((area, sum(len(c) for c in capas), capas, d, dt))
-    cands.sort(key=lambda c: c[:2])
-    for area, _, capas, d, dt in cands:
-        b_nec = max(ancho_necesario(list(c), seccion) for c in capas)
-        if b_nec > seccion.b + 1e-9:
-            continue
-        clave = (round(d, 6), round(dt, 6))
-        if clave not in requerida:
-            try:
-                requerida[clave] = armadura_flexion(mu, seccion.b, d, mat, dt=dt, eps_t_min=lim)
-            except ValueError:
-                requerida[clave] = None
-        req = requerida[clave]
-        if req is None or area < req.As - 1e-9:
-            continue
-        r = _resistencia(seccion.b, d, area, mat, 0.0, 0.0, dt)
-        if r.phiMn < mu - 1e-9 or r.eps_t < lim - 1e-12:
-            continue
-        s = separacion_libre_minima(max(max(c) for c in capas), seccion.d_agregado)
+    elegida = _core.viga_elegir_barras(
+        _core.VERSION_CONTRATO_DISENO, mu, seccion.b, seccion.h, seccion.recubrimiento,
+        seccion.d_estribo, seccion.d_agregado, mat.fc, mat.fy, lim,
+        np.asarray(diametros, dtype=np.float64), max_capas, max_barras,
+    )  # fmt: skip
+    if elegida is not None:
+        indices, area, d, dt, b_nec, s_libre, as_req, t = elegida
         return DisposicionBarras(
-            capas=capas,
+            capas=tuple(tuple(diametros[i] for i in capa) for capa in indices),
             As=area,
             d=d,
             dt=dt,
             b_nec=b_nec,
-            s_libre=s,
-            As_req=req.As_req,
-            exceso=area / req.As_req - 1.0 if req.As_req > 0 else math.inf,
-            resistencia=r,
+            s_libre=s_libre,
+            As_req=as_req,
+            exceso=area / as_req - 1.0 if as_req > 0 else math.inf,
+            resistencia=ResistenciaFlexion(*t),
         )
-    return None
+    raise ValueError(
+        f"no hay una disposición de barras con armadura simple para Mu = {mu:g} kN·m en "
+        f"{seccion.b:g} x {seccion.h:g} mm; agrandá la sección o usá armadura de compresión"
+    )

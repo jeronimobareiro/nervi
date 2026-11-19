@@ -160,7 +160,7 @@ def test_eleccion_de_armadura_igual_a_numpy(semilla):
 
 
 def test_version_del_contrato():
-    assert nervi._core.VERSION_CONTRATO_DISENO == 1
+    assert nervi._core.VERSION_CONTRATO_DISENO == 2
     s = aci318.SeccionColumna.rectangular(400.0, 400.0)
     v, pb, ab = col._geo(s)
     with pytest.raises(ValueError, match="contrato"):

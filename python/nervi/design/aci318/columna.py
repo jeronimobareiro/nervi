@@ -134,6 +134,8 @@ class SeccionColumna:
             raise ValueError("la sección no tiene barras")
         if np.any(b[:, 2] <= 0):
             raise ValueError("los diámetros de las barras tienen que ser positivos")
+        #: Baricentro del contorno recibido: se resta a contorno y barras.
+        self._origen = (yc, zc)
         self.contorno = v - (yc, zc)
         self.barras = b - (yc, zc, 0.0)
         self.forma = forma
@@ -181,18 +183,7 @@ class SeccionColumna:
             raise ValueError("hy y hz tienen que ser positivos (mm)")
         if n_y < 2 or n_z < 2:
             raise ValueError("hacen falta al menos 2 barras por cara (4 en total, §10.7.3.1)")
-        e = recubrimiento + d_estribo + diametro / 2.0
-        ey, ez = hy / 2.0 - e, hz / 2.0 - e
-        if ey <= 0 or ez <= 0:
-            raise ValueError("el recubrimiento y el estribo no dejan lugar para las barras")
-        pos = set()
-        for y in np.linspace(-ey, ey, n_y):
-            pos.add((round(float(y), 9), ez))
-            pos.add((round(float(y), 9), -ez))
-        for z in np.linspace(-ez, ez, n_z):
-            pos.add((ey, round(float(z), 9)))
-            pos.add((-ey, round(float(z), 9)))
-        barras = np.array([(y, z, diametro) for y, z in sorted(pos)])
+        barras = cls._barras_rectangular(hy, hz, n_y, n_z, diametro, recubrimiento, d_estribo)
         contorno = np.array(
             [(-hy / 2, -hz / 2), (hy / 2, -hz / 2), (hy / 2, hz / 2), (-hy / 2, hz / 2)]
         )
@@ -223,16 +214,12 @@ class SeccionColumna:
             raise ValueError("D tiene que ser positivo (mm)")
         if n_barras < 4:
             raise ValueError("hacen falta al menos 4 barras (6 con zuncho, §10.7.3.1)")
-        rb = D / 2.0 - recubrimiento - d_estribo - diametro / 2.0
-        if rb <= 0:
-            raise ValueError("el recubrimiento y el estribo no dejan lugar para las barras")
+        barras = cls._barras_circular(D, n_barras, diametro, recubrimiento, d_estribo)
         n = LADOS_CIRCULO
         # Radio del polígono de igual área que el círculo.
         rp = D / 2.0 * math.sqrt(2.0 * math.pi / (n * math.sin(2.0 * math.pi / n)))
         t = 2.0 * math.pi * np.arange(n) / n + math.pi / n
         contorno = np.column_stack([rp * np.cos(t), rp * np.sin(t)])
-        tb = 2.0 * math.pi * np.arange(n_barras) / n_barras
-        barras = np.column_stack([rb * np.cos(tb), rb * np.sin(tb), np.full(n_barras, diametro)])
         return cls(
             contorno,
             barras,
@@ -242,6 +229,48 @@ class SeccionColumna:
             d_estribo=d_estribo,
             d_agregado=d_agregado,
         )
+
+    @staticmethod
+    def _barras_rectangular(hy, hz, n_y, n_z, diametro, recubrimiento, d_estribo) -> np.ndarray:
+        """Barras ``(y, z, diámetro)`` en el perímetro del rectángulo, sin trasladar."""
+        e = recubrimiento + d_estribo + diametro / 2.0
+        ey, ez = hy / 2.0 - e, hz / 2.0 - e
+        if ey <= 0 or ez <= 0:
+            raise ValueError("el recubrimiento y el estribo no dejan lugar para las barras")
+        pos = set()
+        for y in np.linspace(-ey, ey, n_y):
+            pos.add((round(float(y), 9), ez))
+            pos.add((round(float(y), 9), -ez))
+        for z in np.linspace(-ez, ez, n_z):
+            pos.add((ey, round(float(z), 9)))
+            pos.add((-ey, round(float(z), 9)))
+        return np.array([(y, z, diametro) for y, z in sorted(pos)])
+
+    @staticmethod
+    def _barras_circular(D, n_barras, diametro, recubrimiento, d_estribo) -> np.ndarray:
+        """Barras ``(y, z, diámetro)`` repartidas en una circunferencia, sin trasladar."""
+        rb = D / 2.0 - recubrimiento - d_estribo - diametro / 2.0
+        if rb <= 0:
+            raise ValueError("el recubrimiento y el estribo no dejan lugar para las barras")
+        tb = 2.0 * math.pi * np.arange(n_barras) / n_barras
+        return np.column_stack([rb * np.cos(tb), rb * np.sin(tb), np.full(n_barras, diametro)])
+
+    def _barras_con(self, cantidad, diametro: float) -> tuple[np.ndarray, np.ndarray]:
+        """Posiciones ``(n, 2)`` y áreas de las barras de :meth:`con_barras`, sin armar
+        la sección (la búsqueda de armadura prueba cientos de candidatas)."""
+        if self.forma == "rectangular":
+            n_y, n_z = cantidad
+            dim = self.dimensiones
+            b = self._barras_rectangular(
+                dim["hy"], dim["hz"], n_y, n_z, diametro, self.recubrimiento, self.d_estribo
+            )
+        elif self.forma == "circular":
+            b = self._barras_circular(
+                self.dimensiones["D"], int(cantidad), diametro, self.recubrimiento, self.d_estribo
+            )
+        else:
+            raise ValueError("solo se cambia la armadura de secciones rectangulares o circulares")
+        return b[:, :2] - self._origen, area_barra(b[:, 2])
 
     def con_barras(self, cantidad: tuple[int, ...] | int, diametro: float) -> SeccionColumna:
         """La misma sección rectangular o circular con otra armadura.
@@ -345,9 +374,13 @@ def resistencia_axial(
     seccion: SeccionColumna, mat: Materiales, zunchada: bool = False
 ) -> ResistenciaAxial:
     """``Po``, ``φPn,max`` y ``φPnt`` de la sección (§22.4.2 y §22.4.3), kN."""
-    po = 0.85 * mat.fc * (seccion.Ag - seccion.Ast) + mat.fy * seccion.Ast
+    return _resistencia_axial(seccion.Ag, seccion.Ast, mat, zunchada)
+
+
+def _resistencia_axial(ag: float, ast: float, mat: Materiales, zunchada: bool) -> ResistenciaAxial:
+    po = 0.85 * mat.fc * (ag - ast) + mat.fy * ast
     phi_c, alfa = (0.75, 0.85) if zunchada else (0.65, 0.80)
-    pnt = mat.fy * seccion.Ast
+    pnt = mat.fy * ast
     return ResistenciaAxial(po / 1e3, phi_c * alfa * po / 1e3, pnt / 1e3, 0.90 * pnt / 1e3)
 
 
@@ -906,15 +939,15 @@ def elegir_armadura_columna(
     candidatas = _candidatas(seccion, diametros, zunchada)
     if not candidatas:
         raise ValueError("ninguna armadura entra en la sección con 1 % ≤ ρ ≤ 8 %")
-    secciones = [seccion.con_barras(cant, d) for _, _, cant, d in candidatas]
-    n_max = max(s.barras.shape[0] for s in secciones)
+    armaduras = [seccion._barras_con(cant, d) for _, _, cant, d in candidatas]
+    n_max = max(p.shape[0] for p, _ in armaduras)
     # Todas las armaduras juntas, completadas con barras de área nula.
-    pb = np.zeros((len(secciones), n_max, 2))
-    ab = np.zeros((len(secciones), n_max))
-    for k, s in enumerate(secciones):
-        pb[k, : s.barras.shape[0]] = s.barras[:, :2]
-        ab[k, : s.barras.shape[0]] = s.areas
-    ax = [resistencia_axial(s, mat, zunchada) for s in secciones]
+    pb = np.zeros((len(armaduras), n_max, 2))
+    ab = np.zeros((len(armaduras), n_max))
+    for k, (p, a) in enumerate(armaduras):
+        pb[k, : p.shape[0]] = p
+        ab[k, : p.shape[0]] = a
+    ax = [_resistencia_axial(seccion.Ag, float(a.sum()), mat, zunchada) for _, a in armaduras]
     todos = _f64([p[2:] for p in puntos]).reshape(-1, 3)
     if todos.size == 0:
         raise ValueError("no hay solicitaciones")
@@ -926,7 +959,8 @@ def elegir_armadura_columna(
         mat.fc, mat.fy, zunchada, todos,
     )  # fmt: skip
     if k is not None:
-        return secciones[k]
+        _, _, cant, d = candidatas[k]
+        return seccion.con_barras(cant, d)
     raise ValueError(
         "ninguna armadura con ρ ≤ 8 % resiste las solicitaciones: agrandá la sección "
         "o mejorá los materiales"

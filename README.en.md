@@ -41,7 +41,7 @@ See the [contributing guide](CONTRIBUTING.md#contributing-from-other-countries).
 ### Reinforced concrete design per ACI 318-19 (experimental)
 
 - Load combinations and envelopes per section (`nervi.design`).
-- Rectangular **beams**: singly or doubly reinforced flexural design, choice of commercial bars and shear stirrups; immediate and long-term deflections with effective moment of inertia, crack control, and development, hook and lap splice lengths (`aci318.servicio`, `aci318.detalle`).
+- Rectangular **beams**: singly or doubly reinforced flexural design, choice of commercial bars and shear stirrups; immediate and long-term deflections with effective moment of inertia, crack control, and development, hook and lap splice lengths (`aci318.servicio`, `aci318.detalle`). Flexural design and bar selection run in Rust.
 - **Columns**: biaxial bending with axial load and interaction diagram, slenderness by moment magnification and choice of reinforcement, from plane or space frames. The computation runs in Rust.
 
 It has not yet been reviewed by a structural engineer: do not use it for real projects.
@@ -54,7 +54,7 @@ It has not yet been reviewed by a structural engineer: do not use it for real pr
 
 ### Performance
 
-Supports are handled by partitioning degrees of freedom (no penalty method), and the system is solved with sparse Cholesky from [`faer`](https://github.com/sarah-quinones/faer-rs): a frame with 8,100 members solves in about 45 ms (release build). Moving column design to Rust cut the Design stage of the 130-member reference frame from 132 s to 4.6 s (`scripts/medir_diseno.py`).
+Supports are handled by partitioning degrees of freedom (no penalty method), and the system is solved with sparse Cholesky from [`faer`](https://github.com/sarah-quinones/faer-rs): a frame with 8,100 members solves in about 45 ms (release build). With column and beam design in Rust, the Design stage of the 130-member reference frame went from 132 s to 2.4 s (`scripts/medir_diseno.py`).
 
 ## Usage
 
@@ -139,7 +139,7 @@ These rules apply to every contribution, from people or from AI agents. Details 
 
 ## What comes next
 
-- Performance: move beam design to Rust and add the timing benchmark to CI.
+- Performance: add the timing benchmark to CI and speed up the column reinforcement search, which is now almost all of the design time.
 - Close Phase 1: textbook examples in `verification/` ([#6](https://github.com/jeronimobareiro/nervi/issues/6)) and teaching material ([#10](https://github.com/jeronimobareiro/nervi/issues/10)).
 - Space frames in the interface and the `.nrv` format, verification against published 3D examples ([#15](https://github.com/jeronimobareiro/nervi/issues/15)), P-Δ ([#19](https://github.com/jeronimobareiro/nervi/issues/19)) and the regional code spectrum ([#20](https://github.com/jeronimobareiro/nervi/issues/20)).
 - Engineering review of reinforced concrete design and comparison with published examples.
