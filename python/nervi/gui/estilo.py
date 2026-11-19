@@ -1,91 +1,428 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Paleta y hoja de estilos: interfaz clara, plana y sobria, un solo color de acento."""
+"""Sistema de diseño de la interfaz: tokens de color y medida, hoja de estilos e íconos.
+
+Un :class:`Tema` reúne los tokens (colores, radio de esquinas, alto de los controles).
+:func:`qss` arma con ellos la hoja de estilos completa de Qt, y :func:`aplicar` la
+instala en la aplicación entera, para que también los diálogos sueltos y los
+desplegables abiertos tengan el mismo aspecto.
+
+Hay que estilar **todas** las partes de los controles compuestos (la flecha del
+desplegable, los botones del campo numérico, las casillas): si la hoja de estilos
+define solo el borde y el fondo, Qt dibuja esas partes con el relieve biselado de
+los estilos viejos. Las flechas y marcas son SVG que se generan con los colores
+del tema.
+
+Las constantes de módulo (``PANEL``, ``ACENTO``…) son las del tema claro y las usan
+los dibujos propios (vista 2D, visor 3D, tablas).
+"""
 
 from __future__ import annotations
 
-FONDO = "#F3F4F6"
-PANEL = "#FFFFFF"
-BORDE = "#E2E5EA"
-BORDE_SUAVE = "#EEF0F3"
-HOVER = "#F1F3F6"
-TEXTO = "#16181D"
-TEXTO_2 = "#4B5563"
-TEXTO_3 = "#6B7280"
-ACENTO = "#1D4ED8"
-ACENTO_SUAVE = "#E8EEFC"
-POSITIVO = "#1D4ED8"
-NEGATIVO = "#C2410C"
-OK = "#15803D"
-AVISO_FONDO = "#FFF7ED"
-AVISO_BORDE = "#FED7AA"
-AVISO_TEXTO = "#9A3412"
-ESTRUCTURA = "#2B3038"
+import hashlib
+import tempfile
+from dataclasses import asdict, dataclass
+from pathlib import Path
 
-QSS = f"""
-QMainWindow, QWidget#raiz {{ background: {FONDO}; }}
-QWidget {{ color: {TEXTO}; font-size: 9.5pt; }}
-QWidget#barra, QWidget#contexto, QWidget#panel, QStatusBar {{ background: {PANEL}; }}
-QWidget#barra {{ border-bottom: 1px solid {BORDE}; }}
-QWidget#contexto {{ border-bottom: 1px solid {BORDE}; }}
+from PySide6.QtCore import QEvent, QObject
+from PySide6.QtWidgets import QAbstractSpinBox, QApplication, QComboBox, QStyledItemDelegate
+
+
+@dataclass(frozen=True)
+class Tema:
+    """Tokens de diseño. Los nombres describen el uso, no el color."""
+
+    nombre: str
+    fondo: str  # fondo de la ventana, detrás de los paneles
+    panel: str  # paneles, tablas, menús
+    campo: str  # fondo de los campos de texto, numéricos y desplegables
+    borde: str
+    borde_fuerte: str  # borde al pasar el mouse, casillas, barras de desplazamiento
+    hover: str
+    presionado: str
+    texto: str
+    texto_2: str  # texto secundario
+    texto_3: str  # etiquetas tenues, encabezados de tabla
+    deshabilitado: str
+    acento: str  # selección, casillas marcadas, pestaña activa
+    sobre_acento: str
+    acento_suave: str  # fondo de filas y opciones elegidas
+    foco: str  # borde del campo con el foco
+    primario: str  # botón de la acción principal
+    primario_hover: str
+    sobre_primario: str
+    ok: str
+    negativo: str
+    negativo_suave: str
+    aviso_fondo: str
+    aviso_borde: str
+    aviso_texto: str
+    # Dibujos propios (vista 2D, visor 3D)
+    estructura: str = "#2B3038"
+    positivo: str = "#1D4ED8"
+    borde_suave: str = "#EEF0F3"
+    oscuro: bool = False
+    radio: int = 6
+    alto: int = 28  # alto de campos y botones, en píxeles
+    tamano: float = 9.5  # tamaño de letra, en puntos
+
+
+CLARO = Tema(
+    nombre="Claro",
+    fondo="#F4F5F7",
+    panel="#FFFFFF",
+    campo="#FFFFFF",
+    borde="#DFE3E8",
+    borde_fuerte="#C5CBD3",
+    hover="#F1F3F6",
+    presionado="#E6E9EE",
+    texto="#14171C",
+    texto_2="#4A5260",
+    texto_3="#6B7280",
+    deshabilitado="#A9B0BB",
+    acento="#2563EB",
+    sobre_acento="#FFFFFF",
+    acento_suave="#E7EEFD",
+    foco="#2563EB",
+    primario="#14171C",
+    primario_hover="#2B3038",
+    sobre_primario="#FFFFFF",
+    ok="#15803D",
+    negativo="#C2410C",
+    negativo_suave="#FFF1EA",
+    aviso_fondo="#FFF7ED",
+    aviso_borde="#FED7AA",
+    aviso_texto="#9A3412",
+)
+
+# Modo oscuro con los colores de la marca: azul marino de fondo y cian para el foco.
+OSCURO = Tema(
+    nombre="Oscuro",
+    fondo="#0B132B",
+    panel="#0F172A",
+    campo="#131E36",
+    borde="#1F2C47",
+    borde_fuerte="#2A3A5C",
+    hover="#16213A",
+    presionado="#1B2945",
+    texto="#DCE6F5",
+    texto_2="#A9B8D0",
+    texto_3="#7184A3",
+    deshabilitado="#46597A",
+    acento="#3B82F6",
+    sobre_acento="#FFFFFF",
+    acento_suave="#16305E",
+    foco="#00E5FF",
+    primario="#3B82F6",
+    primario_hover="#60A5FA",
+    sobre_primario="#FFFFFF",
+    ok="#22C55E",
+    negativo="#F97316",
+    negativo_suave="#3A1E12",
+    aviso_fondo="#2B2110",
+    aviso_borde="#5C4314",
+    aviso_texto="#FBBF24",
+    estructura="#C9D6EA",
+    positivo="#60A5FA",
+    borde_suave="#141F38",
+    oscuro=True,
+)
+
+TEMAS = {"claro": CLARO, "oscuro": OSCURO}
+
+actual: Tema = CLARO
+
+
+def _colores_de_dibujo(t: Tema) -> None:
+    """Pasa el tema a las constantes que leen los dibujos propios (vista 2D, visor 3D, tablas)."""
+    global FONDO, PANEL, BORDE, BORDE_SUAVE, HOVER, TEXTO, TEXTO_2, TEXTO_3, ACENTO
+    global ACENTO_SUAVE, POSITIVO, NEGATIVO, OK, AVISO_FONDO, AVISO_BORDE, AVISO_TEXTO
+    global ESTRUCTURA, DESHABILITADO
+    FONDO, PANEL, BORDE, BORDE_SUAVE, HOVER = t.fondo, t.panel, t.borde, t.borde_suave, t.hover
+    TEXTO, TEXTO_2, TEXTO_3 = t.texto, t.texto_2, t.texto_3
+    ACENTO, ACENTO_SUAVE, POSITIVO, NEGATIVO, OK = (
+        t.acento,
+        t.acento_suave,
+        t.positivo,
+        t.negativo,
+        t.ok,
+    )
+    AVISO_FONDO, AVISO_BORDE, AVISO_TEXTO = t.aviso_fondo, t.aviso_borde, t.aviso_texto
+    ESTRUCTURA, DESHABILITADO = t.estructura, t.deshabilitado
+
+
+_colores_de_dibujo(CLARO)
+
+_TRAZOS = {
+    "abajo": '<path d="M3.5 6l4.5 4.5L12.5 6" fill="none" stroke="{c}" stroke-width="1.6" '
+    'stroke-linecap="round" stroke-linejoin="round"/>',
+    "arriba": '<path d="M3.5 10l4.5-4.5L12.5 10" fill="none" stroke="{c}" stroke-width="1.6" '
+    'stroke-linecap="round" stroke-linejoin="round"/>',
+    "check": '<path d="M3.5 8.3l3 3 6-6.6" fill="none" stroke="{c}" stroke-width="2" '
+    'stroke-linecap="round" stroke-linejoin="round"/>',
+    "guion": '<path d="M4 8h8" stroke="{c}" stroke-width="2" stroke-linecap="round"/>',
+    "punto": '<circle cx="8" cy="8" r="3.2" fill="{c}"/>',
+}
+
+
+def svg(forma: str, color: str) -> str:
+    """Ícono de 16×16 de las partes de los controles (flechas, marca de casilla, punto)."""
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16">'
+        + _TRAZOS[forma].format(c=color)
+        + "</svg>"
+    )
+
+
+def iconos(tema: Tema, carpeta: Path | None = None) -> dict[str, str]:
+    """Escribe los íconos del tema y devuelve sus rutas, con ``/`` como pide Qt.
+
+    Van a una carpeta temporal propia de cada tema: la hoja de estilos de Qt solo
+    toma imágenes desde archivos o recursos compilados.
+    """
+    if carpeta is None:
+        clave = hashlib.sha1(repr(asdict(tema)).encode()).hexdigest()[:12]
+        carpeta = Path(tempfile.gettempdir()) / f"nervi-tema-{clave}"
+    carpeta.mkdir(parents=True, exist_ok=True)
+    pedidos = {
+        "abajo": ("abajo", tema.texto_2),
+        "abajo_off": ("abajo", tema.deshabilitado),
+        "arriba": ("arriba", tema.texto_2),
+        "arriba_off": ("arriba", tema.deshabilitado),
+        "check": ("check", tema.sobre_acento),
+        "guion": ("guion", tema.sobre_acento),
+        "punto": ("punto", tema.sobre_acento),
+    }
+    rutas = {}
+    for nombre, (forma, color) in pedidos.items():
+        ruta = carpeta / f"{nombre}.svg"
+        contenido = svg(forma, color)
+        if not ruta.is_file() or ruta.read_text(encoding="utf-8") != contenido:
+            ruta.write_text(contenido, encoding="utf-8")
+        rutas[nombre] = ruta.as_posix()
+    return rutas
+
+
+def qss(tema: Tema = CLARO, rutas: dict[str, str] | None = None) -> str:
+    """Hoja de estilos completa para el tema."""
+    t = tema
+    i = rutas if rutas is not None else iconos(t)
+    r = t.radio
+    rc = max(r - 2, 2)  # radio de lo que va dentro de otro control
+    pv = max((t.alto - 18) // 2 - 1, 2)  # relleno vertical de campos y botones
+    alto_int = t.alto - 2 * pv - 2  # alto del contenido
+    return f"""
+* {{ font-size: {t.tamano}pt; }}
+QMainWindow, QWidget#raiz, QDialog, QMessageBox {{ background: {t.fondo}; }}
+QWidget {{ color: {t.texto}; }}
+QWidget#barra, QWidget#contexto, QWidget#panel, QStatusBar {{ background: {t.panel}; }}
+QWidget#barra, QWidget#contexto {{ border-bottom: 1px solid {t.borde}; }}
+QLabel {{ background: transparent; }}
 QLabel#titulo {{ font-weight: 600; }}
-QLabel#tenue, QLabel#seccion {{ color: {TEXTO_3}; }}
-QLabel#seccion {{ font-size: 8pt; font-weight: 600; letter-spacing: 0.5px; }}
+QLabel#tenue {{ color: {t.texto_3}; }}
+QLabel#seccion {{ color: {t.texto_3}; font-size: {t.tamano - 1.5}pt; font-weight: 600; letter-spacing: 0.5px; }}
+
+/* Botones */
 QPushButton {{
-    background: {PANEL}; border: 1px solid {BORDE}; border-radius: 5px;
-    padding: 4px 10px; color: {TEXTO_2};
+    background: {t.panel}; border: 1px solid {t.borde}; border-radius: {r}px;
+    padding: {pv}px 12px; min-height: {alto_int}px; color: {t.texto_2};
 }}
-QPushButton:hover {{ background: {HOVER}; color: {TEXTO}; }}
-QPushButton:disabled {{ color: #A7AEBA; border-color: {BORDE_SUAVE}; }}
-QPushButton#primario {{ background: {TEXTO}; color: white; border: 0; font-weight: 600; padding: 5px 14px; }}
-QPushButton#primario:hover {{ background: #2B3038; }}
-QPushButton#etapa {{ border: 0; border-radius: 5px; padding: 5px 10px; background: transparent; }}
-QPushButton#etapa:checked {{ background: {HOVER}; color: {TEXTO}; font-weight: 600;
-    border-bottom: 2px solid {ACENTO}; border-bottom-left-radius: 0; border-bottom-right-radius: 0; }}
-QPushButton#segmento {{ border: 0; border-radius: 4px; padding: 4px 10px; background: transparent; }}
-QPushButton#segmento:checked {{ background: {PANEL}; color: {TEXTO}; border: 1px solid #D5D9E0; }}
-QWidget#grupo {{ background: {HOVER}; border-radius: 6px; }}
-QPushButton#buscar {{ text-align: left; color: {TEXTO_3}; background: #F8F9FA; min-width: 210px; }}
-QToolButton {{ border: 0; border-radius: 5px; padding: 4px; }}
-QToolButton:hover {{ background: {HOVER}; }}
+QPushButton:hover {{ background: {t.hover}; border-color: {t.borde_fuerte}; color: {t.texto}; }}
+QPushButton:pressed {{ background: {t.presionado}; }}
+QPushButton:checked {{ background: {t.acento_suave}; border-color: {t.acento_suave}; color: {t.texto}; }}
+QPushButton:focus {{ border-color: {t.foco}; }}
+QPushButton:disabled {{ color: {t.deshabilitado}; background: {t.panel}; border-color: {t.borde}; }}
+QPushButton#primario {{
+    background: {t.primario}; color: {t.sobre_primario}; border: 1px solid {t.primario};
+    font-weight: 600; padding-left: 16px; padding-right: 16px;
+}}
+QPushButton#primario:hover {{ background: {t.primario_hover}; border-color: {t.primario_hover}; }}
+QPushButton#primario:disabled {{ background: {t.presionado}; border-color: {t.presionado}; color: {t.deshabilitado}; }}
+QPushButton#fantasma {{ background: transparent; border-color: transparent; }}
+QPushButton#fantasma:hover {{ background: {t.hover}; }}
+QPushButton#peligro {{ color: {t.negativo}; }}
+QPushButton#peligro:hover {{ background: {t.negativo_suave}; border-color: {t.negativo}; }}
+QToolButton {{ background: transparent; border: 1px solid transparent; border-radius: {r}px; padding: 4px; }}
+QToolButton:hover {{ background: {t.hover}; }}
+QToolButton:pressed, QToolButton:checked {{ background: {t.presionado}; }}
 QToolButton::menu-indicator {{ image: none; }}
-QComboBox, QLineEdit, QDoubleSpinBox, QSpinBox {{
-    background: {PANEL}; border: 1px solid {BORDE}; border-radius: 4px; padding: 3px 6px;
-    selection-background-color: {ACENTO_SUAVE}; selection-color: {TEXTO};
+
+/* Control segmentado, etapas y buscador */
+QWidget#grupo {{ background: {t.hover}; border-radius: {r}px; }}
+QPushButton#segmento {{
+    background: transparent; border: 1px solid transparent; border-radius: {rc}px;
+    padding: {max(pv - 2, 1)}px 10px; min-height: {alto_int - 2}px;
 }}
-QComboBox:focus, QLineEdit:focus {{ border-color: #93A9E8; }}
-QTreeWidget, QListWidget, QTableView, QPlainTextEdit {{
-    background: {PANEL}; border: 0; outline: 0;
-    selection-background-color: {ACENTO_SUAVE}; selection-color: {ACENTO};
+QPushButton#segmento:hover {{ color: {t.texto}; }}
+QPushButton#segmento:checked {{ background: {t.panel}; color: {t.texto}; border-color: {t.borde}; font-weight: 600; }}
+QPushButton#etapa {{ border: 0; border-radius: {r}px; padding: 5px 10px; background: transparent; }}
+QPushButton#etapa:hover {{ background: {t.hover}; color: {t.texto}; }}
+QPushButton#etapa:checked {{
+    background: {t.hover}; color: {t.texto}; font-weight: 600; border-bottom: 2px solid {t.acento};
+    border-bottom-left-radius: 0; border-bottom-right-radius: 0;
 }}
-QTreeWidget::item, QListWidget::item {{ padding: 3px 2px; }}
-QTreeWidget::item:hover, QListWidget::item:hover {{ background: {HOVER}; }}
-QHeaderView::section {{
-    background: {PANEL}; color: {TEXTO_3}; border: 0; border-bottom: 1px solid {BORDE};
-    padding: 4px 8px; font-weight: 600;
+QPushButton#buscar {{ text-align: left; color: {t.texto_3}; background: {t.fondo}; min-width: 210px; }}
+
+/* Campos de texto, numéricos y desplegables */
+QLineEdit, QComboBox, QAbstractSpinBox {{
+    background: {t.campo}; border: 1px solid {t.borde}; border-radius: {r}px;
+    padding: {pv}px 8px; min-height: {alto_int}px; color: {t.texto};
+    selection-background-color: {t.acento}; selection-color: {t.sobre_acento};
 }}
-QTableView {{ gridline-color: {BORDE_SUAVE}; }}
-QTabWidget::pane {{ border: 0; border-top: 1px solid {BORDE_SUAVE}; background: {PANEL}; }}
+QLineEdit:hover, QComboBox:hover, QAbstractSpinBox:hover {{ border-color: {t.borde_fuerte}; }}
+QLineEdit:focus, QComboBox:focus, QComboBox:on, QAbstractSpinBox:focus {{ border-color: {t.foco}; }}
+QLineEdit:disabled, QComboBox:disabled, QAbstractSpinBox:disabled {{ color: {t.deshabilitado}; background: {t.fondo}; }}
+QLineEdit[error="true"], QAbstractSpinBox[error="true"] {{ border-color: {t.negativo}; }}
+
+QComboBox::drop-down {{
+    subcontrol-origin: padding; subcontrol-position: center right;
+    width: 24px; border: 0; background: transparent;
+}}
+QComboBox::down-arrow {{ image: url({i["abajo"]}); width: 12px; height: 12px; }}
+QComboBox::down-arrow:disabled {{ image: url({i["abajo_off"]}); }}
+/* La lista abierta es una ventana aparte y siempre rectangular: con esquinas
+   redondeadas asomarían sus esquinas. Va recta, con borde en los cuatro lados. */
+QComboBoxPrivateContainer {{ background: {t.panel}; border: 1px solid {t.borde_fuerte}; border-radius: 0; padding: 0; }}
+QComboBox QAbstractItemView {{
+    background: {t.panel}; border: 0; padding: 4px; outline: 0;
+    selection-background-color: {t.acento_suave}; selection-color: {t.texto};
+}}
+QComboBox QAbstractItemView::item {{ min-height: {t.alto - 4}px; padding: 0 8px; border-radius: {rc}px; color: {t.texto}; }}
+QComboBox QAbstractItemView::item:hover, QComboBox QAbstractItemView::item:selected {{
+    background: {t.acento_suave}; color: {t.texto};
+}}
+
+QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {{
+    subcontrol-origin: border; width: 20px; border: 0; background: transparent; margin-right: 2px;
+}}
+QAbstractSpinBox::up-button {{ subcontrol-position: top right; margin-top: 2px; border-top-right-radius: {rc}px; }}
+QAbstractSpinBox::down-button {{ subcontrol-position: bottom right; margin-bottom: 2px; border-bottom-right-radius: {rc}px; }}
+QAbstractSpinBox::up-button:hover, QAbstractSpinBox::down-button:hover {{ background: {t.hover}; }}
+QAbstractSpinBox::up-arrow {{ image: url({i["arriba"]}); width: 10px; height: 10px; }}
+QAbstractSpinBox::down-arrow {{ image: url({i["abajo"]}); width: 10px; height: 10px; }}
+QAbstractSpinBox::up-arrow:disabled, QAbstractSpinBox::up-arrow:off {{ image: url({i["arriba_off"]}); }}
+QAbstractSpinBox::down-arrow:disabled, QAbstractSpinBox::down-arrow:off {{ image: url({i["abajo_off"]}); }}
+
+/* Casillas, opciones y deslizador */
+QCheckBox, QRadioButton {{ spacing: 8px; background: transparent; }}
+QCheckBox::indicator, QRadioButton::indicator {{
+    width: 14px; height: 14px; border: 1px solid {t.borde_fuerte}; background: {t.campo};
+}}
+QCheckBox::indicator {{ border-radius: {min(rc, 4)}px; }}
+QRadioButton::indicator {{ border-radius: 8px; }}
+QCheckBox::indicator:hover, QRadioButton::indicator:hover {{ border-color: {t.acento}; }}
+QCheckBox::indicator:checked {{ background: {t.acento}; border-color: {t.acento}; image: url({i["check"]}); }}
+QCheckBox::indicator:indeterminate {{ background: {t.acento}; border-color: {t.acento}; image: url({i["guion"]}); }}
+QRadioButton::indicator:checked {{ background: {t.acento}; border-color: {t.acento}; image: url({i["punto"]}); }}
+QCheckBox::indicator:disabled, QRadioButton::indicator:disabled {{ background: {t.fondo}; border-color: {t.borde}; }}
+QCheckBox:disabled, QRadioButton:disabled {{ color: {t.deshabilitado}; }}
+QSlider:horizontal {{ min-height: 20px; background: transparent; }}
+QSlider::groove:horizontal {{ height: 4px; background: {t.borde}; border-radius: 2px; }}
+QSlider::sub-page:horizontal {{ background: {t.acento}; border-radius: 2px; }}
+QSlider::handle:horizontal {{
+    width: 8px; margin: -7px 0; border-radius: 2px;
+    background: {t.acento}; border: 1px solid {t.acento};
+}}
+QSlider::handle:horizontal:hover {{ background: {t.primario_hover if t.oscuro else t.acento}; border-color: {t.foco}; }}
+QSlider::handle:horizontal:disabled {{ background: {t.deshabilitado}; border-color: {t.deshabilitado}; }}
+
+/* Pestañas */
+QTabWidget::pane {{ border: 0; border-top: 1px solid {t.borde}; background: {t.panel}; }}
+QTabBar {{ qproperty-drawBase: 0; }}
 QTabBar::tab {{
-    background: transparent; color: {TEXTO_2}; padding: 7px 4px; margin-right: 16px;
+    background: transparent; color: {t.texto_2}; padding: 7px 4px; margin-right: 16px;
     border: 0; border-bottom: 2px solid transparent;
 }}
-QTabBar::tab:selected {{ color: {TEXTO}; border-bottom-color: {ACENTO}; }}
-QTabBar::tab:hover {{ color: {TEXTO}; }}
-QSplitter::handle {{ background: {BORDE}; }}
-QStatusBar {{ border-top: 1px solid {BORDE}; color: {TEXTO_2}; }}
-QStatusBar QLabel {{ color: {TEXTO_2}; padding: 0 6px; }}
-QLabel#aviso {{
-    background: {AVISO_FONDO}; color: {AVISO_TEXTO}; border: 1px solid {AVISO_BORDE};
-    border-radius: 4px; padding: 4px 8px;
+QTabBar::tab:hover {{ color: {t.texto}; }}
+QTabBar::tab:selected {{ color: {t.texto}; border-bottom-color: {t.acento}; font-weight: 600; }}
+
+/* Tablas, listas y árboles */
+QTreeView, QListView, QTableView, QPlainTextEdit {{
+    background: {t.panel}; border: 0; outline: 0; alternate-background-color: {t.fondo};
+    selection-background-color: {t.acento_suave}; selection-color: {t.texto};
 }}
-QLabel#etiqueta {{ border: 1px solid {BORDE}; border-radius: 3px; padding: 0 6px; }}
-QScrollBar:vertical {{ background: transparent; width: 10px; }}
-QScrollBar::handle:vertical {{ background: #D5D9E0; border-radius: 4px; min-height: 24px; }}
-QScrollBar:horizontal {{ background: transparent; height: 10px; }}
-QScrollBar::handle:horizontal {{ background: #D5D9E0; border-radius: 4px; min-width: 24px; }}
+QTableView {{ gridline-color: {t.borde}; }}
+QTableView::item:selected {{ background: {t.acento_suave}; color: {t.texto}; }}
+QTreeView::item, QListView::item {{ padding: 3px 2px; }}
+QTreeView::item:hover, QListView::item:hover {{ background: {t.hover}; }}
+QTreeView::item:selected, QListView::item:selected {{ background: {t.acento_suave}; color: {t.acento}; }}
+QHeaderView {{ background: {t.panel}; }}
+QHeaderView::section {{
+    background: {t.panel}; color: {t.texto_3}; border: 0; border-bottom: 1px solid {t.borde};
+    padding: 4px 8px; font-weight: 600;
+}}
+QTableCornerButton::section {{ background: {t.panel}; border: 0; border-bottom: 1px solid {t.borde}; }}
+
+/* Barras de desplazamiento */
+QScrollBar:vertical {{ background: transparent; width: 10px; margin: 1px; }}
+QScrollBar:horizontal {{ background: transparent; height: 10px; margin: 1px; }}
+QScrollBar::handle {{ background: {t.borde_fuerte}; border-radius: 4px; }}
+QScrollBar::handle:vertical {{ min-height: 24px; }}
+QScrollBar::handle:horizontal {{ min-width: 24px; }}
+QScrollBar::handle:hover {{ background: {t.texto_3}; }}
 QScrollBar::add-line, QScrollBar::sub-line {{ width: 0; height: 0; }}
-QMenu {{ background: {PANEL}; border: 1px solid {BORDE}; padding: 4px; }}
-QMenu::item {{ padding: 5px 24px 5px 12px; border-radius: 4px; }}
-QMenu::item:selected {{ background: {ACENTO_SUAVE}; color: {TEXTO}; }}
-QDialog#paleta {{ background: {PANEL}; border: 1px solid {BORDE}; border-radius: 8px; }}
+QScrollBar::add-page, QScrollBar::sub-page {{ background: transparent; }}
+
+/* Menús, ayudas, avisos y separadores */
+QMenu {{ background: {t.panel}; border: 1px solid {t.borde}; border-radius: {r}px; padding: 4px; }}
+QMenu::item {{ padding: 5px 24px 5px 12px; border-radius: {rc}px; color: {t.texto}; }}
+QMenu::item:selected {{ background: {t.acento_suave}; }}
+QMenu::item:disabled {{ color: {t.deshabilitado}; }}
+QMenu::separator {{ height: 1px; background: {t.borde}; margin: 4px 6px; }}
+QToolTip {{ background: {t.texto}; color: {t.panel}; border: 0; border-radius: {rc}px; padding: 4px 8px; }}
+QLabel#aviso {{
+    background: {t.aviso_fondo}; color: {t.aviso_texto}; border: 1px solid {t.aviso_borde};
+    border-radius: {r}px; padding: 4px 8px;
+}}
+QLabel#etiqueta {{ border: 1px solid {t.borde}; border-radius: {rc}px; padding: 0 6px; }}
+QSplitter::handle {{ background: {t.borde}; }}
+QStatusBar {{ border-top: 1px solid {t.borde}; color: {t.texto_2}; }}
+QStatusBar QLabel {{ color: {t.texto_2}; padding: 0 6px; }}
+QProgressBar {{ background: {t.hover}; border: 0; border-radius: 3px; color: transparent; max-height: 6px; }}
+QProgressBar::chunk {{ background: {t.acento}; border-radius: 3px; }}
+QDialog#paleta {{ background: {t.panel}; border: 1px solid {t.borde}; border-radius: 8px; }}
 """
+
+
+MARGEN_TEXTO_NUMERICO = 5  # px entre el borde y el número
+
+
+class _Pulidor(QObject):
+    """Ajustes que la hoja de estilos sola no alcanza.
+
+    - A cada desplegable le da un delegado que respeta la hoja de estilos: el de
+      Fusion dibuja las opciones como un menú y no toma el alto, el relleno ni el
+      color de selección de ``QAbstractItemView::item``.
+    - A los campos numéricos les da margen izquierdo al texto: Qt no aplica a su
+      campo interno el ``padding`` de ``QAbstractSpinBox``.
+    """
+
+    def eventFilter(self, objeto: QObject, evento: QEvent) -> bool:
+        if evento.type() == QEvent.Polish and isinstance(objeto, QComboBox):
+            if not isinstance(objeto.itemDelegate(), QStyledItemDelegate):
+                objeto.setItemDelegate(QStyledItemDelegate(objeto))
+        elif evento.type() == QEvent.Polish and isinstance(objeto, QAbstractSpinBox):
+            objeto.lineEdit().setTextMargins(MARGEN_TEXTO_NUMERICO, 0, 0, 0)
+        return False
+
+
+_pulidor: _Pulidor | None = None
+
+
+def aplicar(app: QApplication | None = None, tema: Tema = CLARO) -> None:
+    """Instala el estilo Fusion, la hoja de estilos del tema y el ajuste de desplegables.
+
+    Se puede llamar más de una vez: si la hoja ya está, no la vuelve a cargar.
+    """
+    global _pulidor, actual
+    actual = tema
+    _colores_de_dibujo(tema)
+    app = app or QApplication.instance()
+    if app is None:
+        return
+    if _pulidor is None or _pulidor.parent() is not app:
+        app.setStyle("Fusion")
+        _pulidor = _Pulidor(app)
+        app.installEventFilter(_pulidor)
+    hoja = qss(tema)
+    if app.styleSheet() != hoja:
+        app.setStyleSheet(hoja)

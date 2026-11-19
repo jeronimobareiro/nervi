@@ -11,8 +11,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QAction, QColor, QIcon, QKeySequence
+from PySide6.QtCore import QSettings, QSize, Qt
+from PySide6.QtGui import QAction, QActionGroup, QColor, QIcon, QKeySequence
 from PySide6.QtWidgets import (
     QButtonGroup,
     QComboBox,
@@ -51,6 +51,14 @@ ETAPAS = ("Geometría", "Cargas", "Análisis", "Resultados", "Diseño", "Memoria
 AVISO_PRELIMINAR = "Versión preliminar · no apta para proyecto"
 
 
+CLAVE_TEMA = "interfaz/tema"
+
+
+def tema_guardado() -> str:
+    """Tema elegido la última vez ("claro" u "oscuro")."""
+    return str(QSettings("Nervi", "Nervi").value(CLAVE_TEMA, "claro"))
+
+
 def icono() -> QIcon:
     return QIcon(str(RECURSOS / "nervi.svg"))
 
@@ -61,7 +69,7 @@ class Ventana(QMainWindow):
         self.sesion = sesion or Sesion()
         self.setWindowIcon(icono())
         self.resize(1440, 900)
-        self.setStyleSheet(estilo.QSS)
+        estilo.aplicar(tema=estilo.TEMAS.get(tema_guardado(), estilo.CLARO))
         self._acciones()
 
         raiz = QWidget(objectName="raiz")
@@ -138,6 +146,16 @@ class Ventana(QMainWindow):
             self.a_diagramas[clave].setShortcutContext(Qt.WidgetWithChildrenShortcut)
         self.a_vista2d = self._accion("Vista 2D", lambda: self.mostrar_vista("2D"))
         self.a_vista3d = self._accion("Vista 3D", lambda: self.mostrar_vista("3D"))
+        self.a_temas = {}
+        grupo_temas = QActionGroup(self)
+        for clave, tema in estilo.TEMAS.items():
+            a = self._accion(
+                f"Tema {tema.nombre.lower()}", lambda _=False, c=clave: self.elegir_tema(c)
+            )
+            a.setCheckable(True)
+            a.setChecked(tema is estilo.actual)
+            grupo_temas.addAction(a)
+            self.a_temas[clave] = a
 
     def _barra_superior(self) -> QWidget:
         barra = QWidget(objectName="barra")
@@ -153,6 +171,8 @@ class Ventana(QMainWindow):
             self.a_guardar,
             self.a_guardar_como,
             self.a_memoria,
+            None,
+            *self.a_temas.values(),
             None,
             self.a_salir,
         ):
@@ -803,6 +823,18 @@ class Ventana(QMainWindow):
         paleta.show()
         paleta.campo.setFocus()
         return paleta
+
+    def elegir_tema(self, clave: str) -> None:
+        """Cambia entre el tema claro y el oscuro y lo recuerda para la próxima vez."""
+        estilo.aplicar(tema=estilo.TEMAS[clave])
+        QSettings("Nervi", "Nervi").setValue(CLAVE_TEMA, clave)
+        self.a_temas[clave].setChecked(True)
+        self._actualizar_explorador()
+        self._actualizar_resultados()
+        self._actualizar_propiedades()
+        self.vista.update()
+        if isinstance(self.vista3d, Vista3D):
+            self.vista3d.actualizar()
 
     def closeEvent(self, evento) -> None:
         if self._seguir_si_hay_cambios():
