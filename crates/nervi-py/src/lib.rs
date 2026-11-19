@@ -23,10 +23,10 @@ use pyo3::types::{PyDict, PyList};
 const VERSION_CONTRATO: u32 = 2;
 /// Versión del contrato de datos del pórtico espacial (`resolver_portico_3d`).
 /// Se versiona aparte para no cambiar el contrato plano.
-const VERSION_CONTRATO_3D: u32 = 1;
+const VERSION_CONTRATO_3D: u32 = 2;
 /// Versión del contrato de datos de la dinámica del pórtico espacial
 /// (`resolver_modal_3d` y `espectro_3d`).
-const VERSION_CONTRATO_DINAMICA: u32 = 1;
+const VERSION_CONTRATO_DINAMICA: u32 = 2;
 
 create_exception!(
     _core,
@@ -360,6 +360,9 @@ fn construir_modelo_3d(
     cargas_nodales: &PyReadonlyArray3<'_, f64>,
     cargas_barra: &PyReadonlyArray2<'_, f64>,
     despl_impuestos: &PyReadonlyArray3<'_, f64>,
+    brazos: Option<&PyReadonlyArray2<'_, f64>>,
+    diafragmas: Option<&PyReadonlyArray1<'_, i64>>,
+    maestros: Option<&PyReadonlyArray1<'_, i64>>,
 ) -> PyResult<Modelo3d> {
     let coords = coords.as_array();
     let conectividad = conectividad.as_array();
@@ -474,12 +477,50 @@ fn construir_modelo_3d(
             .push(CargaBarra3d { barra, ejes, tipo });
     }
 
+    if let Some(brazos) = brazos {
+        let brazos = brazos.as_array();
+        verificar_forma("brazos", brazos.shape(), &[m, 6])?;
+        for (k, b) in modelo.barras.iter_mut().enumerate() {
+            b.brazo_i = std::array::from_fn(|d| brazos[[k, d]]);
+            b.brazo_j = std::array::from_fn(|d| brazos[[k, 3 + d]]);
+        }
+    }
+    match (diafragmas, maestros) {
+        (None, None) => {}
+        (Some(pertenece), Some(maestros)) => {
+            let pertenece = pertenece.as_array();
+            let maestros = maestros.as_array();
+            verificar_forma("diafragmas", pertenece.shape(), &[n])?;
+            let nd = maestros.len();
+            let mut grupos = vec![Vec::new(); nd];
+            for k in 0..n {
+                let d = pertenece[k];
+                if d >= 0 {
+                    let d = indice("diafragmas", d as f64, nd)?;
+                    grupos[d].push(k);
+                }
+            }
+            for (d, nudos) in grupos.iter().enumerate() {
+                let maestro = indice("maestros", maestros[d] as f64, n)?;
+                modelo.agregar_diafragma(nudos, Some(maestro));
+            }
+        }
+        _ => {
+            return Err(PyValueError::new_err(
+                "'diafragmas' y 'maestros' se dan juntos",
+            ))
+        }
+    }
+
     Ok(modelo)
 }
 
 /// Resuelve un pórtico espacial lineal elástico para varios casos de carga.
 ///
-/// Contrato de datos 3D, versión 1 (ver `docs/contrato-datos.md`). Devuelve un
+/// Contrato de datos 3D, versión 2 (ver `docs/contrato-datos.md`): los
+/// brazos rígidos `brazos (n_barras, 6)` y los diafragmas `diafragmas
+/// (n_nudos,)` (índice del diafragma de cada nudo, -1 si no tiene) con
+/// `maestros (n_diafragmas,)` son opcionales. Devuelve un
 /// diccionario con `desplazamientos (n_casos, n_nudos, 6)`, `reacciones
 /// (n_casos, n_nudos, 6)`, `fuerzas_extremo (n_casos, n_barras, 12)`, `ejes
 /// (n_barras, 3, 3)` (filas `x, y, z` locales en globales), `gdl_sin_rigidez` y
@@ -488,7 +529,8 @@ fn construir_modelo_3d(
 #[pyfunction]
 #[pyo3(signature = (
     version, coords, conectividad, props, referencias, liberaciones, restricciones, resortes,
-    cargas_nodales, cargas_barra, despl_impuestos, n_estaciones = 11
+    cargas_nodales, cargas_barra, despl_impuestos, n_estaciones = 11, brazos = None,
+    diafragmas = None, maestros = None
 ))]
 #[allow(clippy::too_many_arguments)]
 fn resolver_portico_3d<'py>(
@@ -505,6 +547,9 @@ fn resolver_portico_3d<'py>(
     cargas_barra: PyReadonlyArray2<'py, f64>,
     despl_impuestos: PyReadonlyArray3<'py, f64>,
     n_estaciones: usize,
+    brazos: Option<PyReadonlyArray2<'py, f64>>,
+    diafragmas: Option<PyReadonlyArray1<'py, i64>>,
+    maestros: Option<PyReadonlyArray1<'py, i64>>,
 ) -> PyResult<Bound<'py, PyDict>> {
     if version != VERSION_CONTRATO_3D {
         return Err(PyValueError::new_err(format!(
@@ -522,6 +567,9 @@ fn resolver_portico_3d<'py>(
         &cargas_nodales,
         &cargas_barra,
         &despl_impuestos,
+        brazos.as_ref(),
+        diafragmas.as_ref(),
+        maestros.as_ref(),
     )?;
     let (n, m, nc) = (modelo.nudos.len(), modelo.barras.len(), modelo.casos.len());
     let res = py
@@ -605,6 +653,15 @@ fn modelo_desde_dict(d: &Bound<'_, PyDict>) -> PyResult<Modelo3d> {
         d.get_item(k)?
             .ok_or_else(|| PyValueError::new_err(format!("falta el arreglo '{k}' del modelo")))
     };
+    fn opcional<'py, T: for<'a> pyo3::FromPyObject<'a, 'py>>(
+        d: &Bound<'py, PyDict>,
+        k: &str,
+    ) -> PyResult<Option<T>> {
+        match d.get_item(k)? {
+            Some(v) if !v.is_none() => Ok(Some(v.extract().map_err(Into::into)?)),
+            _ => Ok(None),
+        }
+    }
     construir_modelo_3d(
         &item("coords")?.extract()?,
         &item("conectividad")?.extract()?,
@@ -616,6 +673,9 @@ fn modelo_desde_dict(d: &Bound<'_, PyDict>) -> PyResult<Modelo3d> {
         &item("cargas_nodales")?.extract()?,
         &item("cargas_barra")?.extract()?,
         &item("despl_impuestos")?.extract()?,
+        opcional::<PyReadonlyArray2<'_, f64>>(d, "brazos")?.as_ref(),
+        opcional::<PyReadonlyArray1<'_, i64>>(d, "diafragmas")?.as_ref(),
+        opcional::<PyReadonlyArray1<'_, i64>>(d, "maestros")?.as_ref(),
     )
 }
 
@@ -645,7 +705,8 @@ fn filas3(v: &[[f64; 3]]) -> Array2<f64> {
 /// automático, 1 = denso, 2 = Lanczos. Devuelve `omegas, periodos, frecuencias
 /// (n_modos,)`, `modos` e `inercias` `(n_modos, n_nudos, 6)`,
 /// `factores_participacion` y `masas_efectivas (n_modos, 3)`, `masa_total
-/// (3,)`, `n_gdl_masa`, `metodo` y `gdl_sin_rigidez`.
+/// (3,)`, `n_gdl_masa`, `metodo`, `gdl_sin_rigidez` y `diafragmas` (lista de
+/// diccionarios `maestro, masa [mx, my], centro_masa [x, y], inercia`).
 #[pyfunction]
 #[pyo3(signature = (
     version, modelo, masas_nodales, masas_lineales, masas_casos, gravedad, tipo_masa,
@@ -742,6 +803,16 @@ fn resolver_modal_3d<'py>(
         sin_rigidez.append((*nudo, gdl.to_string()))?;
     }
     out.set_item("gdl_sin_rigidez", sin_rigidez)?;
+    let diafragmas = PyList::empty(py);
+    for d in &r.diafragmas {
+        let dic = PyDict::new(py);
+        dic.set_item("maestro", d.maestro)?;
+        dic.set_item("masa", d.masa.to_vec())?;
+        dic.set_item("centro_masa", d.centro_masa.to_vec())?;
+        dic.set_item("inercia", d.inercia)?;
+        diafragmas.append(dic)?;
+    }
+    out.set_item("diafragmas", diafragmas)?;
     Ok(out)
 }
 
@@ -814,6 +885,7 @@ fn espectro_3d<'py>(
         gdl_sin_rigidez: Vec::new(),
         n_gdl_masa: 0,
         metodo: MetodoModal::Automatico,
+        diafragmas: Vec::new(),
     };
     let espectro = Espectro::new(
         periodos_espectro.as_array().to_vec(),

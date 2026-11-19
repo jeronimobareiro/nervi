@@ -45,6 +45,17 @@ def _tres(v: Sequence[float], nombre: str) -> tuple[float, float, float]:
     return (float(v[0]), float(v[1]), float(v[2]))
 
 
+def _brazo(v, nombre: str) -> float | tuple[float, float, float]:
+    """Un brazo rígido: longitud sobre el eje (número) o vector global."""
+    if v is None:
+        return 0.0
+    if isinstance(v, (int, float, np.integer, np.floating)):
+        if v < 0:
+            raise ValueError(f"'{nombre}' no puede ser negativo")
+        return float(v)
+    return _tres(v, nombre)
+
+
 class Modelo3D:
     """Pórtico espacial lineal elástico."""
 
@@ -59,6 +70,7 @@ class Modelo3D:
         self._masas_lineales: dict[int, float] = {}
         self._masas_casos: dict[str, float] = {}
         self._gravedad = 9.80665
+        self._diafragmas: list[tuple[int, list[int]]] = []
 
     # --- Geometría -------------------------------------------------------------
     def agregar_nudo(self, x: float, y: float, z: float) -> int:
@@ -81,6 +93,8 @@ class Modelo3D:
         articulada_i: bool = False,
         articulada_j: bool = False,
         liberaciones: Sequence[bool] | None = None,
+        brazo_i: float | Sequence[float] | None = None,
+        brazo_j: float | Sequence[float] | None = None,
     ) -> int:
         """Agrega una barra.
 
@@ -90,6 +104,14 @@ class Modelo3D:
         ``articulada_i/j`` liberan ``My`` y ``Mz`` en ese extremo;
         ``liberaciones`` da las doce fuerzas de extremo locales
         ``(N, Vy, Vz, T, My, Mz)`` del extremo i y luego las del j.
+
+        ``brazo_i`` y ``brazo_j`` son brazos rígidos (zonas rígidas de la
+        unión): un número es la longitud del brazo sobre el eje de la barra,
+        desde el nudo hacia el otro extremo (por ejemplo, media columna en
+        una viga); un vector ``(x, y, z)`` en globales va del nudo a la cara y
+        puede ser excéntrico. Las cargas en el tramo, los diagramas, la masa
+        lineal y las fuerzas de extremo se refieren a la parte flexible, entre
+        las caras.
         """
         props = dict(seccion or {})
         for nombre, v in (("A", A), ("Iy", Iy), ("Iz", Iz), ("J", J)):
@@ -116,6 +138,7 @@ class Modelo3D:
                 ),
                 "referencia": ref,
                 "liberaciones": tuple(map(bool, liberaciones)),
+                "brazos": (_brazo(brazo_i, "brazo_i"), _brazo(brazo_j, "brazo_j")),
             }
         )
         return len(self._barras) - 1
@@ -144,6 +167,36 @@ class Modelo3D:
         r = self._restricciones.setdefault(int(nudo), [False] * 6)
         for k, v in enumerate((ux, uy, uz, rx, ry, rz)):
             r[k] |= bool(v)
+
+    def diafragma(self, nudos: Sequence[int], maestro: int | None = None) -> int:
+        """Declara un diafragma rígido en su plano (horizontal) con los
+        ``nudos`` de un piso y devuelve su nudo maestro.
+
+        Los nudos se mueven con el maestro como un cuerpo rígido en planta
+        (``ux``, ``uy`` y ``rz``); ``uz``, ``rx`` y ``ry`` quedan libres. Si no
+        se da ``maestro``, se crea un nudo en el centroide de los nudos (a su
+        altura media) con ``uz``, ``rx`` y ``ry`` restringidos: ahí se leen los
+        desplazamientos del piso y se pueden aplicar las fuerzas de piso. La
+        masa de los nudos del diafragma se concentra en el maestro.
+        """
+        nudos = [int(k) for k in nudos]
+        if not nudos:
+            raise ValueError("el diafragma necesita al menos un nudo")
+        for k in nudos:
+            if not 0 <= k < len(self._nudos):
+                raise ValueError(f"el diafragma referencia el nudo inexistente {k}")
+        if maestro is None:
+            c = np.mean([self._nudos[k] for k in nudos], axis=0)
+            maestro = self.agregar_nudo(*c)
+            self.apoyar(maestro, ux=False, uy=False, rz=False)
+        maestro = int(maestro)
+        self._diafragmas.append((maestro, [k for k in dict.fromkeys(nudos) if k != maestro]))
+        return maestro
+
+    @property
+    def diafragmas(self) -> list[tuple[int, list[int]]]:
+        """Diafragmas declarados: ``(maestro, nudos)`` de cada uno."""
+        return [(m, list(n)) for m, n in self._diafragmas]
 
     def resorte(
         self,
@@ -315,6 +368,19 @@ class Modelo3D:
                 nodales[c, k] = f
             for k, u in caso.impuestos.items():
                 impuestos[c, k] = u
+        brazos = np.zeros((m, 6), dtype=np.float64)
+        for k, b in enumerate(self._barras):
+            i, j = b["nudos"]
+            if not (0 <= i < n and 0 <= j < n):
+                continue
+            eje = coords[j] - coords[i]
+            largo = float(np.linalg.norm(eje))
+            for e, (bz, signo) in enumerate(zip(b["brazos"], (1.0, -1.0), strict=True)):
+                if isinstance(bz, float):
+                    if bz != 0.0 and largo > 0.0:
+                        brazos[k, 3 * e : 3 * e + 3] = signo * bz * eje / largo
+                else:
+                    brazos[k, 3 * e : 3 * e + 3] = bz
         cargas_barra = np.array(self._cargas_barra, dtype=np.float64).reshape(-1, 12)
         for fila in cargas_barra:
             if fila[2] == 2 and np.isnan(fila[5]):
@@ -322,7 +388,18 @@ class Modelo3D:
                 if 0 <= k < m:
                     i, j = conect[k]
                     if 0 <= i < n and 0 <= j < n:
-                        fila[5] = float(np.linalg.norm(coords[j] - coords[i]))
+                        pi, pj = coords[i] + brazos[k, :3], coords[j] + brazos[k, 3:]
+                        fila[5] = float(np.linalg.norm(pj - pi))
+        diafragmas = np.full(n, -1, dtype=np.int64)
+        for d, (_, nudos) in enumerate(self._diafragmas):
+            for k in nudos:
+                if diafragmas[k] != -1:
+                    raise ValueError(
+                        f"el nudo {k} está en los diafragmas {diafragmas[k]} y {d}; "
+                        "cada nudo puede estar en uno solo"
+                    )
+                diafragmas[k] = d
+        maestros = np.array([mm for mm, _ in self._diafragmas], dtype=np.int64)
         return {
             "coords": coords,
             "conectividad": conect,
@@ -334,6 +411,9 @@ class Modelo3D:
             "cargas_nodales": nodales,
             "cargas_barra": cargas_barra,
             "despl_impuestos": impuestos,
+            "brazos": brazos,
+            "diafragmas": diafragmas,
+            "maestros": maestros,
         }
 
     def resolver(self, n_estaciones: int = 11) -> Resultados3D:
@@ -341,10 +421,11 @@ class Modelo3D:
         inválido y ``MecanismoError`` si la estructura es inestable."""
         if not self._casos:
             raise ValueError("el modelo no tiene casos de carga")
+        arreglos = self.arreglos()
         crudo = _core.resolver_portico_3d(
-            _core.VERSION_CONTRATO_3D, **self.arreglos(), n_estaciones=n_estaciones
+            _core.VERSION_CONTRATO_3D, **arreglos, n_estaciones=n_estaciones
         )
-        return Resultados3D([c.nombre for c in self._casos], crudo)
+        return Resultados3D([c.nombre for c in self._casos], crudo, _pisos(arreglos))
 
     def modal(
         self,
@@ -437,7 +518,8 @@ class ResultadoCaso3D:
 class Resultados3D:
     """Resultados de todos los casos de carga del pórtico espacial."""
 
-    def __init__(self, nombres: list[str], crudo: dict) -> None:
+    def __init__(self, nombres: list[str], crudo: dict, pisos: dict | None = None) -> None:
+        self._pisos = pisos
         self.gdl_sin_rigidez: list[tuple[int, str]] = list(crudo["gdl_sin_rigidez"])
         #: (n_barras, 3, 3): filas ``x, y, z`` locales de cada barra en globales.
         self.ejes: np.ndarray = crudo["ejes"]
@@ -458,6 +540,13 @@ class Resultados3D:
 
     def __getitem__(self, nombre: str) -> ResultadoCaso3D:
         return self._casos[nombre]
+
+    def derivas(self, nombre: str) -> dict[str, np.ndarray]:
+        """Desplazamientos y derivas de piso de un caso (o de una combinación
+        dada como resultado) en los maestros de los diafragmas, de abajo
+        hacia arriba. Ver :func:`derivas_de_piso`."""
+        caso = nombre if isinstance(nombre, ResultadoCaso3D) else self._casos[nombre]
+        return derivas_de_piso(self._pisos, caso.desplazamientos[None])
 
     def combinar(self, nombre: str, factores: dict[str, float]) -> ResultadoCaso3D:
         """Combinación lineal de casos, p. ej. ``{"D": 1.2, "L": 1.6}``.
@@ -498,3 +587,57 @@ class Resultados3D:
                     partes[k].append(total)
             diag = {k: np.concatenate(v) for k, v in partes.items()}
         return ResultadoCaso3D(nombre, despl, reac, fext, diag)
+
+
+def _pisos(arreglos: dict[str, np.ndarray]) -> dict[str, np.ndarray]:
+    """Maestros de los diafragmas ordenados por altura y alturas de entrepiso
+    (el primero se mide desde la cota más baja del modelo)."""
+    coords = arreglos["coords"]
+    maestros = np.asarray(arreglos.get("maestros", np.zeros(0)), dtype=np.int64)
+    if maestros.size == 0:
+        return {"maestro": maestros, "z": np.zeros(0), "h": np.zeros(0)}
+    z = coords[maestros, 2]
+    orden = np.argsort(z, kind="stable")
+    maestros, z = maestros[orden], z[orden]
+    base = float(coords[:, 2].min())
+    h = np.diff(np.concatenate([[base], z]))
+    return {"maestro": maestros, "z": z, "h": h}
+
+
+def derivas_de_piso(
+    pisos: dict[str, np.ndarray] | None,
+    desplazamientos: np.ndarray,
+    correlacion: np.ndarray | None = None,
+) -> dict[str, np.ndarray]:
+    """Desplazamientos y derivas de cada piso con diafragma, de abajo hacia arriba.
+
+    ``desplazamientos`` es ``(n_modos, n_nudos, 6)``: un solo caso con
+    ``n_modos = 1``, o la respuesta de cada modo de un espectro, que se combina
+    con ``correlacion`` (los valores salen en valor absoluto). La deriva es la
+    diferencia de desplazamientos horizontales de los maestros de dos pisos
+    consecutivos dividida por la altura de entrepiso; el primer piso se
+    compara con la base (desplazamiento nulo en la cota más baja del modelo).
+    Devuelve los arreglos ``maestro, z, h, ux, uy, rz, deriva_x, deriva_y``.
+    """
+    if pisos is None or pisos["maestro"].size == 0:
+        raise ValueError("el modelo no tiene diafragmas: no hay pisos para calcular derivas")
+    u = desplazamientos[:, pisos["maestro"], :]
+    delta = np.diff(np.concatenate([np.zeros_like(u[:, :1]), u], axis=1), axis=1)
+    deriva = delta[:, :, :2] / pisos["h"][None, :, None]
+
+    def combinar(v: np.ndarray) -> np.ndarray:
+        if correlacion is None:
+            return v[0]
+        return np.sqrt(np.maximum(np.einsum("i...,ij,j...->...", v, correlacion, v), 0.0))
+
+    up, dp = combinar(u), combinar(deriva)
+    return {
+        "maestro": pisos["maestro"].copy(),
+        "z": pisos["z"].copy(),
+        "h": pisos["h"].copy(),
+        "ux": up[:, 0],
+        "uy": up[:, 1],
+        "rz": up[:, 5],
+        "deriva_x": dp[:, 0],
+        "deriva_y": dp[:, 1],
+    }

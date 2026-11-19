@@ -111,6 +111,27 @@ Con las fuerzas de extremo `{f}` sobre la barra (doce componentes `[Fx, Fy, Fz, 
 
 Doce liberaciones por barra, `(N, Vy, Vz, T, My, Mz)` en `i` y luego en `j`, por condensación estática como en el plano. Una articulación esférica libera `My` y `Mz`; una biela de cercha espacial libera además `T` en un extremo (si no, el giro alrededor de su eje queda indeterminado). Son inestables y se rechazan: `N`, `Vy`, `Vz` o `T` liberados en los dos extremos, y `Vy` con `Mz` o `Vz` con `My` en el mismo extremo. Los giros de nudos sin rigidez (nudos de cercha) se fijan solos y se informan en `gdl_sin_rigidez`, como en el plano.
 
+### Brazos rígidos
+
+Issue #13. Cada extremo de una barra puede tener un **brazo rígido** (zona rígida de la unión): un vector en ejes globales desde el nudo hasta la cara de la unión, donde empieza la parte flexible. En Python, `brazo_i` y `brazo_j` de `agregar_barra` aceptan un número (largo del brazo sobre el eje de la barra, desde el nudo hacia el otro extremo) o un vector `(x, y, z)` global, que puede ser excéntrico (ejes que no se cruzan).
+
+- La **parte flexible** va de `nudo_i + brazo_i` a `nudo_j + brazo_j`: de ella salen la longitud `L`, los ejes locales, las cargas en el tramo (`a` y `b` se miden desde la cara `i`), las estaciones de los diagramas y la masa lineal. Si los brazos se tocan, el modelo es inválido.
+- Cinemática de cuerpo rígido con giros pequeños: `u_cara = u_nudo + θ × r` y `θ_cara = θ_nudo`; las fuerzas pasan con la traspuesta, `F_nudo = F_cara` y `M_nudo = M_cara + r × F_cara`, y la rigidez y la masa con `Bᵀ k B`.
+- Las **fuerzas de extremo** y los diagramas son **en las caras**; las **reacciones** y el equilibrio de los nudos, en los nudos.
+- Las liberaciones actúan en la cara (el extremo de la parte flexible).
+- La masa desde los casos (cargas en el tramo) se reparte entre los nudos según dónde cae la resultante sobre la recta que los une.
+
+### Diafragma rígido
+
+Issue #14. `Modelo3D.diafragma(nudos, maestro=None)` declara que los nudos de un piso se mueven como un cuerpo rígido en el **plano horizontal XY**:
+
+- Con `(dx, dy)` la posición del nudo respecto del maestro: `ux = ux_m - dy·rz_m`, `uy = uy_m + dx·rz_m`, `rz = rz_m`. `uz`, `rx` y `ry` de cada nudo quedan libres (la losa no tiene rigidez fuera de su plano). Los nudos de un diafragma no necesitan estar a la misma altura.
+- Se impone **por transformación** (`u = T û`): los GDL `ux, uy, rz` de los esclavos se eliminan del sistema; no hay penalización. Los desplazamientos de los esclavos se reconstruyen y se informan como los de cualquier nudo.
+- **Maestro**: el nudo que se indique, o uno nuevo en el centroide de los nudos (a su altura media) con `uz, rx, ry` restringidos, porque no lo toca ninguna barra. Ahí se leen los desplazamientos del piso y se pueden aplicar las fuerzas de piso.
+- Solo el maestro puede tener restringidos `ux`, `uy` o `rz` (lo restringe todo el piso); un esclavo con esos GDL restringidos es un error. Cada nudo puede estar en un solo diafragma. Los resortes de los esclavos actúan sobre el piso y su reacción es `-k u`.
+- Las barras entre nudos del mismo diafragma no se alargan en su eje ni se flexionan en el plano: sus esfuerzos `N` y `Vy`/`Vz` horizontales salen de la deformación que el diafragma permite (cero en una viga horizontal entre dos nudos del piso).
+- **Derivas de piso** (`Resultados3D.derivas(caso)` y `ResultadoEspectro3D.derivas()`): diferencia de `ux` y `uy` de los maestros de dos pisos consecutivos (ordenados por altura) dividida por la altura de entrepiso; el primer piso se compara con desplazamiento nulo en la cota más baja del modelo. Se miden en el maestro de cada piso. En el espectro se combina la deriva de cada modo, no la diferencia de los desplazamientos combinados.
+
 ## Dinámica: masas, modal y espectro (Fase 2b)
 
 Módulo `nervi_core::espacial::dinamica` en Rust y `Modelo3D.modal` / `nervi.dinamica` en Python (issues #16, #17 y #18). Solo para el pórtico espacial; las masas se dan aparte del modelo estático, así que el análisis estático y su contrato no cambian.
@@ -125,6 +146,7 @@ Las del modelo: con fuerzas en kN y longitudes en m, la masa va en **t** (kN·s�
 - **De las barras**: masa por unidad de longitud `m` (por ejemplo `ρ·A`). **Concentrada** (por defecto): `m L/2` en las tres traslaciones de cada extremo; se **desprecia la inercia rotacional**. **Consistente**: matriz 12×12 de Przemieniecki (cap. 11) con las mismas funciones de forma de la rigidez; la torsión usa el momento polar `Iy + Iz` y no hay inercia rotacional de flexión. Las barras con liberaciones usan siempre masa concentrada.
 - **Desde los casos de carga**: `m = -Fz · factor / g` con la componente vertical global de las cargas (las que apuntan hacia abajo dan masa positiva). Las cargas en barras se reparten a sus nudos como las reacciones de una viga simplemente apoyada. Va como masa traslacional en X, Y y Z. Si las cargas netas de un nudo apuntan hacia arriba, el modelo es inválido.
 - La masa de los GDL restringidos no participa. Un GDL libre con masa y sin rigidez es un error (`MecanismoError`).
+- **Con diafragma rígido** la masa se lleva a los GDL independientes con `Tᵀ M T`: la masa horizontal de los nudos del piso queda **concentrada en el maestro**, con la inercia de rotación `Σ m (dx² + dy²)` respecto de él; la vertical queda en cada nudo. `ResultadosModal3D.diafragmas` da para cada piso la masa en X e Y, el **centro de masa** y la inercia de rotación alrededor de él. Las inercias `M φ` de los modos se informan en los GDL independientes (las horizontales del piso, en el maestro).
 
 ### Modos
 

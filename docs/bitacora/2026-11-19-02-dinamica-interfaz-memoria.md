@@ -38,7 +38,7 @@ Que el análisis modal y espectral de la entrada 2026-11-18-01 se vea: periodos,
 - `tests/test_memoria.py`: el PDF del ejemplo tiene la carátula (título, revisión, "Generada con Nervi") y la hoja de normativa; una memoria con título largo y normas las lista. `test_gui.py`: la memoria con diseño suma ACI 318-19.
 - `tests/test_gui.py` (4 pruebas nuevas): sin masa avisa; flujo completo desde el panel (factores, modos, espectro, análisis, elegir modo y espectro, animación y desactualización al editar); guardar, abrir y memoria con el capítulo antes del de diseño; el modo en la escena 3D.
 - Capturas de la interfaz con un pórtico de tres pisos y dos vanos (en el PR) y de las dos primeras hojas de la memoria del ejemplo, revisadas a ojo contra la muestra aprobada.
-- `pytest`: 309 pruebas en verde. `ruff check` y `ruff format --check`, en verde. El motor Rust no cambió; `cargo fmt --check`, `cargo clippy -D warnings` y `cargo test -p nervi-core` se corrieron igual y están en verde.
+- `pytest`: 315 pruebas en verde (después de traer main con el diafragma rígido). `ruff check` y `ruff format --check`, en verde. El motor Rust no cambió; `cargo fmt --check`, `cargo clippy -D warnings` y `cargo test -p nervi-core` se corrieron igual y están en verde.
 
 ## Decisiones tomadas
 
