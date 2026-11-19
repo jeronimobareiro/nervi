@@ -64,11 +64,11 @@ Diccionario:
 | `gdl` | `"ux"`, `"uy"`, `"rz"` o `None` | GDL de ese nudo (una traslación, salvo que el modo solo tenga giros) |
 | `modos` | lista de listas de `(nudo, gdl, valor)` | modos de mecanismo (hasta 6), cada uno normalizado para que el GDL principal valga 1; solo las componentes con valor absoluto de al menos 1e-6. Vacía para la carga sin rigidez |
 
-# Contrato de datos del pórtico espacial (versión 3D 1)
+# Contrato de datos del pórtico espacial (versión 3D 2)
 
-Función: `nervi._core.resolver_portico_3d(version, coords, conectividad, props, referencias, liberaciones, restricciones, resortes, cargas_nodales, cargas_barra, despl_impuestos, n_estaciones=11)` (issue #12).
+Función: `nervi._core.resolver_portico_3d(version, coords, conectividad, props, referencias, liberaciones, restricciones, resortes, cargas_nodales, cargas_barra, despl_impuestos, n_estaciones=11, brazos=None, diafragmas=None, maestros=None)` (issues #12, #13 y #14).
 
-Se versiona aparte con `nervi._core.VERSION_CONTRATO_3D` (hoy 1), para que agregar el pórtico espacial no cambie el contrato plano: `resolver_portico_2d` y `VERSION_CONTRATO = 2` siguen iguales. Mismas reglas que arriba: NumPy con forma y tipo fijos, `ValueError` con el nombre del arreglo si una forma no coincide, GIL liberado durante el cálculo y `n_casos` deducido de `cargas_nodales`. Ejes y signos en [`convenciones.md`](convenciones.md) §Pórtico espacial.
+Se versiona aparte con `nervi._core.VERSION_CONTRATO_3D` (hoy 2), para que agregar el pórtico espacial no cambie el contrato plano: `resolver_portico_2d` y `VERSION_CONTRATO = 2` siguen iguales. Mismas reglas que arriba: NumPy con forma y tipo fijos, `ValueError` con el nombre del arreglo si una forma no coincide, GIL liberado durante el cálculo y `n_casos` deducido de `cargas_nodales`. Ejes y signos en [`convenciones.md`](convenciones.md) §Pórtico espacial.
 
 ## Entrada
 
@@ -84,6 +84,9 @@ Se versiona aparte con `nervi._core.VERSION_CONTRATO_3D` (hoy 1), para que agreg
 | `cargas_nodales` | float64 | `(n_casos, n_nudos, 6)` | `[Fx, Fy, Fz, Mx, My, Mz]` globales |
 | `cargas_barra` | float64 | `(n_cargas, 12)` | `[caso, barra, tipo, ejes, a, b, qx1, qy1, qz1, qx2, qy2, qz2]` |
 | `despl_impuestos` | float64 | `(n_casos, n_nudos, 6)` | asentamientos; solo se usan en GDL restringidos |
+| `brazos` (opcional) | float64 | `(n_barras, 6)` | brazos rígidos `[bix, biy, biz, bjx, bjy, bjz]` en globales, del nudo a la cara; `None` o ceros = sin brazos |
+| `diafragmas` (opcional) | int64 | `(n_nudos,)` | índice del diafragma rígido de cada nudo; -1 = ninguno |
+| `maestros` (opcional) | int64 | `(n_diafragmas,)` | nudo maestro de cada diafragma; se da junto con `diafragmas` |
 
 `cargas_barra`: `tipo` 0 = uniforme en toda la luz (`q1`; `a`, `b` y `q2` se ignoran), 1 = puntual `q1 = (px, py, pz)` a la distancia `a` del nudo `i`, 2 = trapezoidal entre `a` y `b` (`0 ≤ a < b ≤ L`) que vale `q1` en `a` y `q2` en `b`. `ejes` 0 = local, 1 = global. Un arreglo con otro número de columnas se rechaza con `ValueError`.
 
@@ -105,12 +108,13 @@ Errores: los mismos que en el plano. `MecanismoError.gdl` puede valer además `"
 | Versión | Cambio |
 |---|---|
 | 1 | Versión inicial (issues #11 y #12): cargas uniformes, puntuales y trapezoidales. |
+| 2 | Brazos rígidos (`brazos`, #13) y diafragmas rígidos (`diafragmas`, `maestros`, #14), opcionales: un modelo sin ellos da lo mismo que en la versión 1. Con brazos, `L`, las cargas en el tramo, los diagramas y las fuerzas de extremo se refieren a la parte flexible, entre las caras. |
 
-# Contrato de datos de la dinámica del pórtico espacial (versión 1)
+# Contrato de datos de la dinámica del pórtico espacial (versión 2)
 
 Funciones: `nervi._core.resolver_modal_3d(version, modelo, masas_nodales, masas_lineales, masas_casos, gravedad, tipo_masa, n_modos, metodo=0)` y `nervi._core.espectro_3d(version, modelo, omegas, modos, inercias, periodos_espectro, aceleraciones_espectro, direccion, amortiguamiento, combinacion, n_estaciones=11)` (issues #16, #17 y #18).
 
-Se versiona aparte con `nervi._core.VERSION_CONTRATO_DINAMICA` (hoy 1). `modelo` es un diccionario con los diez arreglos de entrada del contrato 3D (las claves de la tabla de arriba, lo que devuelve `Modelo3D.arreglos()`); los dos contratos anteriores no cambian. Convenciones en [`convenciones.md`](convenciones.md) §Dinámica.
+Se versiona aparte con `nervi._core.VERSION_CONTRATO_DINAMICA` (hoy 2). `modelo` es un diccionario con los arreglos de entrada del contrato 3D (las claves de la tabla de arriba, lo que devuelve `Modelo3D.arreglos()`; `brazos`, `diafragmas` y `maestros` pueden faltar); los dos contratos anteriores no cambian. Convenciones en [`convenciones.md`](convenciones.md) §Dinámica.
 
 ## Entrada de `resolver_modal_3d`
 
@@ -130,13 +134,14 @@ Se versiona aparte con `nervi._core.VERSION_CONTRATO_DINAMICA` (hoy 1). `modelo`
 |---|---|---|
 | `omegas`, `periodos`, `frecuencias` | `(n_modos,)` | `ω`, `T = 2π/ω`, `f = 1/T`, de menor a mayor frecuencia |
 | `modos` | `(n_modos, n_nudos, 6)` | formas modales normalizadas a masa, globales |
-| `inercias` | `(n_modos, n_nudos, 6)` | `M φ` de cada modo (cero en los GDL restringidos) |
+| `inercias` | `(n_modos, n_nudos, 6)` | `M φ` de cada modo en los GDL independientes libres (cero en los restringidos; con diafragma, la parte horizontal del piso está en el maestro) |
 | `factores_participacion` | `(n_modos, 3)` | `Γ` en X, Y y Z |
 | `masas_efectivas` | `(n_modos, 3)` | `Γ²` en X, Y y Z |
 | `masa_total` | `(3,)` | `rᵀ M r` en X, Y y Z |
 | `n_gdl_masa` | int | GDL libres con masa |
 | `metodo` | `"denso"` o `"lanczos"` | método usado |
 | `gdl_sin_rigidez` | lista de `(nudo, gdl)` | GDL libres sin rigidez ni masa fijados automáticamente |
+| `diafragmas` | lista de diccionarios | por diafragma: `maestro`, `masa` `[mx, my]`, `centro_masa` `[x, y]` e `inercia` alrededor del eje vertical por el centro de masa |
 
 ## Entrada y salida de `espectro_3d`
 
@@ -159,3 +164,4 @@ Errores: `ValueError` por datos inválidos (masas negativas, modelo sin masa, es
 | Versión | Cambio |
 |---|---|
 | 1 | Versión inicial (issues #16, #17 y #18): masas nodales, lineales y desde casos; modal denso y Lanczos; espectro con SRSS y CQC. |
+| 2 | El modelo admite brazos rígidos y diafragmas (contrato 3D 2); `resolver_modal_3d` devuelve además `diafragmas`, y las `inercias` se dan en los GDL independientes. |

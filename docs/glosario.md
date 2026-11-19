@@ -40,6 +40,11 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | constante de torsión (`J`) | torsion constant | constante de torção | момент инерции при кручении |
 | secciones (`secciones`, `rectangular`, `circular`, `tubo_circular`) | cross-sections | seções | сечения |
 | grado de libertad, GDL (`gdl`) | degree of freedom, DOF | grau de liberdade, GL | степень свободы |
+| brazo rígido (`brazo_i`, `brazo_j`) | rigid end offset, rigid end zone | trecho rígido, braço rígido | жёсткая вставка |
+| cara de la unión | joint face | face do nó | грань узла |
+| diafragma rígido (`diafragma`, `Diafragma`) | rigid diaphragm | diafragma rígido | жёсткий диск перекрытия |
+| nudo maestro / esclavo (`maestro`, `esclavos`) | master / slave node | nó mestre / escravo | главный / подчинённый узел |
+| piso | story, floor | pavimento, andar | этаж |
 
 ## Apoyos y vínculos · Supports and releases
 
@@ -108,6 +113,9 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | combinación modal SRSS / CQC (`combinacion`) | SRSS / CQC modal combination | combinação modal SRSS / CQC | сочетание форм SRSS / CQC |
 | cortante basal (`cortante_basal`) | base shear | cortante basal | сдвигающая сила в основании |
 | inercias (`inercias`, `M φ`) | modal inertia forces | forças de inércia modais | инерционные силы формы |
+| centro de masa (`centro_masa`) | center of mass | centro de massa | центр масс |
+| centro de rigidez | center of rigidity, center of stiffness | centro de rigidez | центр жёсткости |
+| deriva de piso (`derivas`, `deriva_x`) | story drift ratio | deslocamento relativo entre pavimentos (drift) | относительный межэтажный перекос |
 | memoria de cálculo (`memoria`, `memoria_de_calculo`) | calculation report, design report | memória de cálculo | расчётная записка |
 | plantilla (`plantilla.toml`) | template | modelo, template | шаблон |
 | capítulo de la memoria (`Capitulo`) | report chapter, section | capítulo | раздел, глава |

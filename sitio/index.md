@@ -57,6 +57,7 @@ Nervi analiza pórticos por el método de los elementos finitos y muestra reacci
 - **Memoria de cálculo en PDF**, con los datos del modelo, las cargas, las combinaciones, las tablas de resultados, los diagramas y, si diseñaste, las armaduras y verificaciones de las vigas, a partir de una plantilla editable.
 - **Pórticos espaciales (3D)**, por ahora solo desde Python y en versión preliminar: barras con flexión en dos planos y torsión, cerchas espaciales y secciones rectangulares y circulares.
 - **Análisis modal y espectro de respuesta** del pórtico espacial, desde Python y en versión preliminar: periodos, formas modales, masa participante y respuesta sísmica con combinación SRSS o CQC a partir del espectro que indique la norma.
+- **Edificios con diafragma rígido por piso y brazos rígidos** en el pórtico espacial, desde Python y en versión preliminar: la masa de cada piso en su nudo maestro, centro de masa, derivas de piso y esfuerzos de las vigas en la cara de la columna.
 
 ## Qué viene
 

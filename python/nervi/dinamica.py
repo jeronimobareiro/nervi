@@ -40,7 +40,7 @@ from collections.abc import Sequence
 import numpy as np
 
 from . import _core
-from .modelo3d import ResultadoCaso3D
+from .modelo3d import ResultadoCaso3D, _pisos, derivas_de_piso
 
 _DIRECCIONES = {"X": (1.0, 0.0, 0.0), "Y": (0.0, 1.0, 0.0), "Z": (0.0, 0.0, 1.0)}
 _COMBINACIONES = {"SRSS": 0, "CQC": 1}
@@ -91,6 +91,18 @@ class ResultadosModal3D:
         #: ``"denso"`` o ``"lanczos"``.
         self.metodo: str = crudo["metodo"]
         self.gdl_sin_rigidez: list[tuple[int, str]] = list(crudo["gdl_sin_rigidez"])
+        #: Masa de cada diafragma rígido, concentrada en su maestro: diccionarios
+        #: con ``maestro``, ``masa`` ``[mx, my]``, ``centro_masa`` ``[x, y]`` e
+        #: ``inercia`` (alrededor del eje vertical por el centro de masa).
+        self.diafragmas: list[dict] = [
+            {
+                "maestro": int(d["maestro"]),
+                "masa": np.asarray(d["masa"]),
+                "centro_masa": np.asarray(d["centro_masa"]),
+                "inercia": float(d["inercia"]),
+            }
+            for d in crudo.get("diafragmas", [])
+        ]
 
     @property
     def n_modos(self) -> int:
@@ -161,7 +173,11 @@ class ResultadosModal3D:
         )
         if nombre is None:
             nombre = f"Espectro {direccion}" if isinstance(direccion, str) else "Espectro"
-        return ResultadoEspectro3D(nombre, clave, crudo)
+        res = ResultadoEspectro3D(nombre, clave, crudo)
+        escala = res.factores * res.aceleraciones / self.omegas**2
+        res._pisos = _pisos(self._modelo)
+        res._u_modal = self.modos * escala[:, None, None]
+        return res
 
     def __repr__(self) -> str:
         return f"ResultadosModal3D({self.n_modos} modos, T1 = {self.periodos[0]:.4g})"
@@ -195,6 +211,14 @@ class ResultadoEspectro3D(ResultadoCaso3D):
         self.factores: np.ndarray = crudo["factores"]
         #: (n_modos, n_modos) coeficientes de correlación (identidad en SRSS).
         self.correlacion: np.ndarray = crudo["correlacion"]
+        self._pisos: dict | None = None
+        self._u_modal: np.ndarray | None = None
+
+    def derivas(self) -> dict[str, np.ndarray]:
+        """Desplazamientos y derivas de piso combinados (valores absolutos):
+        la deriva de cada modo se calcula con signo y después se combina, como
+        corresponde (no es la diferencia de los desplazamientos combinados)."""
+        return derivas_de_piso(self._pisos, self._u_modal, self.correlacion)
 
     def __repr__(self) -> str:
         return f"ResultadoEspectro3D({self.nombre!r}, {self.combinacion})"

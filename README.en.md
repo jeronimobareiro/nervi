@@ -33,6 +33,7 @@ See the [contributing guide](CONTRIBUTING.md#contributing-from-other-countries).
 - Plane frames with Euler-Bernoulli members (3 DOF per node).
 - **New, preliminary:** space frames from Python (`nervi.Modelo3D`): 12-DOF members with biaxial bending, axial force and torsion, local axes set by a reference vector, space-truss bars and common sections in `nervi.secciones`. No interface or `.nrv` support yet.
 - **New, preliminary:** modal and response spectrum analysis of space frames (`Modelo3D.modal`): nodal masses, member masses (lumped or consistent) and masses from load cases; periods, mode shapes and participating mass per direction; spectral response with SRSS or CQC combination. The code spectrum is supplied by the designer.
+- **New, preliminary:** real buildings in the space frame: **rigid floor diaphragms** (`Modelo3D.diafragma`, master-slave constraint by transformation, with the floor mass lumped at the master node, its center of mass and story drifts) and **rigid end offsets** (`brazo_i`, `brazo_j`), with member forces at the joint face.
 - Nodal loads and uniform, point, trapezoidal or partial member loads, in local or global axes; concentrated moments within a member; thermal loads.
 - Hinges and end releases; trusses.
 - Rigid and elastic supports, and prescribed settlements.

@@ -40,6 +40,13 @@ pub struct Barra3d {
     /// Liberaciones en ejes locales `[N, Vy, Vz, T, My, Mz]` del extremo `i`
     /// seguidas de las del extremo `j`. `true` anula esa fuerza de extremo.
     pub liberaciones: [bool; 12],
+    /// Brazo rígido del extremo `i`: vector en ejes globales desde el nudo `i`
+    /// hasta el comienzo de la parte flexible (la cara de la unión). Cero si no
+    /// hay brazo.
+    pub brazo_i: [f64; 3],
+    /// Brazo rígido del extremo `j`, desde el nudo `j` hasta el final de la
+    /// parte flexible.
+    pub brazo_j: [f64; 3],
 }
 
 impl Barra3d {
@@ -65,7 +72,22 @@ impl Barra3d {
             j,
             referencia: None,
             liberaciones: [false; 12],
+            brazo_i: [0.0; 3],
+            brazo_j: [0.0; 3],
         }
+    }
+
+    /// Fija los brazos rígidos de los extremos (vectores en ejes globales desde
+    /// cada nudo hasta la cara de la unión).
+    pub fn con_brazos(mut self, brazo_i: [f64; 3], brazo_j: [f64; 3]) -> Self {
+        self.brazo_i = brazo_i;
+        self.brazo_j = brazo_j;
+        self
+    }
+
+    /// `true` si la barra tiene algún brazo rígido.
+    pub fn tiene_brazos(&self) -> bool {
+        self.brazo_i.iter().chain(&self.brazo_j).any(|v| *v != 0.0)
     }
 
     /// Fija el vector de referencia del plano `x`–`y` local.
@@ -122,6 +144,17 @@ pub struct CargaBarra3d {
     pub tipo: TipoCargaBarra3d,
 }
 
+/// Diafragma rígido en su plano (horizontal, XY): los nudos `esclavos` se
+/// mueven con el `maestro` como un cuerpo rígido en el plano, es decir,
+/// `ux = ux_m - (y - y_m) rz_m`, `uy = uy_m + (x - x_m) rz_m` y `rz = rz_m`.
+/// `uz`, `rx` y `ry` de cada nudo quedan independientes (la losa no tiene
+/// rigidez fuera de su plano).
+#[derive(Clone, Debug, PartialEq)]
+pub struct Diafragma {
+    pub maestro: usize,
+    pub esclavos: Vec<usize>,
+}
+
 /// Una hipótesis (caso) de carga del pórtico espacial.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CasoCarga3d {
@@ -154,6 +187,8 @@ pub struct Modelo3d {
     /// Rigidez de apoyos elásticos por nudo `[kx, ky, kz, krx, kry, krz]`.
     pub resortes: Vec<[f64; 6]>,
     pub casos: Vec<CasoCarga3d>,
+    /// Diafragmas rígidos de piso.
+    pub diafragmas: Vec<Diafragma>,
 }
 
 impl Modelo3d {
@@ -193,6 +228,37 @@ impl Modelo3d {
         self.resortes[nudo] = k;
     }
 
+    /// Declara un diafragma rígido con los `nudos` de un piso y devuelve el nudo
+    /// maestro. Si `maestro` es `None` se crea un nudo nuevo en el centroide de
+    /// los nudos (a su altura media), con `uz`, `rx` y `ry` restringidos porque
+    /// no lo toca ninguna barra; ahí se reportan los desplazamientos del piso y
+    /// se pueden aplicar las fuerzas de piso. El maestro puede estar o no en
+    /// `nudos`.
+    pub fn agregar_diafragma(&mut self, nudos: &[usize], maestro: Option<usize>) -> usize {
+        let maestro = match maestro {
+            Some(m) => m,
+            None => {
+                let n = nudos.len().max(1) as f64;
+                let mut c = [0.0; 3];
+                for &k in nudos {
+                    if let Some(p) = self.nudos.get(k) {
+                        for d in 0..3 {
+                            c[d] += p[d] / n;
+                        }
+                    }
+                }
+                let m = self.agregar_nudo(c[0], c[1], c[2]);
+                self.apoyar(m, [false, false, true, true, true, false]);
+                m
+            }
+        };
+        let mut esclavos: Vec<usize> = nudos.iter().copied().filter(|&k| k != maestro).collect();
+        esclavos.sort_unstable();
+        esclavos.dedup();
+        self.diafragmas.push(Diafragma { maestro, esclavos });
+        maestro
+    }
+
     pub fn agregar_caso(&mut self, caso: CasoCarga3d) -> usize {
         self.casos.push(caso);
         self.casos.len() - 1
@@ -210,20 +276,30 @@ impl Modelo3d {
         self.resortes.get(nudo).map_or(0.0, |r| r[k])
     }
 
-    /// Longitud de una barra.
-    pub fn longitud(&self, b: &Barra3d) -> f64 {
+    /// Extremos de la parte flexible de una barra: cada nudo más su brazo
+    /// rígido. Sin brazos son las coordenadas de los nudos.
+    pub fn extremos(&self, b: &Barra3d) -> ([f64; 3], [f64; 3]) {
         let (pi, pj) = (self.nudos[b.nudo_i], self.nudos[b.nudo_j]);
+        (
+            std::array::from_fn(|d| pi[d] + b.brazo_i[d]),
+            std::array::from_fn(|d| pj[d] + b.brazo_j[d]),
+        )
+    }
+
+    /// Longitud de la parte flexible de una barra (entre las caras de las
+    /// uniones si tiene brazos rígidos). Las cargas en el tramo, las estaciones
+    /// de los diagramas y la masa lineal se miden sobre ella.
+    pub fn longitud(&self, b: &Barra3d) -> f64 {
+        let (pi, pj) = self.extremos(b);
         let d = [pj[0] - pi[0], pj[1] - pi[1], pj[2] - pi[2]];
         (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt()
     }
 
-    /// Ejes locales de una barra (ver [`crate::espacial::ejes_locales`]).
+    /// Ejes locales de una barra, según su parte flexible (ver
+    /// [`crate::espacial::ejes_locales`]).
     pub fn ejes_barra(&self, b: &Barra3d) -> Resultado<[[f64; 3]; 3]> {
-        crate::espacial::elemento::ejes_locales(
-            self.nudos[b.nudo_i],
-            self.nudos[b.nudo_j],
-            b.referencia,
-        )
+        let (pi, pj) = self.extremos(b);
+        crate::espacial::elemento::ejes_locales(pi, pj, b.referencia)
     }
 
     /// Verifica que el modelo sea consistente antes de analizarlo.
@@ -272,13 +348,23 @@ impl Modelo3d {
                     ));
                 }
             }
+            if !b.brazo_i.iter().chain(&b.brazo_j).all(|v| v.is_finite()) {
+                return inv(format!("la barra {k} tiene un brazo rígido no finito"));
+            }
             let l = self.longitud(b);
             let escala = self.nudos[b.nudo_i]
                 .iter()
                 .chain(self.nudos[b.nudo_j].iter())
                 .fold(1.0_f64, |m, v| m.max(v.abs()));
             if l <= 1e-12 * escala {
-                return inv(format!("la barra {k} tiene longitud nula"));
+                return inv(format!(
+                    "la barra {k} tiene longitud nula{}",
+                    if b.tiene_brazos() {
+                        " (los brazos rígidos se tocan)"
+                    } else {
+                        ""
+                    }
+                ));
             }
             if let Some(v) = b.referencia {
                 if !v.iter().all(|c| c.is_finite()) {
@@ -309,6 +395,36 @@ impl Modelo3d {
                     return inv(format!(
                         "la barra {k} tiene liberados un cortante y su momento en el mismo \
                          extremo (es inestable)"
+                    ));
+                }
+            }
+        }
+        let mut en_diafragma = vec![usize::MAX; n];
+        for (k, d) in self.diafragmas.iter().enumerate() {
+            if d.maestro >= n || d.esclavos.iter().any(|&e| e >= n) {
+                return inv(format!("el diafragma {k} referencia un nudo inexistente"));
+            }
+            if d.esclavos.is_empty() {
+                return inv(format!(
+                    "el diafragma {k} no tiene nudos además del maestro"
+                ));
+            }
+            for &e in std::iter::once(&d.maestro).chain(&d.esclavos) {
+                if en_diafragma[e] != usize::MAX {
+                    return inv(format!(
+                        "el nudo {e} está en los diafragmas {} y {k}; cada nudo puede estar \
+                         en uno solo",
+                        en_diafragma[e]
+                    ));
+                }
+                en_diafragma[e] = k;
+            }
+            for &e in &d.esclavos {
+                if [0, 1, 5].iter().any(|&g| self.restringido(e, g)) {
+                    return inv(format!(
+                        "el nudo {e} del diafragma {k} tiene restringido ux, uy o rz; en un \
+                         diafragma esos GDL solo se pueden restringir en el maestro ({})",
+                        d.maestro
                     ));
                 }
             }
