@@ -21,6 +21,10 @@ Una o dos oraciones.
 
 - Decisión y por qué (alternativas descartadas, si importa).
 
+## Documentación actualizada
+
+- Archivos informativos que se actualizaron en este mismo aporte (README y traducciones, `CONTRIBUTING.md`, `AGENTS.md`, `docs/ESTADO.md`, hoja de ruta, sitio, documentación técnica), o por qué no hizo falta tocar ninguno. Ver `CONTRIBUTING.md` §Documentación al día.
+
 ## Pendiente y problemas conocidos
 
 - Lo que quedó sin hacer, deuda técnica, dudas abiertas.

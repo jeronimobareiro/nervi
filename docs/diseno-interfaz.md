@@ -1,6 +1,6 @@
 # Diseño de la interfaz de escritorio
 
-Línea de diseño de `nervi.gui`, acordada con el responsable del proyecto el 2026-11-19 (entrada [2026-11-19-03](bitacora/2026-11-19-03-sistema-diseno-interfaz.md)). Todo cambio en la interfaz la sigue; si hace falta cambiarla, se acuerda antes y se documenta acá.
+Línea de diseño de `nervi.gui`, acordada con el responsable del proyecto el 2026-11-19 (entrada [2026-11-19-03](bitacora/2026-11-19-03-sistema-diseno-interfaz.md)). Todo cambio en la interfaz la sigue y todo control nuevo toma su estilo de este sistema, sin aspecto nativo antiguo. Si hace falta cambiarla, se muestra antes una **muestra visual** (captura o maqueta, en los dos temas), se acuerda con el responsable del proyecto y se documenta acá en el mismo PR.
 
 ## Principios
 
@@ -11,7 +11,7 @@ Línea de diseño de `nervi.gui`, acordada con el responsable del proyecto el 20
 
 ## Temas
 
-| Token | Claro (por defecto) | Oscuro (marca) |
+| Token | A · Claro preciso (por defecto) | B · Nocturno Nervi (oscuro) |
 |---|---|---|
 | Fondo de ventana | `#F4F5F7` | `#0B132B` |
 | Paneles, tablas, menús | `#FFFFFF` | `#0F172A` |

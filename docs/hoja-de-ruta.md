@@ -10,7 +10,15 @@ Este documento baja a tareas concretas la hoja de ruta por fases de la [especifi
 
 ## Punto de partida
 
-La Fase 0 (repositorio, CI, reglas) y casi toda la Fase 1 están en `main`: motor de pórtico plano en Rust con API Python, cargas trapezoidales y parciales, 27 casos de verificación analítica, un pórtico de unas 8 000 barras resuelto en decenas de milisegundos, el formato de proyecto `.nrv` y una interfaz de escritorio preliminar. Para cerrar la Fase 1 faltan los momentos en el tramo, las cargas térmicas y la biblioteca de verificación.
+_Actualizado el 2026-11-19._ La Fase 0 (repositorio, CI, reglas) y casi toda la Fase 1 están en `main`: motor de pórtico plano en Rust con API Python y todos los tipos de carga (trapezoidales, térmicas y momentos en el tramo), diagnóstico de mecanismos, biblioteca `verification/`, formato `.nrv`, memoria de cálculo en PDF e interfaz de escritorio con tema claro y oscuro. Para cerrar la Fase 1 faltan ejemplos transcriptos de libros (#6) y el material didáctico (#10).
+
+Las fases siguientes ya empezaron en paralelo: el pórtico espacial con brazos y diafragma rígido (Fase 2a), masas, análisis modal y espectro de respuesta (Fase 2b, el del plano también en la interfaz) y el diseño de vigas y columnas según ACI 318-19 con su etapa en la interfaz (Fase 3, experimental). El detalle está en [`ESTADO.md`](ESTADO.md).
+
+## Principios que valen para todas las fases
+
+- **Rendimiento (regla prioritaria).** Todo cálculo que recorra barras, nudos, combinaciones o puntos (análisis, diseño, envolventes, diagramas de interacción) va en Rust y se expone a Python con la misma API; Python queda para la interfaz, la memoria PDF, los ejemplos y los prototipos. Cada migración se mide antes y después con el banco de tiempos (`scripts/medir_diseno.py`) y pasa las mismas pruebas. Plan aprobado el 19/11/2026: fase 0 (banco de tiempos) y fase 1 (columnas en Rust) hechas; sigue la fase 2 (vigas en Rust) y, si el banco lo muestra, las fases 3 (combinaciones, envolventes y diseño en paralelo) y 4 (detalle).
+- **Interfaz.** Un único sistema de diseño ([`diseno-interfaz.md`](diseno-interfaz.md)), con tema claro por defecto y oscuro de la marca; los cambios de diseño se acuerdan con una muestra visual.
+- **Documentación al día.** Cada aporte actualiza en el mismo PR el README y sus traducciones, `ESTADO.md`, este plan, el sitio y lo que corresponda ([`CONTRIBUTING.md`](../CONTRIBUTING.md) §Documentación al día).
 
 ## Hitos
 
@@ -51,31 +59,31 @@ Etiquetas de tamaño: **BPA** = `buen-primer-aporte`, **PA** = `proyecto-academi
 |---|---|---|---|
 | [#2](https://github.com/jeronimobareiro/nervi/issues/2) | Cargas trapezoidales y parciales en barras (hecho) | PA | motor |
 | [#3](https://github.com/jeronimobareiro/nervi/issues/3) | Momentos puntuales en el tramo (hecho) | BPA | motor |
-| [#4](https://github.com/jeronimobareiro/nervi/issues/4) | Cargas térmicas (uniforme y gradiente) | PA | motor |
-| [#5](https://github.com/jeronimobareiro/nervi/issues/5) | Biblioteca `verification/` ejecutada en el CI | PA | verificación |
-| [#6](https://github.com/jeronimobareiro/nervi/issues/6) | Ejemplos resueltos de libros como casos de verificación | BPA | verificación |
+| [#4](https://github.com/jeronimobareiro/nervi/issues/4) | Cargas térmicas (uniforme y gradiente) (hecho) | PA | motor |
+| [#5](https://github.com/jeronimobareiro/nervi/issues/5) | Biblioteca `verification/` ejecutada en el CI (hecho) | PA | verificación |
+| [#6](https://github.com/jeronimobareiro/nervi/issues/6) | Ejemplos resueltos de libros como casos de verificación (en curso) | BPA | verificación |
 | [#7](https://github.com/jeronimobareiro/nervi/issues/7) | Pruebas de propiedades (equilibrio en modelos aleatorios) | BPA | verificación |
 | [#8](https://github.com/jeronimobareiro/nervi/issues/8) | `mypy` en el CI | BPA | — |
-| [#9](https://github.com/jeronimobareiro/nervi/issues/9) | Indicar qué nudo o GDL hace inestable un modelo | PA | motor |
+| [#9](https://github.com/jeronimobareiro/nervi/issues/9) | Indicar qué nudo o GDL hace inestable un modelo (hecho) | PA | motor |
 | [#10](https://github.com/jeronimobareiro/nervi/issues/10) | Cuadernos didácticos de análisis matricial | BPA | documentación |
 
 ### Fase 2a · Pórtico espacial
 
 | Issue | Tarea | Tamaño | Área |
 |---|---|---|---|
-| [#11](https://github.com/jeronimobareiro/nervi/issues/11) | Barra 3D 12×12 con ejes locales | T | motor |
-| [#12](https://github.com/jeronimobareiro/nervi/issues/12) | Contrato de datos v2 y API Python 3D | PA | motor |
-| [#13](https://github.com/jeronimobareiro/nervi/issues/13) | Brazos rígidos | PA | motor |
-| [#14](https://github.com/jeronimobareiro/nervi/issues/14) | Diafragma rígido por piso | PA | motor |
+| [#11](https://github.com/jeronimobareiro/nervi/issues/11) | Barra 3D 12×12 con ejes locales (hecho, preliminar) | T | motor |
+| [#12](https://github.com/jeronimobareiro/nervi/issues/12) | Contrato de datos v2 y API Python 3D (hecho, preliminar) | PA | motor |
+| [#13](https://github.com/jeronimobareiro/nervi/issues/13) | Brazos rígidos (hecho, preliminar) | PA | motor |
+| [#14](https://github.com/jeronimobareiro/nervi/issues/14) | Diafragma rígido por piso (hecho, preliminar) | PA | motor |
 | [#15](https://github.com/jeronimobareiro/nervi/issues/15) | Verificación 3D contra ejemplos publicados | BPA | verificación |
 
 ### Fase 2b · Dinámica y sismo
 
 | Issue | Tarea | Tamaño | Área |
 |---|---|---|---|
-| [#16](https://github.com/jeronimobareiro/nervi/issues/16) | Matrices de masa concentrada y consistente | PA | motor |
-| [#17](https://github.com/jeronimobareiro/nervi/issues/17) | Análisis modal con participación de masa | T | motor |
-| [#18](https://github.com/jeronimobareiro/nervi/issues/18) | Espectro de respuesta (CQC y SRSS) | T | motor, normas |
+| [#16](https://github.com/jeronimobareiro/nervi/issues/16) | Matrices de masa concentrada y consistente (hecho, preliminar) | PA | motor |
+| [#17](https://github.com/jeronimobareiro/nervi/issues/17) | Análisis modal con participación de masa (hecho, preliminar) | T | motor |
+| [#18](https://github.com/jeronimobareiro/nervi/issues/18) | Espectro de respuesta (CQC y SRSS) (hecho, preliminar; falta el espectro normativo) | T | motor, normas |
 | [#19](https://github.com/jeronimobareiro/nervi/issues/19) | P-Δ con matriz geométrica | T | motor |
 
 ### Fase 3 · Diseño de hormigón armado
@@ -83,10 +91,11 @@ Etiquetas de tamaño: **BPA** = `buen-primer-aporte`, **PA** = `proyecto-academi
 | Issue | Tarea | Tamaño | Área |
 |---|---|---|---|
 | [#20](https://github.com/jeronimobareiro/nervi/issues/20) | Decidir las normas de hormigón y sismo para Paraguay | decisión | normas |
-| [#21](https://github.com/jeronimobareiro/nervi/issues/21) | Combinaciones de carga y envolventes | PA | normas |
-| [#22](https://github.com/jeronimobareiro/nervi/issues/22) | Flexión de vigas según ACI 318-19 | PA | normas |
-| [#23](https://github.com/jeronimobareiro/nervi/issues/23) | Cortante de vigas según ACI 318-19 | PA | normas |
-| [#24](https://github.com/jeronimobareiro/nervi/issues/24) | Columnas: interacción biaxial por fibras y esbeltez | T | normas |
+| [#21](https://github.com/jeronimobareiro/nervi/issues/21) | Combinaciones de carga y envolventes (hecho, experimental) | PA | normas |
+| [#22](https://github.com/jeronimobareiro/nervi/issues/22) | Flexión de vigas según ACI 318-19 (hecho, experimental) | PA | normas |
+| [#23](https://github.com/jeronimobareiro/nervi/issues/23) | Cortante de vigas según ACI 318-19 (hecho, experimental) | PA | normas |
+| [#24](https://github.com/jeronimobareiro/nervi/issues/24) | Columnas: interacción biaxial y esbeltez (hecho, experimental; cálculo en Rust) | T | normas |
+| — | Flechas, fisuración y detalle de armaduras de vigas (hecho, experimental; falta llevarlo a la etapa Diseño) | PA | normas |
 
 Después de ACI 318-19 y la norma regional siguen CIRSOC 201, NBR 6118, NCh 430/433, EN 1992-1-1 y AISC 360 (especificación §5). Se abren como issues cuando haya un grupo interesado en cada una.
 
@@ -97,16 +106,16 @@ Después de ACI 318-19 y la norma regional siguen CIRSOC 201, NBR 6118, NCh 430/
 | [#25](https://github.com/jeronimobareiro/nervi/issues/25) | Importar modelos analíticos IFC | PA | ifc |
 | [#26](https://github.com/jeronimobareiro/nervi/issues/26) | Idealizar el modelo analítico desde elementos físicos | T | ifc |
 | [#27](https://github.com/jeronimobareiro/nervi/issues/27) | Exportar armaduras (`IfcReinforcingBar`) | PA | ifc |
-| [#28](https://github.com/jeronimobareiro/nervi/issues/28) | Memoria de cálculo en PDF | PA | documentación |
+| [#28](https://github.com/jeronimobareiro/nervi/issues/28) | Memoria de cálculo en PDF (en curso: falta la revisión de formato) | PA | documentación |
 | [#29](https://github.com/jeronimobareiro/nervi/issues/29) | Planos DXF y planilla de doblado | PA | — |
 
 ### Fase 5 · Interfaz gráfica
 
-Desde noviembre de 2026 la interfaz es una **vía paralela**: `nervi.gui` (PySide6) ya cubre el pórtico plano de la Fase 1 en una sola ventana y crece junto con cada fase del motor, con instaladores preliminares para Windows y Linux. Esta fase queda para lo que necesita la Fase 2a: visor 3D y edición gráfica de modelos espaciales. Regla: la interfaz no calcula ni guarda nada por su cuenta, solo usa `nervi` y `nervi.formato`.
+Desde noviembre de 2026 la interfaz es una **vía paralela**: `nervi.gui` (PySide6) ya cubre el pórtico plano de la Fase 1 en una sola ventana y crece junto con cada fase del motor, con instaladores preliminares para Windows y Linux. Ya tiene la etapa Diseño, la pestaña Dinámica, el visor 3D opcional y un sistema de diseño propio con tema claro y oscuro ([`diseno-interfaz.md`](diseno-interfaz.md)). Esta fase queda para lo que necesita la Fase 2a: llevar el pórtico espacial a la interfaz y al `.nrv`, y la edición gráfica de modelos. Regla: la interfaz no calcula ni guarda nada por su cuenta, solo usa `nervi` y `nervi.formato`.
 
 | Issue | Tarea | Tamaño | Área |
 |---|---|---|---|
-| [#30](https://github.com/jeronimobareiro/nervi/issues/30) | Prototipo de visor 3D | PA | interfaz |
+| [#30](https://github.com/jeronimobareiro/nervi/issues/30) | Prototipo de visor 3D (en curso: falta mostrar `Modelo3D`) | PA | interfaz |
 | [#31](https://github.com/jeronimobareiro/nervi/issues/31) | Edición gráfica de modelos | T | interfaz |
 
 ### Fase 6 · Láminas

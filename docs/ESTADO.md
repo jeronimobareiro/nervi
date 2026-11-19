@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-19 · entrada [2026-11-19-04](bitacora/2026-11-19-04-columnas-en-rust.md)_
+_Última actualización: 2026-11-19 · entrada [2026-11-19-05](bitacora/2026-11-19-05-documentacion-al-dia.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
@@ -36,6 +36,7 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 - Servicio y detalle de vigas de hormigón armado según ACI 318-19 (paso 2 del plan de hormigón), **experimental**: `aci318.servicio` calcula `Mcr`, `Icr` e `Ie` (§24.2.3.5, promedio de secciones críticas en tramos continuos), flechas inmediatas y diferidas con `λΔ` (§24.2.4) desde la deformada del modelo, y las compara con los límites de §24.2.2; control de fisuración por separación de barras (§24.3.2) y aviso de armadura de piel (§9.7.2.3). `aci318.detalle` da longitudes de desarrollo rectas (general y simplificada), ganchos normales con su geometría, desarrollo y empalmes comprimidos, empalmes traccionados clase A/B, prolongación de corte y barras que llegan al apoyo o pasan el punto de inflexión (§25.3, §25.4, §25.5, §9.7.3). Ambos devuelven `filas_memoria()` para `nervi.memoria.tabla_verificaciones`. Todavía no están en la interfaz ni en la memoria por defecto. Verificado con cálculos a mano y contra las expresiones en unidades inglesas; falta compararlo con ejemplos publicados.
 - **Etapa Diseño en la interfaz** (`nervi.design.proyecto` y `nervi.gui.diseno`, experimental): hormigón, acero y criterios; cada barra se clasifica en viga o columna y toma la sección rectangular con su `A` e `I` (editables); **Diseñar** arma todas las vigas (armadura inferior, superior y estribos) y columnas (armadura longitudinal y flexocompresión con esbeltez), cumple/no cumple con la relación que gobierna y cada verificación con su artículo de ACI 318-19. Los datos se guardan en el módulo `diseno` del `.nrv` y la memoria en PDF suma el capítulo "Diseño de hormigón armado".
 - Registro de aportes: `AGENTS.md`, esta foto y `bitacora/`, con control automático en el CI.
+- **Documentación al día** (regla del proyecto desde el 19/11/2026): cada aporte actualiza en el mismo PR el README y sus traducciones, `CONTRIBUTING.md`, `AGENTS.md`, esta foto, la hoja de ruta, el sitio y los documentos técnicos que correspondan (`CONTRIBUTING.md` §Documentación al día, `AGENTS.md` §3.3). La entrada de la bitácora lleva una sección **Documentación actualizada** que el CI exige, y la plantilla de PR suma esa sección, la de rendimiento y sus casillas. Las tres reglas del proyecto (rendimiento en Rust, sistema de diseño de la interfaz y documentación al día) están resumidas en el README, sección "Cómo trabajamos", en los cuatro idiomas.
 - Colaboradores de otros idiomas: README en inglés, portugués y ruso (`README.en.md`, `README.pt.md`, `README.ru.md`), glosario es/en/pt/ru en [`glosario.md`](glosario.md) y sección multilingüe en `CONTRIBUTING.md`. El código sigue en español; issues y PR se aceptan en esos cuatro idiomas.
 - Apertura a la comunidad: `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, `GOVERNANCE.md`, `SECURITY.md`, `CITATION.cff`, plantillas de issues y PR, encabezados SPDX.
 - Controles en el CI: certificado de origen (DCO, `Signed-off-by` obligatorio desde la entrada 07) y licencias de dependencias (`cargo-deny`, `deny.toml`).
@@ -48,7 +49,7 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 - Firma de código de los instaladores: pendiente (SignPath Foundation o certificado).
 - **Memoria de cálculo** (#28): falta la revisión de formato por un docente o profesional, la figura de cargas y comprobar que el instalador la incluya. El capítulo de diseño de vigas y columnas ya está (entrada 2026-11-17-07) y el de análisis dinámico también (entrada 2026-11-19-02). La carátula nueva (logo de Nervi, patrón de isotipos, recuadro de datos) y la hoja de normativa de referencia también (misma entrada).
 - **Hitos de GitHub**: se crean al integrar el PR de la hoja de ruta (flujo `.github/workflows/hoja-de-ruta.yml`). Hay que confirmar en Actions que corrió bien.
-- Firma DCO: la firma el usuario o, con su autorización explícita para cada trabajo, el agente en su nombre (AGENTS.md §3.4).
+- Firma DCO: la firma el usuario o, con su autorización explícita para cada trabajo, el agente en su nombre (AGENTS.md §3.5).
 - Confirmar el correo de contacto de `CODE_OF_CONDUCT.md` y `SECURITY.md`.
 - Para que los controles **bloqueen** el merge, el dueño del repo tiene que marcarlos como obligatorios en Settings → Branches (o Rules) para `main`.
 

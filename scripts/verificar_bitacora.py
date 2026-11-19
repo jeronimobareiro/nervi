@@ -7,7 +7,8 @@ Reglas, comparando la rama actual contra una base (por ejemplo origin/main):
    *agregar* al menos una entrada nueva en docs/bitacora/ con nombre
    AAAA-MM-DD-NN-tema.md y debe modificar docs/ESTADO.md.
 2. Las entradas existentes de la bitácora no se modifican ni se borran.
-3. Cada entrada nueva tiene las secciones de la plantilla.
+3. Cada entrada nueva tiene las secciones de la plantilla, entre ellas
+   "Documentación actualizada" (CONTRIBUTING.md §Documentación al día).
 
 Uso:  python scripts/verificar_bitacora.py [BASE]        (por defecto origin/main)
 Salida distinta de cero si alguna regla no se cumple.
@@ -28,6 +29,7 @@ EDITABLES = {"docs/bitacora/README.md", "docs/bitacora/_plantilla.md", ESTADO}
 SECCIONES = [
     "## Qué se pidió",
     "## Qué se hizo",
+    "## Documentación actualizada",
     "## Pendiente y problemas conocidos",
     "## Para quien siga",
 ]
