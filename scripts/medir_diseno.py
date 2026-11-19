@@ -11,8 +11,10 @@ que toque cálculo informa en el PR el tiempo antes y después.
     python scripts/medir_diseno.py --guardar ref.json    # armaduras y relaciones
     python scripts/medir_diseno.py --comparar ref.json   # falla si cambian
 
-``--comparar`` exige la misma armadura en cada elemento y relaciones con una
-diferencia relativa menor que ``--tolerancia``.
+``--comparar`` exige el mismo estado y la misma armadura en cada elemento y relaciones
+con una diferencia relativa menor que ``--tolerancia`` (por defecto 1e-12: solo el
+redondeo de la aritmética de doble precisión). Una optimización nunca puede bajar
+tolerancias ni exactitud (``AGENTS.md`` §2).
 """
 
 from __future__ import annotations
@@ -115,7 +117,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--pisos", type=int, default=10)
     p.add_argument("--guardar", help="guarda armaduras y relaciones en este JSON")
     p.add_argument("--comparar", help="compara con un JSON guardado antes")
-    p.add_argument("--tolerancia", type=float, default=1e-6)
+    p.add_argument("--tolerancia", type=float, default=1e-12)
     a = p.parse_args(argv)
     salida, t = medir(a.vanos, a.pisos)
     print(
