@@ -25,6 +25,7 @@ Jerónimo Bareiro decidió que bajo ningún término se bajan tolerancias ni exa
 
 - "Exactamente los mismos resultados" se define como misma armadura, mismo estado y los mismos números salvo el redondeo de doble precisión. Exigir los mismos bits entre Rust y NumPy no es posible en general, porque el orden de las sumas cambia el último bit sin cambiar la exactitud del método. 1e-12 relativa está muchos órdenes por encima de ese redondeo y muy por debajo de cualquier tolerancia de convergencia del diseño (las bisecciones paran en 1e-9 y 1e-10).
 - La búsqueda de armadura de columnas no se acelera: es el cálculo que da el valor óptimo y su tiempo actual (2,4 s en el pórtico de referencia, 12 s en uno de 750 barras) se acepta.
+- Firma DCO: Jerónimo Bareiro autorizó por escrito en el hilo del proyecto (19/11/2026) que el agente agregue su `Signed-off-by` a los commits de este trabajo, con el nombre `bareirojero` y su correo `noreply` de GitHub.
 
 ## Documentación actualizada
 
