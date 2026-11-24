@@ -1,4 +1,4 @@
-# Formato de archivo `.nrv` (contenedor 1, módulos `modelo` 1, `diseno` 1 y `dinamica` 1, borrador)
+# Formato de archivo `.nrv` (contenedor 1, módulos `modelo` 1, `diseno` 2, `dinamica` 1 y `proyecto` 1, borrador)
 
 > **Estado: borrador.** Se congela con la primera versión publicada de la GUI (v0.1.0). Hasta entonces se puede cambiar sin migración; después, todo cambio sigue §6.
 >
@@ -91,8 +91,9 @@ Nombres de módulo: minúsculas, dígitos y `_`, con `.` para separar un prefijo
 | Módulo | Estado | Requerido | Contenido |
 |---|---|---|---|
 | `modelo` | versión 1 | siempre | Modelo analítico: nudos, barras, apoyos, cargas, casos y combinaciones (§4). |
-| `diseno` | versión 1 | no | Norma, materiales, criterios y, por barra, tipo de elemento y sección de hormigón (§4b). Solo está si el proyecto tiene datos de diseño. |
+| `diseno` | versión 2 | no | Norma, materiales, criterios y, por barra, tipo de elemento y sección de hormigón (§4b). Solo está si el proyecto tiene datos de diseño. |
 | `dinamica` | versión 1 | no | Casos de los que sale la masa, cantidad de modos y espectros de respuesta del pórtico plano (§4c). Solo está si el proyecto tiene datos de dinámica. |
+| `proyecto` | versión 1 | no | Datos que identifican el proyecto y salen en la carátula de la memoria (§4d). Solo está si se cargó alguno. |
 | `resultados` | previsto (§5) | no | Caché de resultados. |
 | `vista` | previsto | no | Cámara, capas, selección. |
 | `adjuntos` | previsto | no | Imágenes, memorias, planos. |
@@ -166,7 +167,7 @@ Cubre lo que hoy modela `nervi.Modelo` (Fase 1, pórtico plano). El esquema form
 
 Materiales y secciones con nombre (en lugar de `E, A, I` por barra), y modelo 3D (Fase 2) entran al módulo `modelo` subiendo su versión. Normas y criterios de diseño (Fase 3) van en el módulo propio `diseno`, y las masas y los espectros (Fase 2b) en el módulo propio `dinamica` (§4c), siguiendo la regla de que lo que agrega una fase nueva va en un módulo propio. Las trapezoidales, las térmicas y los momentos en el tramo entraron a la versión 1 antes de congelarla (issues #2, #4 y #3), porque solo agregan un valor de `tipo` y los archivos anteriores siguen siendo válidos. Después del congelamiento, cada agregado sube la versión del módulo que toca y trae su migración (§6). Un `tipo: "portico_2d"` sigue siendo válido para siempre: el 3D se agrega como otro `tipo`, no reemplaza al plano.
 
-## 4b. Módulo `diseno` (`diseno.json`), versión 1
+## 4b. Módulo `diseno` (`diseno.json`), versión 2
 
 Lo escribe la etapa **Diseño** de la interfaz (Fase 3, `nervi.design.proyecto`). Un proyecto sin datos de diseño no tiene este módulo; un lector que no lo conoce lo conserva sin leerlo (§3.1). Guarda **lo que eligió el usuario**, no resultados: la armadura se recalcula desde el modelo cada vez.
 
@@ -176,7 +177,10 @@ Lo escribe la etapa **Diseño** de la interfaz (Fase 3, `nervi.design.proyecto`)
   "modelo_sha256": "3f1c…(64 caracteres hexadecimales)",
   "hormigon": {"fc": 25.0},
   "acero": {"fy": 420.0, "fyt": 420.0},
-  "criterios": {"recubrimiento": 40.0, "d_estribo": 10.0, "d_agregado": 19.0, "seccion_critica_a_d": true},
+  "criterios": {
+    "recubrimiento": 40.0, "d_estribo": 10.0, "d_agregado": 19.0, "seccion_critica_a_d": true,
+    "diametros_columna": [12, 16, 20, 25, 32]
+  },
   "elementos": [
     {"barra": 2, "tipo": "viga", "b": 250.0, "h": 550.0},
     {"barra": 3, "tipo": "ninguno"}
@@ -186,6 +190,7 @@ Lo escribe la etapa **Diseño** de la interfaz (Fase 3, `nervi.design.proyecto`)
 
 - **Unidades fijas:** MPa para `fc`, `fy` y `fyt`; mm para `recubrimiento` (libre hasta el estribo), `d_estribo`, `d_agregado`, `b` y `h`. No dependen de `modelo.json`.
 - `norma` ∈ {`ACI 318-19`}. `fyt` es opcional (por omisión, `fy`). `d_estribo` ∈ {6, 8, 10, 12}. `seccion_critica_a_d`: el cortante de diseño de las vigas se toma a `d` de la cara del apoyo (ACI 318-19 §9.4.3.2).
+- `diametros_columna` (desde la versión 2): lista sin repetir y no vacía de diámetros en mm, cada uno de {12, 16, 20, 25, 32}. Son las barras entre las que el programa busca la armadura de menor área de cada columna. La migración 1 → 2 la agrega con los cinco diámetros, que es lo que usaba la versión 1 sin guardarlo, así que los resultados no cambian.
 - `elementos` solo lista las barras con algún dato propio, por `id` de `modelo.json`, sin repetir. `tipo` ∈ {`auto`, `viga`, `columna`, `ninguno`}; ausente vale `auto` (viga si la barra está más cerca de la horizontal, columna si no). `b` y `h` ausentes valen las del rectángulo con el mismo `A` e `I` de la barra (`h = √(12 I / A)`, `b = A / h`). `h` es el canto en el plano del pórtico.
 - Una barra de `elementos` que ya no existe en el modelo se ignora: no es un error, porque el modelo puede cambiar después de guardar el diseño.
 - `modelo_sha256` es el SHA-256 de los bytes de `modelo.json` con los que se guardó (§3.1). Si al abrir no coincide, otro programa cambió el modelo sin conocer el diseño: el proyecto se abre igual y se avisa que hay que revisar tipos y secciones.
@@ -218,6 +223,27 @@ Lo escribe la pestaña **Dinámica** de la interfaz (Fase 2b, `nervi.dinamica_pl
 - `puntos`: pares `[T, Sa]` con `T` en segundos, estrictamente creciente, y **`Sa` como fracción de `g`** (adimensional), como se dan los espectros de diseño. Entre puntos se interpola linealmente y fuera del rango se toma el extremo.
 - `extensiones` (opcional) es un objeto libre.
 - Se valida con `nervi.formato.dinamica.validar`; un error dice `dinamica.json`, la ruta y el motivo.
+
+## 4d. Módulo `proyecto` (`proyecto.json`), versión 1
+
+Lo escribe **Configuración del proyecto › Datos del proyecto** en la interfaz. Son los datos de la carátula de la memoria; no cambian ningún resultado. Un proyecto sin ninguno de estos datos no tiene el módulo, y la memoria usa el nombre del archivo como nombre del proyecto.
+
+```json
+{
+  "datos": {
+    "nombre": "Edificio Sur",
+    "ubicacion": "Asunción, Paraguay",
+    "comitente": "…",
+    "autor": "…",
+    "fecha": "24/11/2026",
+    "revision": "B"
+  }
+}
+```
+
+- `datos`: objeto con textos libres de hasta 500 caracteres. Todas las claves son opcionales y solo valen `nombre`, `ubicacion`, `comitente`, `autor`, `fecha` y `revision`, que en la carátula son *Proyecto*, *Ubicación*, *Comitente*, *Autor*, *Fecha* y *Revisión*. `fecha` es texto, no una fecha: se escribe como se quiere ver.
+- `extensiones` (opcional) es un objeto libre.
+- Se valida con `nervi.formato.proyecto.validar`; un error dice `proyecto.json`, la ruta y el motivo.
 
 ## 5. Resultados (`resultados/`, reservado)
 
@@ -300,7 +326,7 @@ Implementado en `python/nervi/formato/`:
 - `construir_modelo(modelo_json) -> (Modelo, Indices)`: el módulo de formato mantiene la tabla `id → índice`; `Modelo` no cambia.
 - `desde_modelo(Modelo, combinaciones) -> modelo_json` (los `id` son índice + 1) y `validar(modelo_json)`, escrita a mano según el esquema y §4.1 para no sumar `jsonschema` como dependencia.
 - `MODULOS` en `contenedor.py`: los módulos que conoce esta versión y la versión que escribe de cada uno. `Documento.migrado_desde` dice qué módulos se migraron y `Documento.avisos` qué se conservó sin leer.
-- `migraciones.py`: una cadena por módulo, vacía mientras todos estén en su versión 1.
+- `migraciones.py`: una cadena por módulo. La única migración publicada es `diseno_1_a_2` (§4b).
 - `tests/test_formato_compatibilidad.py` y `tests/datos/nrv/`: archivos de referencia permanentes (§6.3).
 - Pruebas en `tests/test_formato.py`: ida y vuelta bit a bit, firma `mimetype`, miembros desconocidos conservados, `id` no consecutivos, versión futura, archivo de Nero, ZIP cualquiera, `mimetype` comprimido, rutas con `..`, referencias rotas y demás reglas de §4.1.
 - La GUI (PySide6) solo llama a `nervi.formato`; no escribe JSON por su cuenta.
@@ -313,3 +339,5 @@ Implementado en `python/nervi/formato/`:
 | Contenedor 1, `modelo` 1 | 2026-11-12 (borrador) | Manifiesto con `modulos` (§3.1), versión y migraciones por módulo, archivos de referencia permanentes (§6.3). Los archivos sin `modulos` se siguen leyendo. |
 | `diseno` 1 | 2026-11-17 (borrador) | Módulo opcional de datos de diseño (§4b): norma, materiales, criterios, tipo y sección por barra, huella del modelo. Archivo de referencia `tests/datos/nrv/diseno-v1.nrv`. |
 | `dinamica` 1 | 2026-11-19 (borrador) | Módulo opcional de análisis dinámico (§4c): casos de masa, cantidad de modos y espectros con `Sa` en fracción de `g`. Archivo de referencia `tests/datos/nrv/dinamica-v1.nrv`. |
+| `diseno` 2 | 2026-11-24 (borrador) | `criterios.diametros_columna`: diámetros permitidos para la armadura de columnas (§4b). Migración `diseno_1_a_2` con los cinco diámetros. Archivo de referencia `tests/datos/nrv/diseno-v2.nrv`. |
+| `proyecto` 1 | 2026-11-24 (borrador) | Módulo opcional con los datos de la carátula de la memoria (§4d). Archivo de referencia `tests/datos/nrv/proyecto-v1.nrv`. |

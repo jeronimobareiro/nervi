@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import hashlib
 import tempfile
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 
 from PySide6.QtCore import QEvent, QObject
@@ -173,6 +173,60 @@ def svg(forma: str, color: str) -> str:
     )
 
 
+#: Íconos de la barra lateral de menús: trazos propios de 24 por 24 px con línea de 1,7 px,
+#: el mismo estilo fino de las flechas de los controles.
+ICONOS_MENU = {
+    "archivo": '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>'
+    '<path d="M14 3v5h5"/>',
+    "modelo": '<path d="M5 20V6h14v14"/><path d="M3 20h4M17 20h4"/><path d="M5 13h14"/>',
+    "calcular": '<path d="M7 4l13 8-13 8z"/>',
+    "ver": '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    "herramientas": '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 '
+    '5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',
+    "ayuda": '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 1 1 3.6 2.4c-.7.3-1.1.9-1.1 1.6"/>'
+    '<path d="M12 17h.01"/>',
+    "preferencias": '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/>'
+    '<circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+}
+
+
+def svg_menu(nombre: str, color: str) -> str:
+    """Ícono de 24 por 24 px de la barra lateral de menús, en el color pedido."""
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" '
+        f'fill="none" stroke="{color}" stroke-width="1.7" stroke-linecap="round" '
+        f'stroke-linejoin="round">{ICONOS_MENU[nombre]}</svg>'
+    )
+
+
+def con_tamano(tema: Tema, tamano: float) -> Tema:
+    """El mismo tema con otro tamaño de letra (preferencia *Tamaño de letra*)."""
+    return tema if tema.tamano == tamano else replace(tema, tamano=tamano)
+
+
+def _carpeta_tema(tema: Tema) -> Path:
+    clave = hashlib.sha1(repr(asdict(tema)).encode()).hexdigest()[:12]
+    return Path(tempfile.gettempdir()) / f"nervi-tema-{clave}"
+
+
+def iconos_menu(tema: Tema, carpeta: Path | None = None) -> dict[str, str]:
+    """Escribe los íconos de la barra lateral y devuelve sus rutas.
+
+    Cada ícono va en dos colores: ``<nombre>`` (texto secundario) y
+    ``<nombre>_activo`` (acento, mientras su menú está abierto)."""
+    carpeta = carpeta if carpeta is not None else _carpeta_tema(tema)
+    carpeta.mkdir(parents=True, exist_ok=True)
+    rutas = {}
+    for nombre in ICONOS_MENU:
+        for sufijo, color in (("", tema.texto_2), ("_activo", tema.acento)):
+            ruta = carpeta / f"menu-{nombre}{sufijo}.svg"
+            contenido = svg_menu(nombre, color)
+            if not ruta.is_file() or ruta.read_text(encoding="utf-8") != contenido:
+                ruta.write_text(contenido, encoding="utf-8")
+            rutas[nombre + sufijo] = ruta.as_posix()
+    return rutas
+
+
 def iconos(tema: Tema, carpeta: Path | None = None) -> dict[str, str]:
     """Escribe los íconos del tema y devuelve sus rutas, con ``/`` como pide Qt.
 
@@ -180,8 +234,7 @@ def iconos(tema: Tema, carpeta: Path | None = None) -> dict[str, str]:
     toma imágenes desde archivos o recursos compilados.
     """
     if carpeta is None:
-        clave = hashlib.sha1(repr(asdict(tema)).encode()).hexdigest()[:12]
-        carpeta = Path(tempfile.gettempdir()) / f"nervi-tema-{clave}"
+        carpeta = _carpeta_tema(tema)
     carpeta.mkdir(parents=True, exist_ok=True)
     pedidos = {
         "abajo": ("abajo", tema.texto_2),
@@ -380,6 +433,19 @@ QStatusBar QLabel {{ color: {t.texto_2}; padding: 0 6px; }}
 QProgressBar {{ background: {t.hover}; border: 0; border-radius: 3px; color: transparent; max-height: 6px; }}
 QProgressBar::chunk {{ background: {t.acento}; border-radius: 3px; }}
 QDialog#paleta {{ background: {t.panel}; border: 1px solid {t.borde}; border-radius: 8px; }}
+
+/* Barra lateral de menús */
+QWidget#riel {{ background: {t.panel}; border-right: 1px solid {t.borde}; }}
+QToolButton#menu_riel {{ border-radius: {r}px; padding: 0; }}
+QToolButton#menu_riel:hover {{ background: {t.hover}; }}
+QToolButton#menu_riel:checked {{ background: {t.acento_suave}; }}
+
+/* Ventanas de ajustes (Preferencias, Configuración del proyecto) */
+QListWidget#apartados {{ background: {t.panel}; border: 0; border-right: 1px solid {t.borde}; padding: 8px; }}
+QListWidget#apartados::item {{ padding: 6px 10px; border-radius: {rc}px; }}
+QWidget#pagina_ajustes {{ background: {t.fondo}; }}
+QWidget#caja_ajustes {{ background: {t.panel}; border: 1px solid {t.borde}; border-radius: {r}px; }}
+QWidget#pie_ajustes {{ background: {t.panel}; border-top: 1px solid {t.borde}; }}
 """
 
 

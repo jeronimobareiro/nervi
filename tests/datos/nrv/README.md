@@ -13,5 +13,9 @@ Estos archivos garantizan que un proyecto guardado con una versión vieja de Ner
 | `diseno-v1.esperado.json` | Resultados de cada caso (motor del 2026-11-17) y, en `diseno`, el tipo y la sección de cada barra y los materiales que se tienen que leer. |
 | `dinamica-v1.nrv` | Módulo `dinamica` versión 1 junto con `modelo` 1: el pórtico de ejemplo de la interfaz con masa desde D + 0,25 L, 4 modos y dos espectros (`Sismo X` en X con CQC y `Vertical` en Y con SRSS y 2 % de amortiguamiento). Guardado el 2026-11-19. |
 | `dinamica-v1.esperado.json` | Resultados de cada caso y, en `dinamica`, los datos que se tienen que leer, los periodos, la masa total y efectiva y el cortante basal de cada espectro (motor del 2026-11-19). |
+| `diseno-v2.nrv` | Módulo `diseno` versión 2 junto con `modelo` 1: el pórtico de ejemplo de la interfaz con H-25, estribos Ø8, B1 como columna de 350 × 350 mm con la búsqueda de armadura limitada a Ø16 (`diametros_columna`), B2 viga de 250 × 550 mm y B3 sin diseñar. Guardado el 2026-11-24. |
+| `diseno-v2.esperado.json` | Resultados de cada caso (motor del 2026-11-24) y, en `diseno`, los datos que se tienen que leer y la armadura de B1 (8 barras Ø16; con todos los diámetros saldría 4Ø20). |
+| `proyecto-v1.nrv` | Módulo `proyecto` versión 1 junto con `modelo` 1: el pórtico de ejemplo de la interfaz con los seis datos de la carátula cargados. Guardado el 2026-11-24. |
+| `proyecto-v1.esperado.json` | Resultados de cada caso y, en `proyecto`, el contenido de `proyecto.json` que se tiene que leer. |
 
 Cuando un módulo sube de versión, se **agrega** su archivo (`modelo-v2.nrv`, `modelo-v2.esperado.json`) y se anota acá. Los anteriores se quedan.

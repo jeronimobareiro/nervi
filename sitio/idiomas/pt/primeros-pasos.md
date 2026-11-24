@@ -20,7 +20,7 @@ Todo o trabalho é feito em uma única janela. No alto está o percurso **Geomet
 
 Com **Ctrl+K** você abre uma busca para encontrar qualquer comando ou elemento do modelo pelo nome.
 
-No menu do logo você pode escolher **Tema claro** ou **Tema oscuro** (escuro); o Nervi lembra a escolha.
+Os menus ficam na barra de ícones à esquerda. Em **Preferencias** (o último ícone) você escolhe o tema claro ou escuro, o tamanho da letra e o que abrir ao iniciar; o Nervi lembra. Em **Archivo › Configuración del proyecto** você preenche os dados da capa do memorial, os materiais e os critérios de dimensionamento, entre eles os diâmetros entre os quais o Nervi escolhe a armadura dos pilares.
 
 ## Com Python
 
