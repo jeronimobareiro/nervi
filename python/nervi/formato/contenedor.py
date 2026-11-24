@@ -14,6 +14,7 @@ from pathlib import Path, PurePosixPath
 
 from . import dinamica as _dinamica
 from . import diseno as _diseno
+from . import historial as _historial
 from . import migraciones
 from . import modelo as _modelo
 from . import proyecto as _proyecto
@@ -58,6 +59,9 @@ MODULOS: dict[str, Modulo] = {
     "diseno": Modulo("diseno", 2, (_diseno.MIEMBRO,), requerido=False),
     # Datos del análisis modal y espectral (Fase 2b): solo si el proyecto los tiene.
     "dinamica": Modulo("dinamica", 1, (_dinamica.MIEMBRO,), requerido=False),
+    # Cambios propuestos por un agente de IA, un importador o un complemento y
+    # aplicados por la persona: solo si el proyecto tiene alguno.
+    "historial": Modulo("historial", 1, (_historial.MIEMBRO,), requerido=False),
     # Datos del proyecto para la carátula de la memoria: solo si el proyecto los tiene.
     "proyecto": Modulo("proyecto", 1, (_proyecto.MIEMBRO,), requerido=False),
 }
@@ -87,8 +91,10 @@ class Documento:
     original si al abrir hubo que migrarlo (``{"modelo": 1}``), y ``avisos``
     explica lo que se conservó sin leer. ``diseno`` es el diccionario de
     ``diseno.json`` (``None`` si el proyecto todavía no tiene datos de diseño) y
-    ``dinamica`` el de ``dinamica.json`` (``None`` sin datos de dinámica) y
-    ``proyecto`` el de ``proyecto.json`` (``None`` sin datos del proyecto)."""
+    ``dinamica`` el de ``dinamica.json`` (``None`` sin datos de dinámica),
+    ``historial`` el de ``historial.json`` (``None`` si nadie más que la persona
+    cambió el proyecto) y ``proyecto`` el de ``proyecto.json`` (``None`` sin datos
+    del proyecto)."""
 
     modelo: dict
     manifiesto: dict = field(default_factory=dict)
@@ -97,6 +103,7 @@ class Documento:
     avisos: list[str] = field(default_factory=list)
     diseno: dict | None = None
     dinamica: dict | None = None
+    historial: dict | None = None
     proyecto: dict | None = None
 
     @classmethod
@@ -253,6 +260,9 @@ def abrir(ruta: str | os.PathLike) -> Documento:
         dinamica = leidos.get(_dinamica.MIEMBRO)
         if dinamica is not None:
             _dinamica.validar(dinamica)
+        historial = leidos.get(_historial.MIEMBRO)
+        if historial is not None:
+            _historial.validar(historial)
         proyecto = leidos.get(_proyecto.MIEMBRO)
         if proyecto is not None:
             _proyecto.validar(proyecto)
@@ -263,7 +273,17 @@ def abrir(ruta: str | os.PathLike) -> Documento:
             if i.filename not in propios and not i.is_dir()
         }
     manifiesto["modulos"] = modulos
-    return Documento(modelo, manifiesto, otros, migrado or None, avisos, diseno, dinamica, proyecto)
+    return Documento(
+        modelo,
+        manifiesto,
+        otros,
+        migrado or None,
+        avisos,
+        diseno,
+        dinamica,
+        historial=historial,
+        proyecto=proyecto,
+    )
 
 
 def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) -> None:
@@ -275,6 +295,8 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
         _diseno.validar(doc.diseno)
     if doc.dinamica is not None:
         _dinamica.validar(doc.dinamica)
+    if doc.historial is not None:
+        _historial.validar(doc.historial)
     if doc.proyecto is not None:
         _proyecto.validar(doc.proyecto)
     ruta = Path(ruta)
@@ -296,6 +318,7 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
     presentes = {"modelo"}
     presentes |= {"diseno"} if doc.diseno is not None else set()
     presentes |= {"dinamica"} if doc.dinamica is not None else set()
+    presentes |= {"historial"} if doc.historial is not None else set()
     presentes |= {"proyecto"} if doc.proyecto is not None else set()
     modulos.update(
         {n: m.entrada() for n, m in MODULOS.items() if n not in modulos and n in presentes}
@@ -314,6 +337,11 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
         miembros[_diseno.MIEMBRO] = _json(doc.diseno)
     if doc.dinamica is not None and modulos["dinamica"]["version"] <= MODULOS["dinamica"].version:
         miembros[_dinamica.MIEMBRO] = _json(doc.dinamica)
+    if (
+        doc.historial is not None
+        and modulos["historial"]["version"] <= MODULOS["historial"].version
+    ):
+        miembros[_historial.MIEMBRO] = _json(doc.historial)
     if doc.proyecto is not None and modulos["proyecto"]["version"] <= MODULOS["proyecto"].version:
         miembros[_proyecto.MIEMBRO] = _json(doc.proyecto)
 

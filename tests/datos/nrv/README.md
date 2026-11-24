@@ -17,5 +17,7 @@ Estos archivos garantizan que un proyecto guardado con una versión vieja de Ner
 | `diseno-v2.esperado.json` | Resultados de cada caso (motor del 2026-11-24) y, en `diseno`, los datos que se tienen que leer y la armadura de B1 (8 barras Ø16; con todos los diámetros saldría 4Ø20). |
 | `proyecto-v1.nrv` | Módulo `proyecto` versión 1 junto con `modelo` 1: el pórtico de ejemplo de la interfaz con los seis datos de la carátula cargados. Guardado el 2026-11-24. |
 | `proyecto-v1.esperado.json` | Resultados de cada caso y, en `proyecto`, el contenido de `proyecto.json` que se tiene que leer. |
+| `historial-v1.nrv` | Módulo `historial` versión 1 junto con `modelo` 1: el pórtico de ejemplo de la interfaz con dos propuestas aplicadas (`ia: Claude` cambia la sección de B2; `importador: planilla` agrega viento en N3) y la segunda deshecha. Guardado el 2026-11-24. |
+| `historial-v1.esperado.json` | Resultados de cada caso (motor del 2026-11-24) y, en `historial`, los tres cambios que se tienen que leer. |
 
 Cuando un módulo sube de versión, se **agrega** su archivo (`modelo-v2.nrv`, `modelo-v2.esperado.json`) y se anota acá. Los anteriores se quedan.

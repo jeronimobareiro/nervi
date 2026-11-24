@@ -187,6 +187,9 @@ ICONOS_MENU = {
     '<path d="M12 17h.01"/>',
     "preferencias": '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/>'
     '<circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+    # Asistente de IA: una chispa grande y una chica.
+    "ia": '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/>'
+    '<path d="M18.5 15l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>',
 }
 
 
@@ -439,6 +442,20 @@ QWidget#riel {{ background: {t.panel}; border-right: 1px solid {t.borde}; }}
 QToolButton#menu_riel {{ border-radius: {r}px; padding: 0; }}
 QToolButton#menu_riel:hover {{ background: {t.hover}; }}
 QToolButton#menu_riel:checked {{ background: {t.acento_suave}; }}
+QLabel#insignia {{
+    background: {t.acento}; color: {t.sobre_acento}; border-radius: 7px;
+    font-size: {t.tamano - 2.5}pt; font-weight: 600;
+}}
+
+/* Panel del asistente de IA */
+QFrame#tarjeta {{ background: {t.panel}; border: 1px solid {t.borde}; border-radius: {r}px; }}
+QFrame#tarjeta[pendiente="true"] {{ background: {t.acento_suave}; border-color: {t.acento}; }}
+QFrame#tarjeta QLabel {{ background: transparent; }}
+QLabel#conexion {{ border: 1px solid {t.borde_fuerte}; color: {t.texto_3}; border-radius: {rc}px; padding: 1px 6px; }}
+QLabel#conexion[conectado="true"] {{ border-color: {t.ok}; color: {t.ok}; }}
+QLabel#codigo {{ font-family: "JetBrains Mono", "Cascadia Mono", Consolas, monospace; color: {t.texto_2}; }}
+QLabel#bien {{ color: {t.ok}; }}
+QLabel#mal {{ color: {t.negativo}; }}
 
 /* Ventanas de ajustes (Preferencias, Configuración del proyecto) */
 QListWidget#apartados {{ background: {t.panel}; border: 0; border-right: 1px solid {t.borde}; padding: 8px; }}

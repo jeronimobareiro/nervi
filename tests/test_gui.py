@@ -59,6 +59,30 @@ def test_editar_tabla_desactualiza_resultados(ventana):
     assert "desactualizados" in ventana.lbl_estado.text()
 
 
+def test_deshacer_y_rehacer_desde_la_ventana(ventana, qtbot):
+    assert not ventana.a_deshacer.isEnabled() and not ventana.a_rehacer.isEnabled()
+    tabla = ventana.tabs_modelo.widget(0).modelo  # nudos
+    assert tabla.setData(tabla.index(1, 2), "3.5")
+    assert ventana.a_deshacer.isEnabled()
+    assert ventana.a_deshacer.text() == "Deshacer: Editar el modelo"
+    ventana.vista.setFocus()
+    qtbot.keyClick(ventana.vista, Qt.Key_Z, Qt.ControlModifier)
+    assert ventana.sesion.modelo["nudos"][1]["y"] == 3.0
+    assert tabla.data(tabla.index(1, 2)) in ("3", "3.0", "3,0", "3,000", "3.000")
+    assert ventana.a_rehacer.isEnabled() and not ventana.a_deshacer.isEnabled()
+    ventana.a_rehacer.trigger()
+    assert ventana.sesion.modelo["nudos"][1]["y"] == 3.5
+
+
+def test_exportar_resultados(ventana, tmp_path):
+    from nervi import resultados
+
+    ruta = tmp_path / "r.json"
+    assert ventana.exportar_resultados(ruta)
+    datos = resultados.leer(ruta)
+    assert datos["huella_modelo"] == resultados.huella(ventana.sesion.modelo)
+
+
 def test_dato_invalido_no_se_acepta(ventana):
     tabla = ventana.tabs_modelo.widget(1).modelo  # barras
     assert not tabla.setData(tabla.index(0, 3), "abc")
@@ -458,6 +482,125 @@ def test_modo_en_la_escena_3d(ventana):
     assert escena.deformada
 
 
+def _en_hilo(qtbot, funcion):
+    """Corre ``funcion`` en otro hilo mientras la ventana sigue atendiendo eventos."""
+    import threading
+
+    salida = {}
+
+    def correr():
+        try:
+            salida["valor"] = funcion()
+        except Exception as e:  # se revisa en la prueba
+            salida["error"] = e
+
+    hilo = threading.Thread(target=correr)
+    hilo.start()
+    qtbot.waitUntil(lambda: not hilo.is_alive(), timeout=60000)
+    return salida
+
+
+def test_conectar_con_mi_ia(ventana, qtbot, tmp_path, monkeypatch):
+    from nervi.ia import canal
+    from nervi.ia.herramientas import ErrorConsulta
+
+    monkeypatch.setenv("NERVI_CANAL", str(tmp_path / "canal.json"))
+    consultas = []
+    ventana.canal.consulta.connect(lambda n, ok: consultas.append((n, ok)))
+    assert ventana.conectar_ia() and ventana.a_conectar_ia.isChecked()
+    assert (tmp_path / "canal.json").exists()
+    ventana.sesion.seleccionar(Seleccion("nudo", 3))
+    r = _en_hilo(qtbot, lambda: canal.consultar("leer_seleccion"))
+    assert r["valor"]["seleccion"] == {"tipo": "nudo", "id": "N3"}
+    modelo = _en_hilo(qtbot, lambda: canal.consultar("leer_modelo"))["valor"]
+    modelo["nudos"][1]["y"] += 0.5
+    r = _en_hilo(
+        qtbot,
+        lambda: canal.consultar("proponer_modelo", {"modelo": modelo, "descripcion": "Sube N2"}),
+    )
+    assert ventana.sesion.propuestas[0].id == r["valor"]["propuesta"]
+    assert ventana.sesion.modelo["nudos"][1]["y"] != modelo["nudos"][1]["y"]
+    r = _en_hilo(qtbot, lambda: canal.consultar("leer_nudo", {"nudo": "N99"}))
+    assert isinstance(r["error"], ErrorConsulta) and "N99" in str(r["error"])
+    assert consultas == [
+        ("leer_seleccion", True),
+        ("leer_modelo", True),
+        ("proponer_modelo", True),
+        ("leer_nudo", False),
+    ]
+    assert not ventana.conectar_ia() and not (tmp_path / "canal.json").exists()
+    r = _en_hilo(qtbot, lambda: canal.consultar("leer_modelo"))
+    assert isinstance(r["error"], canal.SinVentana)
+
+
+def test_app_de_ia_con_la_ventana_abierta(ventana, qtbot, tmp_path, monkeypatch):
+    """Lo que hace la app de IA: lanzar ``nervi-mcp`` sin argumentos y hablarle por
+    stdio; el puente le pasa cada consulta a esta ventana."""
+    import json
+    import subprocess
+    import sys
+
+    pytest.importorskip("mcp")
+    from nervi.ia.herramientas import NOMBRES, NOMBRES_VENTANA
+
+    monkeypatch.setenv("NERVI_CANAL", str(tmp_path / "canal.json"))
+    ventana.conectar_ia(True)
+    proceso = subprocess.Popen(
+        [sys.executable, "-m", "nervi.ia.servidor"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        env=os.environ,
+    )
+
+    def rpc(id_, metodo, params=None):
+        mensaje = {"jsonrpc": "2.0", "id": id_, "method": metodo, "params": params or {}}
+        proceso.stdin.write(json.dumps(mensaje) + "\n")
+        proceso.stdin.flush()
+        while True:
+            linea = proceso.stdout.readline()
+            if not linea:
+                raise RuntimeError(proceso.stderr.read())
+            respuesta = json.loads(linea)
+            if respuesta.get("id") == id_:
+                return respuesta
+
+    def sesion_mcp():
+        rpc(
+            1,
+            "initialize",
+            {
+                "protocolVersion": "2025-06-18",
+                "capabilities": {},
+                "clientInfo": {"name": "prueba", "version": "0"},
+            },
+        )
+        proceso.stdin.write(
+            json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}) + "\n"
+        )
+        proceso.stdin.flush()
+        lista = rpc(2, "tools/list")["result"]["tools"]
+        nudo = rpc(
+            3, "tools/call", {"name": "leer_nudo", "arguments": {"nudo": "N2", "resultado": "D"}}
+        )
+        return lista, nudo
+
+    try:
+        r = _en_hilo(qtbot, sesion_mcp)
+    finally:
+        proceso.stdin.close()
+        proceso.wait(timeout=10)
+        proceso.stdout.close()
+        proceso.stderr.close()
+    assert "error" not in r, r.get("error")
+    lista, nudo = r["valor"]
+    assert [t["name"] for t in lista] == [*NOMBRES, *NOMBRES_VENTANA]
+    datos = json.loads(nudo["result"]["content"][0]["text"])
+    assert datos == ventana.canal.herramientas.leer_nudo("N2", "D")
+
+
 # --- Barra lateral de menús y ajustes ------------------------------------------------
 def test_barra_lateral_abre_cada_menu(ventana, qtbot):
     assert set(ventana.botones_riel) == {
@@ -466,6 +609,7 @@ def test_barra_lateral_abre_cada_menu(ventana, qtbot):
         "calcular",
         "ver",
         "herramientas",
+        "ia",
         "ayuda",
         "preferencias",
     }
@@ -592,3 +736,86 @@ def test_recientes_y_abrir_el_ultimo(ventana, tmp_path):
     vacia = crear_ventana([])
     assert vacia.sesion.modelo["nudos"] == []
     vacia.close()
+
+
+def test_panel_del_asistente(ventana, qtbot, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QLabel, QPushButton
+
+    monkeypatch.setenv("NERVI_CANAL", str(tmp_path / "canal.json"))
+    panel = ventana.asistente
+    assert not panel.isVisible() and not ventana.insignia_ia.isVisible()
+    ventana.abrir_menu_riel("ia")
+    assert panel.isVisible() and ventana.botones_riel["ia"].isChecked()
+    assert panel.b_conectar.isVisible() and panel.lbl_conexion.text() == "Sin conectar"
+    panel.b_conectar.click()
+    assert ventana.canal.activo and ventana.a_conectar_ia.isChecked()
+    assert panel.lbl_conexion.text().endswith("Conectado") and panel.b_desconectar.isVisible()
+
+    # Llega una propuesta: insignia en el ícono y tarjeta con su resumen.
+    s = ventana.sesion
+    m = s.copia_modelo()
+    m["nudos"][1]["y"] += 0.5
+    s.proponer(m, "ia: Claude Desktop", "Sube N2")
+    assert ventana.insignia_ia.isVisible() and ventana.insignia_ia.text() == "1"
+    assert panel.lbl_propuestas.text() == "PROPUESTAS PENDIENTES · 1"
+    qtbot.wait(20)  # las tarjetas nuevas se muestran al volver al bucle de eventos
+    textos = [w.text() for w in panel.findChildren(QLabel) if w.isVisibleTo(panel)]
+    assert "Sube N2" in textos and "•  Cambia N2 (y)" in textos
+    assert any(t.startswith("de Claude Desktop") for t in textos)
+
+    dialogo = panel.vista_previa(s.propuestas[0].id)
+    assert dialogo.isVisible() and dialogo._sesion.modelo["nudos"][1]["y"] == m["nudos"][1]["y"]
+    assert s.modelo["nudos"][1]["y"] != m["nudos"][1]["y"]  # la vista previa no aplica
+    dialogo.close()
+
+    qtbot.wait(20)
+    aplicar = next(
+        b for b in panel.findChildren(QPushButton) if b.text() == "Aplicar" and b.isVisibleTo(panel)
+    )
+    aplicar.click()
+    assert s.modelo["nudos"][1]["y"] == m["nudos"][1]["y"] and not s.propuestas
+    assert not ventana.insignia_ia.isVisible()
+    assert s.doc.historial["cambios"][-1]["origen"] == "ia: Claude Desktop"
+    ventana.deshacer()
+    assert s.modelo["nudos"][1]["y"] != m["nudos"][1]["y"]
+
+    # Descartar no cambia nada.
+    s.proponer(m, "ia: Claude Desktop", "Sube N2 otra vez")
+    antes = s.copia_modelo()
+    qtbot.wait(20)
+    descartar = next(
+        b
+        for b in panel.findChildren(QPushButton)
+        if b.text() == "Descartar" and b.isVisibleTo(panel)
+    )
+    descartar.click()
+    assert not s.propuestas and s.modelo == antes
+
+    # Las consultas del agente quedan a la vista.
+    ventana.canal.consulta.emit("leer_barra", True)
+    ventana.canal.consulta.emit("leer_verificaciones", False)
+    assert [c[1:] for c in panel.consultas] == [
+        ("leer_barra", True),
+        ("leer_verificaciones", False),
+    ]
+    panel.b_desconectar.click()
+    assert not ventana.canal.activo and not ventana.a_conectar_ia.isChecked()
+    ventana.abrir_menu_riel("ia")
+    assert not panel.isVisible() and not ventana.botones_riel["ia"].isChecked()
+
+
+def test_propuesta_sobre_un_modelo_que_cambio(ventana, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+
+    avisos = []
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a: avisos.append(a[2]))
+    s = ventana.sesion
+    m = s.copia_modelo()
+    m["nudos"][1]["y"] += 0.5
+    p = s.proponer(m, "ia: prueba", "Sube N2")
+    otro = s.copia_modelo()
+    otro["nudos"][2]["y"] += 1.0
+    s.editar(otro)
+    assert not ventana.asistente.aplicar(p.id)
+    assert "cambió" in avisos[0] and "rehaga" in avisos[0]
+    assert s.modelo == otro

@@ -47,6 +47,8 @@ PAGINAS = {
     "docs/convenciones.md": "tecnica/convenciones.md",
     "docs/contrato-datos.md": "tecnica/contrato-datos.md",
     "docs/formato-nrv.md": "tecnica/formato-nrv.md",
+    "docs/formato-resultados.md": "tecnica/formato-resultados.md",
+    "docs/agentes-ia.md": "tecnica/agentes-ia.md",
     "docs/hoja-de-ruta.md": "hoja-de-ruta.md",
     "CONTRIBUTING.md": "participar/contribuir.md",
     "CODE_OF_CONDUCT.md": "participar/codigo-de-conducta.md",

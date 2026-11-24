@@ -124,6 +124,19 @@ Desde noviembre de 2026 la interfaz es una **vía paralela**: `nervi.gui` (PySid
 |---|---|---|---|
 | [#32](https://github.com/jeronimobareiro/nervi/issues/32) | Elemento de lámina para losas y muros | T | motor |
 
+### Línea transversal · Integración con agentes de IA, API y complementos
+
+Abierta el 24/11/2026, en paralelo a las fases y sin frenarlas. Objetivo: que la persona conecte el agente de IA que ya usa (Claude, ChatGPT, Gemini u otro) para cargar datos e interpretar resultados del programa abierto, y que la comunidad pueda escribir complementos, **sin que ninguno toque el motor**: la IA nunca produce un número de resultado, solo consulta a Nervi y propone cambios que la persona confirma. Etapas, cada una en su propio aporte:
+
+1. Capa de proyecto sin Qt, `nervi.proyecto` (hecha): la comparten la interfaz, los scripts y las integraciones.
+2. Resultados a precisión completa en JSON, `nervi.resultados` (hecha, [`formato-resultados.md`](formato-resultados.md)).
+3. Deshacer, rehacer y propuestas de cambio con su origen (hecha: `Proyecto.proponer`, `aplicar`, `deshacer`, Ctrl+Z y Ctrl+Y en la interfaz, y módulo `historial` del `.nrv` para auditar los cambios que no hizo la persona).
+4. Servidor MCP `nervi-mcp`, primero de solo lectura (hecha: `nervi.ia`, 10 herramientas de consulta, [`agentes-ia.md`](agentes-ia.md)).
+5. Canal local con la ventana abierta, botón "Conectar con mi IA" y panel del asistente (hecha: canal local, selección, propuestas y panel del asistente sin chat en la barra lateral). La persona conversa en su propia app de IA, que no necesita clave de API.
+6. Importar DXF con vista previa.
+7. Complementos con *entry points*, permisos y camino a oficial, con su regla de licencia en `GOVERNANCE.md`.
+8. Chat dentro de Nervi, sobre las mismas herramientas, con la clave de API de la persona guardada en el llavero del sistema: primero Ollama (modelos locales, sin que los datos salgan de la computadora) y Claude, después los proveedores compatibles con la API de OpenAI.
+
 ## Colaboración con universidades
 
 ### Qué etiqueta mirar según el perfil

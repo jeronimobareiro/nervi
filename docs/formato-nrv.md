@@ -29,6 +29,7 @@ proyecto.nrv
 ├── modelo.json         # módulo "modelo", obligatorio: el modelo analítico (§4)
 ├── diseno.json         # módulo "diseno", opcional: datos de diseño (§4b)
 ├── dinamica.json       # módulo "dinamica", opcional: masas, modos y espectros (§4c)
+├── historial.json      # módulo "historial", opcional: cambios propuestos y aplicados (§4e)
 ├── resultados/         # módulo "resultados", caché (previsto, §5)
 ├── vista.json          # módulo "vista", estado de la GUI (previsto)
 └── adjuntos/           # módulo "adjuntos": imágenes, memorias (previsto)
@@ -94,6 +95,7 @@ Nombres de módulo: minúsculas, dígitos y `_`, con `.` para separar un prefijo
 | `diseno` | versión 2 | no | Norma, materiales, criterios y, por barra, tipo de elemento y sección de hormigón (§4b). Solo está si el proyecto tiene datos de diseño. |
 | `dinamica` | versión 1 | no | Casos de los que sale la masa, cantidad de modos y espectros de respuesta del pórtico plano (§4c). Solo está si el proyecto tiene datos de dinámica. |
 | `proyecto` | versión 1 | no | Datos que identifican el proyecto y salen en la carátula de la memoria (§4d). Solo está si se cargó alguno. |
+| `historial` | versión 1 | no | Cambios que propuso un agente de IA, un importador o un complemento y la persona aplicó, deshizo o rehízo (§4e). Solo está si hubo alguno. |
 | `resultados` | previsto (§5) | no | Caché de resultados. |
 | `vista` | previsto | no | Cámara, capas, selección. |
 | `adjuntos` | previsto | no | Imágenes, memorias, planos. |
@@ -245,6 +247,35 @@ Lo escribe **Configuración del proyecto › Datos del proyecto** en la interfaz
 - `extensiones` (opcional) es un objeto libre.
 - Se valida con `nervi.formato.proyecto.validar`; un error dice `proyecto.json`, la ruta y el motivo.
 
+## 4e. Módulo `historial` (`historial.json`), versión 1
+
+Lo escribe `nervi.proyecto` cuando la persona aplica una **propuesta** de cambio que no hizo ella (un agente de IA, un importador o un complemento), y cuando deshace o rehace uno de esos cambios. Las ediciones a mano no se anotan, y la pila de deshacer no se guarda: vive mientras el proyecto está abierto. Sirve para auditar qué cambió en el proyecto, quién lo propuso y sobre qué modelo.
+
+```json
+{
+  "cambios": [
+    {
+      "fecha": "2026-11-24T02:10:30Z",
+      "accion": "aplicar",
+      "parte": "modelo",
+      "origen": "ia: Claude",
+      "descripcion": "Viga B2 de 25 × 55 cm",
+      "resumen": ["Cambia B2 (A, I)"],
+      "huella_antes": "sha256:0614bcf6…",
+      "huella_despues": "sha256:ab722820…"
+    }
+  ]
+}
+```
+
+- `fecha`: UTC, `AAAA-MM-DDTHH:MM:SSZ`.
+- `accion` ∈ {`aplicar`, `deshacer`, `rehacer`} y `parte` ∈ {`modelo`, `diseno`, `dinamica`}.
+- `origen`: texto no vacío que dice de dónde vino el cambio, con la forma `tipo: nombre` (`ia: Claude`, `importador: DXF`, `complemento: nombre`). Nunca es `persona`.
+- `descripcion`: lo que dijo quien propuso el cambio (puede estar vacía). `resumen`: qué cambió, en frases cortas con los `id` del usuario (`Agrega N5`, `Cambia B2 (A, I)`, `Cargas en nudos: 1 → 2`), calculado por Nervi y no por quien propuso.
+- `huella_antes` y `huella_despues`: SHA-256 de la parte en forma canónica (claves ordenadas, sin espacios, UTF-8), como `huella_modelo` de [`formato-resultados.md`](formato-resultados.md). En `deshacer` van al revés que en `aplicar`.
+- Se guardan los últimos 2000 cambios; al agregar uno más se descarta el más viejo. `extensiones` (opcional) es un objeto libre.
+- Se valida con `nervi.formato.historial.validar`; un error dice `historial.json`, la ruta y el motivo.
+
 ## 5. Resultados (`resultados/`, reservado)
 
 En la versión actual los resultados **no se guardan**: se recalculan al abrir (un pórtico de 10 000 barras se resuelve en menos de un segundo). El directorio queda reservado para una caché futura con esta regla: cada resultado lleva el SHA-256 de `modelo.json` con el que se calculó, y si no coincide se descarta. Será el módulo no requerido `resultados` (§3.1): un lector que no lo entiende lo conserva sin leerlo, y nunca es fuente de verdad.
@@ -341,3 +372,4 @@ Implementado en `python/nervi/formato/`:
 | `dinamica` 1 | 2026-11-19 (borrador) | Módulo opcional de análisis dinámico (§4c): casos de masa, cantidad de modos y espectros con `Sa` en fracción de `g`. Archivo de referencia `tests/datos/nrv/dinamica-v1.nrv`. |
 | `diseno` 2 | 2026-11-24 (borrador) | `criterios.diametros_columna`: diámetros permitidos para la armadura de columnas (§4b). Migración `diseno_1_a_2` con los cinco diámetros. Archivo de referencia `tests/datos/nrv/diseno-v2.nrv`. |
 | `proyecto` 1 | 2026-11-24 (borrador) | Módulo opcional con los datos de la carátula de la memoria (§4d). Archivo de referencia `tests/datos/nrv/proyecto-v1.nrv`. |
+| `historial` 1 | 2026-11-24 (borrador) | Módulo opcional de auditoría (§4e): cambios propuestos por un agente de IA, un importador o un complemento, con su origen, resumen y huellas. Archivo de referencia `tests/datos/nrv/historial-v1.nrv`. |

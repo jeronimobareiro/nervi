@@ -37,9 +37,11 @@ Todavía no lo revisó un ingeniero estructural: no usar para proyecto.
 
 ### Interfaz de escritorio y documentos
 
-- **Interfaz** (`nervi-gui`, PySide6) en una sola ventana, con el recorrido Geometría › Cargas › Análisis › Resultados › Diseño: tablas del modelo, cálculo con F5, diagramas con lectura de esfuerzos bajo el cursor, visor 3D opcional, pestaña **Dinámica** (masas, modos animados y espectros), etapa **Diseño** (todas las vigas y columnas, cada verificación con su artículo), revisión del modelo, consola Python y buscador de comandos (Ctrl+K). Tema claro por defecto y tema oscuro con los colores de la marca.
+- **Interfaz** (`nervi-gui`, PySide6) en una sola ventana, con el recorrido Geometría › Cargas › Análisis › Resultados › Diseño: tablas del modelo, cálculo con F5, diagramas con lectura de esfuerzos bajo el cursor, visor 3D opcional, pestaña **Dinámica** (masas, modos animados y espectros), etapa **Diseño** (todas las vigas y columnas, cada verificación con su artículo), revisión del modelo, consola Python, buscador de comandos (Ctrl+K), deshacer y rehacer (Ctrl+Z, Ctrl+Y) y panel del asistente de IA para aplicar o descartar lo que propone tu IA. Tema claro por defecto y tema oscuro con los colores de la marca.
 - **Proyectos** en formato [`.nrv`](docs/formato-nrv.md), con módulos versionados (modelo, diseño, dinámica) y migraciones para que los proyectos viejos se sigan abriendo.
 - **Memoria de cálculo en PDF**, en español y con plantilla editable: carátula, normativa de referencia, datos del modelo, cargas, combinaciones, resultados, diagramas, envolventes y, si corresponde, los capítulos de diseño y de análisis dinámico (`nervi.memoria`, o Ctrl+P en la interfaz).
+- **Resultados a precisión completa** en JSON, sin el redondeo de la memoria: desplazamientos, reacciones, fuerzas de extremo y diagramas de cada caso y combinación, y el diseño y la dinámica si están al día, con la huella del modelo al que corresponden ([`formato-resultados.md`](docs/formato-resultados.md)).
+- **Conexión con agentes de IA** por MCP (`nervi-mcp`): el agente que ya usás (Claude, Gemini u otro cliente MCP) consulta el proyecto abierto o un archivo y explica los resultados, con cada número sacado del motor; no cambia nada, solo propone cambios que vos aplicás o descartás ([`agentes-ia.md`](docs/agentes-ia.md)).
 
 ### Rendimiento
 

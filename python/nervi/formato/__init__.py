@@ -16,7 +16,7 @@ versión y sus migraciones (``docs/formato-nrv.md`` §3.1 y §6).
 'portico_2d'
 """
 
-from . import dinamica, diseno, proyecto
+from . import dinamica, diseno, historial, proyecto
 from .contenedor import (
     MIMETYPE,
     MODULOS,
@@ -40,6 +40,7 @@ __all__ = [
     "dinamica",
     "diseno",
     "guardar",
+    "historial",
     "proyecto",
     "validar",
 ]

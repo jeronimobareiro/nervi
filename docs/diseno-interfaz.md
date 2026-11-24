@@ -51,6 +51,15 @@ Decidido el 23/11/2026 con muestras en los dos temas.
   - **Configuración del proyecto** (`ajustes.ConfiguracionProyecto`): dentro del `.nrv`. Apartados Datos del proyecto (carátula de la memoria), Unidades (solo con el modelo vacío, porque cambiarlas exige convertir los valores), Materiales y Diseño (criterios y diámetros permitidos para columnas).
 - **Regla para un ajuste nuevo:** si cambiarlo puede cambiar un número del cálculo o de la memoria, va en Configuración del proyecto y en el `.nrv` (con su versión de módulo y migración); si solo cambia cómo se ve o se usa la aplicación, va en Preferencias. Una preferencia se declara una sola vez en `ajustes.PREFERENCIAS` y la ventana se arma sola. Un apartado nuevo aparece recién cuando tiene algo que ajustar.
 
+## Asistente de IA
+
+Decidido el 24/11/2026 con muestras en los dos temas.
+
+- **Ícono en la barra lateral** (`ia`, una chispa), debajo de Herramientas. No abre un menú: abre y cierra el **panel del asistente** junto a la barra, antes del árbol del modelo. Una `insignia` del color de acento sobre el ícono dice cuántas propuestas esperan.
+- **Sin chat.** La persona conversa en su propia app de IA; el panel muestra el estado de la conexión (`conexion`, verde cuando está conectada), las **propuestas pendientes** como `tarjeta` con borde y fondo de acento (descripción, origen, resumen de cambios y los botones *Aplicar* `primario`, *Vista previa* y *Descartar* `fantasma`) y las **consultas del agente** (hora, herramienta en `codigo` y ✓ `bien` o ✕ `mal`).
+- *Vista previa* abre el modelo propuesto en una ventana aparte, sin aplicarlo. *Aplicar* se deshace con Ctrl+Z.
+- Abajo, *Conectar con mi IA* (`primario`) o *Desconectar*, *Cómo conectar mi app…* y el aviso de que lo que lee el agente viaja a su proveedor.
+
 ## Cómo agregar algo
 
 1. Usá los nombres de objeto existentes (`primario`, `fantasma`, `peligro`, `segmento`, `seccion`, `tenue`, `aviso`…) antes de crear uno nuevo.
