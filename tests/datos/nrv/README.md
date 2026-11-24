@@ -13,5 +13,7 @@ Estos archivos garantizan que un proyecto guardado con una versión vieja de Ner
 | `diseno-v1.esperado.json` | Resultados de cada caso (motor del 2026-11-17) y, en `diseno`, el tipo y la sección de cada barra y los materiales que se tienen que leer. |
 | `dinamica-v1.nrv` | Módulo `dinamica` versión 1 junto con `modelo` 1: el pórtico de ejemplo de la interfaz con masa desde D + 0,25 L, 4 modos y dos espectros (`Sismo X` en X con CQC y `Vertical` en Y con SRSS y 2 % de amortiguamiento). Guardado el 2026-11-19. |
 | `dinamica-v1.esperado.json` | Resultados de cada caso y, en `dinamica`, los datos que se tienen que leer, los periodos, la masa total y efectiva y el cortante basal de cada espectro (motor del 2026-11-19). |
+| `historial-v1.nrv` | Módulo `historial` versión 1 junto con `modelo` 1: el pórtico de ejemplo de la interfaz con dos propuestas aplicadas (`ia: Claude` cambia la sección de B2; `importador: planilla` agrega viento en N3) y la segunda deshecha. Guardado el 2026-11-24. |
+| `historial-v1.esperado.json` | Resultados de cada caso (motor del 2026-11-24) y, en `historial`, los tres cambios que se tienen que leer. |
 
 Cuando un módulo sube de versión, se **agrega** su archivo (`modelo-v2.nrv`, `modelo-v2.esperado.json`) y se anota acá. Los anteriores se quedan.

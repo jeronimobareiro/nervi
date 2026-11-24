@@ -123,6 +123,18 @@ def test_referencia_del_modulo_diseno():
         assert (el.tipo, el.b, el.h) == (e["tipo"], e["b"], e["h"])
 
 
+def test_referencia_del_modulo_historial():
+    # El historial de historial-v1.nrv se lee igual que cuando se guardó, y su última
+    # huella es la del modelo guardado.
+    from nervi.resultados import huella
+
+    esperado = _esperado(DATOS / "historial-v1.nrv")["historial"]
+    doc = formato.abrir(DATOS / "historial-v1.nrv")
+    assert doc.historial == esperado
+    assert [c["accion"] for c in doc.historial["cambios"]] == ["aplicar", "aplicar", "deshacer"]
+    assert doc.historial["cambios"][-1]["huella_despues"] == huella(doc.modelo)
+
+
 def test_modulo_desconocido_requerido_no_abre(tmp_path):
     ruta = _con_manifiesto(
         tmp_path, _modulo("portico_3d", 1, ["portico_3d.json"], True), [("portico_3d.json", "{}")]

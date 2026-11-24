@@ -51,6 +51,30 @@ def test_editar_tabla_desactualiza_resultados(ventana):
     assert "desactualizados" in ventana.lbl_estado.text()
 
 
+def test_deshacer_y_rehacer_desde_la_ventana(ventana, qtbot):
+    assert not ventana.a_deshacer.isEnabled() and not ventana.a_rehacer.isEnabled()
+    tabla = ventana.tabs_modelo.widget(0).modelo  # nudos
+    assert tabla.setData(tabla.index(1, 2), "3.5")
+    assert ventana.a_deshacer.isEnabled()
+    assert ventana.a_deshacer.text() == "Deshacer: Editar el modelo"
+    ventana.vista.setFocus()
+    qtbot.keyClick(ventana.vista, Qt.Key_Z, Qt.ControlModifier)
+    assert ventana.sesion.modelo["nudos"][1]["y"] == 3.0
+    assert tabla.data(tabla.index(1, 2)) in ("3", "3.0", "3,0", "3,000", "3.000")
+    assert ventana.a_rehacer.isEnabled() and not ventana.a_deshacer.isEnabled()
+    ventana.a_rehacer.trigger()
+    assert ventana.sesion.modelo["nudos"][1]["y"] == 3.5
+
+
+def test_exportar_resultados(ventana, tmp_path):
+    from nervi import resultados
+
+    ruta = tmp_path / "r.json"
+    assert ventana.exportar_resultados(ruta)
+    datos = resultados.leer(ruta)
+    assert datos["huella_modelo"] == resultados.huella(ventana.sesion.modelo)
+
+
 def test_dato_invalido_no_se_acepta(ventana):
     tabla = ventana.tabs_modelo.widget(1).modelo  # barras
     assert not tabla.setData(tabla.index(0, 3), "abc")

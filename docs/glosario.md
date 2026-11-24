@@ -203,3 +203,6 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | armadura candidata (`elegir_armadura`) | candidate reinforcement layout | armadura candidata | вариант армирования |
 | proyecto sin interfaz (`nervi.proyecto.Proyecto`), evento (`suscribir`) | headless project, event | projeto sem interface, evento | проект без интерфейса, событие |
 | resultados a precisión completa (`nervi.resultados`), huella del modelo (`huella_modelo`) | full-precision results, model fingerprint | resultados com precisão completa, impressão digital do modelo | результаты с полной точностью, отпечаток модели |
+| deshacer, rehacer (`Proyecto.deshacer`, `rehacer`), cambio (`Cambio`) | undo, redo, change | desfazer, refazer, alteração | отменить, повторить, изменение |
+| propuesta (`Proyecto.proponer`, `aplicar`, `descartar`), origen | proposal (propose, apply, discard), source | proposta (propor, aplicar, descartar), origem | предложение (предложить, применить, отклонить), источник |
+| historial (módulo `historial` del `.nrv`), resumen de cambios (`resumir_cambios`) | change log, change summary | histórico, resumo de alterações | журнал изменений, сводка изменений |

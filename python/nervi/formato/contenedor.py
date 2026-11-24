@@ -14,6 +14,7 @@ from pathlib import Path, PurePosixPath
 
 from . import dinamica as _dinamica
 from . import diseno as _diseno
+from . import historial as _historial
 from . import migraciones
 from . import modelo as _modelo
 from .errores import FormatoError
@@ -56,6 +57,9 @@ MODULOS: dict[str, Modulo] = {
     "diseno": Modulo("diseno", 1, (_diseno.MIEMBRO,), requerido=False),
     # Datos del análisis modal y espectral (Fase 2b): solo si el proyecto los tiene.
     "dinamica": Modulo("dinamica", 1, (_dinamica.MIEMBRO,), requerido=False),
+    # Cambios propuestos por un agente de IA, un importador o un complemento y
+    # aplicados por la persona: solo si el proyecto tiene alguno.
+    "historial": Modulo("historial", 1, (_historial.MIEMBRO,), requerido=False),
 }
 
 
@@ -83,7 +87,9 @@ class Documento:
     original si al abrir hubo que migrarlo (``{"modelo": 1}``), y ``avisos``
     explica lo que se conservó sin leer. ``diseno`` es el diccionario de
     ``diseno.json`` (``None`` si el proyecto todavía no tiene datos de diseño) y
-    ``dinamica`` el de ``dinamica.json`` (``None`` sin datos de dinámica)."""
+    ``dinamica`` el de ``dinamica.json`` (``None`` sin datos de dinámica) e
+    ``historial`` el de ``historial.json`` (``None`` si nadie más que la persona
+    cambió el proyecto)."""
 
     modelo: dict
     manifiesto: dict = field(default_factory=dict)
@@ -92,6 +98,7 @@ class Documento:
     avisos: list[str] = field(default_factory=list)
     diseno: dict | None = None
     dinamica: dict | None = None
+    historial: dict | None = None
 
     @classmethod
     def nuevo(cls) -> Documento:
@@ -247,6 +254,9 @@ def abrir(ruta: str | os.PathLike) -> Documento:
         dinamica = leidos.get(_dinamica.MIEMBRO)
         if dinamica is not None:
             _dinamica.validar(dinamica)
+        historial = leidos.get(_historial.MIEMBRO)
+        if historial is not None:
+            _historial.validar(historial)
         propios = {"mimetype", MANIFIESTO, *leidos}
         otros = {
             i.filename: zf.read(i.filename)
@@ -254,7 +264,9 @@ def abrir(ruta: str | os.PathLike) -> Documento:
             if i.filename not in propios and not i.is_dir()
         }
     manifiesto["modulos"] = modulos
-    return Documento(modelo, manifiesto, otros, migrado or None, avisos, diseno, dinamica)
+    return Documento(
+        modelo, manifiesto, otros, migrado or None, avisos, diseno, dinamica, historial
+    )
 
 
 def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) -> None:
@@ -266,6 +278,8 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
         _diseno.validar(doc.diseno)
     if doc.dinamica is not None:
         _dinamica.validar(doc.dinamica)
+    if doc.historial is not None:
+        _historial.validar(doc.historial)
     ruta = Path(ruta)
     ahora = _ahora()
     manifiesto = {k: v for k, v in doc.manifiesto.items()}
@@ -285,6 +299,7 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
     presentes = {"modelo"}
     presentes |= {"diseno"} if doc.diseno is not None else set()
     presentes |= {"dinamica"} if doc.dinamica is not None else set()
+    presentes |= {"historial"} if doc.historial is not None else set()
     modulos.update(
         {n: m.entrada() for n, m in MODULOS.items() if n not in modulos and n in presentes}
     )
@@ -302,6 +317,11 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
         miembros[_diseno.MIEMBRO] = _json(doc.diseno)
     if doc.dinamica is not None and modulos["dinamica"]["version"] <= MODULOS["dinamica"].version:
         miembros[_dinamica.MIEMBRO] = _json(doc.dinamica)
+    if (
+        doc.historial is not None
+        and modulos["historial"]["version"] <= MODULOS["historial"].version
+    ):
+        miembros[_historial.MIEMBRO] = _json(doc.historial)
 
     tmp = ruta.with_name(ruta.name + ".tmp")
     with open(tmp, "wb") as f:

@@ -111,6 +111,8 @@ class Ventana(QMainWindow):
         s.resultados_cambiados.connect(self._actualizar_resultados)
         s.seleccion_cambiada.connect(self._actualizar_propiedades)
         s.diseno_cambiado.connect(self._actualizar_diseno)
+        s.historial_cambiado.connect(self._actualizar_deshacer)
+        self._actualizar_deshacer()
         self.vista.diagrama_cambiado.connect(self._marcar_diagrama)
         self._actualizar_todo()
 
@@ -129,11 +131,16 @@ class Ventana(QMainWindow):
         self.a_abrir = self._accion("Abrir…", self.abrir_dialogo, QKeySequence.Open)
         self.a_guardar = self._accion("Guardar", self.guardar, QKeySequence.Save)
         self.a_guardar_como = self._accion("Guardar como…", self.guardar_como, QKeySequence.SaveAs)
+        self.a_deshacer = self._accion("Deshacer", self.deshacer, QKeySequence.Undo)
+        self.a_rehacer = self._accion("Rehacer", self.rehacer, QKeySequence.Redo)
         self.a_calcular = self._accion("Calcular", self.calcular, "F5")
         self.a_disenar = self._accion("Diseñar elementos de hormigón armado", self.disenar)
         self.a_dinamica = self._accion("Análisis modal y espectral", self.analizar_dinamica)
         self.a_memoria = self._accion(
             "Exportar memoria de cálculo (PDF)…", self.exportar_memoria, "Ctrl+P"
+        )
+        self.a_resultados = self._accion(
+            "Exportar resultados a precisión completa (JSON)…", self.exportar_resultados
         )
         self.a_buscar = self._accion("Buscar comando o elemento", self.abrir_paleta, "Ctrl+K")
         self.a_salir = self._accion("Salir", self.close, QKeySequence.Quit)
@@ -173,6 +180,10 @@ class Ventana(QMainWindow):
             self.a_guardar,
             self.a_guardar_como,
             self.a_memoria,
+            self.a_resultados,
+            None,
+            self.a_deshacer,
+            self.a_rehacer,
             None,
             *self.a_temas.values(),
             None,
@@ -771,6 +782,49 @@ class Ventana(QMainWindow):
         except (formato.FormatoError, OSError) as e:
             QMessageBox.warning(self, "No se pudo guardar", str(e))
             return False
+        return True
+
+    # --- Deshacer y rehacer -------------------------------------------------------------
+    def _actualizar_deshacer(self) -> None:
+        s = self.sesion
+        self.a_deshacer.setEnabled(s.puede_deshacer)
+        self.a_rehacer.setEnabled(s.puede_rehacer)
+        self.a_deshacer.setText(f"Deshacer: {s.que_deshacer}" if s.que_deshacer else "Deshacer")
+        self.a_rehacer.setText(f"Rehacer: {s.que_rehacer}" if s.que_rehacer else "Rehacer")
+
+    def deshacer(self) -> bool:
+        cambio = self.sesion.deshacer()
+        if cambio is not None:
+            self.statusBar().showMessage(f"Deshecho: {cambio.descripcion}", 4000)
+        return cambio is not None
+
+    def rehacer(self) -> bool:
+        cambio = self.sesion.rehacer()
+        if cambio is not None:
+            self.statusBar().showMessage(f"Rehecho: {cambio.descripcion}", 4000)
+        return cambio is not None
+
+    def exportar_resultados(self, ruta: str | Path | None = None) -> bool:
+        """Calcula si hace falta y guarda todos los resultados sin redondear (JSON)."""
+        if not self.sesion.al_dia and not self.calcular():
+            return False
+        if ruta is None:
+            base = (
+                self.sesion.ruta.with_suffix(".resultados.json").name
+                if self.sesion.ruta
+                else "resultados.json"
+            )
+            ruta, _ = QFileDialog.getSaveFileName(
+                self, "Exportar resultados", base, "Resultados de Nervi (*.json)"
+            )
+            if not ruta:
+                return False
+        try:
+            self.sesion.exportar_resultados(ruta)
+        except (OSError, ValueError) as e:
+            QMessageBox.warning(self, "No se pudieron exportar los resultados", str(e))
+            return False
+        self.statusBar().showMessage(f"Resultados guardados en {ruta}", 6000)
         return True
 
     def exportar_memoria(self, ruta: str | Path | None = None) -> bool:

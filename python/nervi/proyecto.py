@@ -13,8 +13,10 @@ No confundir con ``nervi.design.proyecto``, que diseña los elementos de un proy
 from __future__ import annotations
 
 import copy
+import itertools
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 
 from . import MecanismoError, formato
@@ -109,6 +111,84 @@ def documento_ejemplo() -> formato.Documento:
     )
 
 
+#: Origen de los cambios que hace la persona a mano.
+PERSONA = "persona"
+#: Cambios que se pueden deshacer, como máximo (los más viejos se descartan).
+LIMITE_DESHACER = 100
+
+
+@dataclass(frozen=True)
+class Cambio:
+    """Un cambio que se puede deshacer: una parte del proyecto antes y después."""
+
+    parte: str  # "modelo", "diseno" o "dinamica"
+    antes: dict | None
+    despues: dict | None
+    origen: str
+    descripcion: str
+
+
+@dataclass
+class Propuesta:
+    """Cambio del modelo que propone alguien que no es la persona (un agente de IA,
+    un importador, un complemento). No cambia nada hasta que la persona lo aplica.
+
+    ``base`` es la huella del modelo sobre el que se hizo: si el modelo cambió
+    después, la propuesta ya no se puede aplicar."""
+
+    id: int
+    origen: str
+    descripcion: str
+    modelo: dict
+    base: str
+    resumen: list[str] = field(default_factory=list)
+
+
+def _por_clave(lista: list, clave: str) -> dict:
+    return {x[clave]: x for x in lista if isinstance(x, dict) and clave in x}
+
+
+def resumir_cambios(antes: dict, despues: dict) -> list[str]:
+    """Qué cambia entre dos ``modelo.json``, en frases cortas con los ``id`` del
+    usuario: ``"Agrega N5"``, ``"Cambia B2 (I)"``, ``"Cargas en barras: 2 → 3"``."""
+    lineas: list[str] = []
+    if antes.get("unidades") != despues.get("unidades"):
+        lineas.append("Cambia las unidades")
+    for lista, clave, letra in (
+        ("nudos", "id", "N"),
+        ("barras", "id", "B"),
+        ("apoyos", "nudo", "apoyo en N"),
+        ("resortes", "nudo", "resorte en N"),
+        ("casos", "id", "caso "),
+        ("combinaciones", "nombre", "combinación "),
+    ):
+        a = _por_clave(antes.get(lista, []), clave)
+        d = _por_clave(despues.get(lista, []), clave)
+
+        def nombre(k, x, letra=letra, lista=lista) -> str:
+            return f"{letra}{x.get('nombre', k)}" if lista == "casos" else f"{letra}{k}"
+
+        for k in d.keys() - a.keys():
+            lineas.append(f"Agrega {nombre(k, d[k])}")
+        for k in a.keys() - d.keys():
+            lineas.append(f"Quita {nombre(k, a[k])}")
+        for k in a.keys() & d.keys():
+            if a[k] != d[k]:
+                campos = sorted(c for c in a[k].keys() | d[k].keys() if a[k].get(c) != d[k].get(c))
+                lineas.append(f"Cambia {nombre(k, d[k])} ({', '.join(campos)})")
+    for lista, titulo in (
+        ("cargas_nodales", "Cargas en nudos"),
+        ("cargas_barra", "Cargas en barras"),
+        ("desplazamientos_impuestos", "Desplazamientos impuestos"),
+    ):
+        a, d = antes.get(lista, []), despues.get(lista, [])
+        if a != d:
+            lineas.append(
+                f"{titulo}: {len(a)} → {len(d)}" if len(a) != len(d) else f"Cambia {titulo.lower()}"
+            )
+    return sorted(lineas, key=lambda t: (not t.startswith("Cambia las"), t))
+
+
 class Proyecto:
     """Proyecto abierto y su estado, sin interfaz gráfica.
 
@@ -130,7 +210,9 @@ class Proyecto:
     """
 
     #: Eventos que puede avisar un proyecto, en el orden de :meth:`_reiniciar`.
-    EVENTOS = ("archivo", "modelo", "resultados", "seleccion", "diseno", "dinamica")
+    #: ``"historial"`` avisa que cambió lo que se puede deshacer o rehacer, o las
+    #: propuestas pendientes.
+    EVENTOS = ("archivo", "modelo", "resultados", "seleccion", "diseno", "dinamica", "historial")
 
     def __init__(self, doc: formato.Documento | None = None, **kwargs) -> None:
         # Cooperativo: ``Sesion`` hereda de ``Proyecto`` y de ``QObject``.
@@ -150,6 +232,13 @@ class Proyecto:
         self.diseno_al_dia = False
         self.resultados_dinamica: ResultadosDinamica | None = None
         self.dinamica_al_dia = False
+        self._deshacer: list[Cambio] = []
+        self._rehacer: list[Cambio] = []
+        # Última copia guardada de cada parte: si la parte no cambió desde entonces,
+        # el cambio siguiente la reusa como "antes" en vez de copiarla otra vez.
+        self._ultimo: dict[str, dict | None] = {}
+        self.propuestas: list[Propuesta] = []
+        self._ids_propuesta = itertools.count(1)
         self.revisar()
 
     # --- Eventos -------------------------------------------------------------------
@@ -204,6 +293,10 @@ class Proyecto:
         self.diseno_al_dia = False
         self.resultados_dinamica = None
         self.dinamica_al_dia = False
+        self._deshacer.clear()
+        self._rehacer.clear()
+        self._ultimo.clear()
+        self.propuestas.clear()
         self.revisar()
         self._avisar("archivo")
         self._avisar("modelo")
@@ -211,15 +304,23 @@ class Proyecto:
         self._avisar("seleccion")
         self._avisar("diseno")
         self._avisar("dinamica")
+        self._avisar("historial")
 
     # --- Edición -----------------------------------------------------------------
     @property
     def modelo(self) -> dict:
         return self.doc.modelo
 
-    def editar(self, nuevo_modelo: dict) -> None:
+    def editar(
+        self, nuevo_modelo: dict, origen: str = PERSONA, descripcion: str = "Editar el modelo"
+    ) -> None:
         """Reemplaza ``modelo.json`` por una versión editada. Los resultados quedan
-        desactualizados hasta volver a calcular."""
+        desactualizados hasta volver a calcular. Se puede deshacer."""
+        self._registrar("modelo", self.doc.modelo, nuevo_modelo, origen, descripcion)
+        self._poner_modelo(nuevo_modelo)
+        self._avisar("historial")
+
+    def _poner_modelo(self, nuevo_modelo: dict) -> None:
         self.doc.modelo = nuevo_modelo
         self.modificado = True
         self.al_dia = False
@@ -334,9 +435,17 @@ class Proyecto:
         """Datos de ``dinamica.json`` (los de por defecto si el proyecto no tiene)."""
         return self.doc.dinamica if self.doc.dinamica is not None else formato.dinamica.nuevo()
 
-    def editar_dinamica(self, nuevo: dict) -> None:
-        """Reemplaza los datos de dinámica. Lanza ``FormatoError`` si no son válidos."""
+    def editar_dinamica(
+        self, nuevo: dict, origen: str = PERSONA, descripcion: str = "Editar la dinámica"
+    ) -> None:
+        """Reemplaza los datos de dinámica. Lanza ``FormatoError`` si no son válidos.
+        Se puede deshacer."""
         formato.dinamica.validar(nuevo)
+        self._registrar("dinamica", self.doc.dinamica, nuevo, origen, descripcion)
+        self._poner_dinamica(nuevo)
+        self._avisar("historial")
+
+    def _poner_dinamica(self, nuevo: dict | None) -> None:
         self.doc.dinamica = nuevo
         self.modificado = True
         self.dinamica_al_dia = False
@@ -400,9 +509,17 @@ class Proyecto:
         """Datos de ``diseno.json`` (los de por defecto si el proyecto no tiene)."""
         return self.doc.diseno if self.doc.diseno is not None else formato.diseno.nuevo()
 
-    def editar_diseno(self, nuevo: dict) -> None:
-        """Reemplaza los datos de diseño. Lanza ``FormatoError`` si no son válidos."""
+    def editar_diseno(
+        self, nuevo: dict, origen: str = PERSONA, descripcion: str = "Editar el diseño"
+    ) -> None:
+        """Reemplaza los datos de diseño. Lanza ``FormatoError`` si no son válidos.
+        Se puede deshacer."""
         formato.diseno.validar(nuevo)
+        self._registrar("diseno", self.doc.diseno, nuevo, origen, descripcion)
+        self._poner_diseno(nuevo)
+        self._avisar("historial")
+
+    def _poner_diseno(self, nuevo: dict | None) -> None:
         self.doc.diseno = nuevo
         self.modificado = True
         self.diseno_al_dia = False
@@ -488,6 +605,158 @@ class Proyecto:
             )
             doc.agregar(capitulo, antes_de="Diseño")
         return doc
+
+    # --- Deshacer, rehacer y propuestas ------------------------------------------------
+    def _registrar(
+        self, parte: str, antes: dict | None, despues: dict, origen: str, descripcion: str
+    ) -> None:
+        if not isinstance(origen, str) or not origen.strip():
+            raise ValueError("el origen de un cambio tiene que ser un texto no vacío")
+        # Las copias guardadas no se tocan nunca: al restaurar se copian de nuevo.
+        if parte in self._ultimo and self._ultimo[parte] == antes:
+            antes = self._ultimo[parte]
+        else:
+            antes = copy.deepcopy(antes)
+        despues = copy.deepcopy(despues)
+        self._ultimo[parte] = despues
+        cambio = Cambio(parte, antes, despues, origen, descripcion)
+        self._deshacer.append(cambio)
+        del self._deshacer[:-LIMITE_DESHACER]
+        self._rehacer.clear()
+        if origen != PERSONA:
+            self._anotar("aplicar", cambio)
+
+    @property
+    def puede_deshacer(self) -> bool:
+        return bool(self._deshacer)
+
+    @property
+    def puede_rehacer(self) -> bool:
+        return bool(self._rehacer)
+
+    @property
+    def que_deshacer(self) -> str | None:
+        """Descripción del cambio que desharía :meth:`deshacer` (``None`` si no hay)."""
+        return self._deshacer[-1].descripcion if self._deshacer else None
+
+    @property
+    def que_rehacer(self) -> str | None:
+        return self._rehacer[-1].descripcion if self._rehacer else None
+
+    def deshacer(self) -> Cambio | None:
+        """Vuelve la parte que tocó el último cambio a como estaba. Devuelve el
+        cambio deshecho (``None`` si no había nada)."""
+        if not self._deshacer:
+            return None
+        cambio = self._deshacer.pop()
+        self._rehacer.append(cambio)
+        self._restaurar(cambio.parte, cambio.antes)
+        if cambio.origen != PERSONA:
+            self._anotar("deshacer", cambio)
+        self._avisar("historial")
+        return cambio
+
+    def rehacer(self) -> Cambio | None:
+        """Vuelve a aplicar el último cambio deshecho."""
+        if not self._rehacer:
+            return None
+        cambio = self._rehacer.pop()
+        self._deshacer.append(cambio)
+        self._restaurar(cambio.parte, cambio.despues)
+        if cambio.origen != PERSONA:
+            self._anotar("rehacer", cambio)
+        self._avisar("historial")
+        return cambio
+
+    def _restaurar(self, parte: str, valor: dict | None) -> None:
+        self._ultimo[parte] = valor
+        valor = copy.deepcopy(valor)
+        if parte == "modelo":
+            self._poner_modelo(valor)
+        elif parte == "diseno":
+            self._poner_diseno(valor)
+        else:
+            self._poner_dinamica(valor)
+
+    def _anotar(self, accion: str, cambio: Cambio) -> None:
+        """Agrega el cambio al módulo ``historial`` del ``.nrv``."""
+        from .resultados import huella
+
+        if self.doc.historial is None:
+            self.doc.historial = formato.historial.nuevo()
+        antes, despues = (
+            (cambio.antes, cambio.despues)
+            if accion != "deshacer"
+            else (cambio.despues, cambio.antes)
+        )
+        resumen = (
+            resumir_cambios(antes, despues)
+            if cambio.parte == "modelo"
+            else [f"Cambia los datos de {cambio.parte}"]
+        )
+        cambios = self.doc.historial["cambios"]
+        cambios.append(
+            {
+                "fecha": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "accion": accion,
+                "parte": cambio.parte,
+                "origen": cambio.origen,
+                "descripcion": cambio.descripcion,
+                "resumen": resumen,
+                "huella_antes": huella(antes if antes is not None else {}),
+                "huella_despues": huella(despues if despues is not None else {}),
+            }
+        )
+        del cambios[: -formato.historial.MAX_CAMBIOS]
+        self.modificado = True
+
+    def proponer(self, nuevo_modelo: dict, origen: str, descripcion: str = "") -> Propuesta:
+        """Deja pendiente un cambio del modelo para que la persona lo revise.
+
+        No cambia el proyecto. Lanza ``FormatoError`` si el modelo propuesto no es
+        válido y ``ValueError`` si ``origen`` está vacío o es la persona."""
+        from .resultados import huella
+
+        if not isinstance(origen, str) or not origen.strip() or origen == PERSONA:
+            raise ValueError("una propuesta tiene que decir de dónde viene (no de la persona)")
+        formato.validar(nuevo_modelo)
+        propuesta = Propuesta(
+            next(self._ids_propuesta),
+            origen,
+            descripcion,
+            copy.deepcopy(nuevo_modelo),
+            huella(self.modelo),
+            resumir_cambios(self.modelo, nuevo_modelo),
+        )
+        self.propuestas.append(propuesta)
+        self._avisar("historial")
+        return propuesta
+
+    def _propuesta(self, id: int) -> Propuesta:
+        for p in self.propuestas:
+            if p.id == id:
+                return p
+        raise KeyError(f"no hay una propuesta pendiente con id {id}")
+
+    def aplicar(self, id: int) -> None:
+        """Aplica la propuesta pendiente ``id``: es la persona la que decide.
+
+        Lanza ``ValueError`` si el modelo cambió desde que se hizo la propuesta
+        (habría que pedirla de nuevo) y ``KeyError`` si no existe."""
+        from .resultados import huella
+
+        p = self._propuesta(id)
+        if huella(self.modelo) != p.base:
+            raise ValueError(
+                "El modelo cambió desde que se hizo esta propuesta; hay que pedirla de nuevo."
+            )
+        self.propuestas.remove(p)
+        self.editar(copy.deepcopy(p.modelo), origen=p.origen, descripcion=p.descripcion)
+
+    def descartar(self, id: int) -> None:
+        """Descarta la propuesta pendiente ``id`` sin cambiar nada."""
+        self.propuestas.remove(self._propuesta(id))
+        self._avisar("historial")
 
     def resultados_completos(self) -> dict:
         """Todos los resultados a precisión completa, sin redondear
