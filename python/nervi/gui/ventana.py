@@ -61,6 +61,7 @@ URL_REPOSITORIO = "https://github.com/jeronimobareiro/nervi"
 #: Menús de la barra lateral: clave del ícono y nombre, arriba y abajo.
 MENUS_RIEL = (
     ("archivo", "Archivo"),
+    ("editar", "Editar"),
     ("modelo", "Modelo"),
     ("calcular", "Calcular"),
     ("ver", "Ver"),
@@ -358,6 +359,7 @@ class Ventana(QMainWindow):
                 None,
                 self.a_salir,
             ),
+            "editar": menu(self.a_deshacer, self.a_rehacer),
             "modelo": modelo,
             "calcular": menu(self.a_calcular, self.a_dinamica, self.a_disenar),
             "ver": menu(self.a_vista2d, self.a_vista3d, None, *self.a_diagramas.values()),

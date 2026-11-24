@@ -8,6 +8,13 @@ Nervi trae un servidor [MCP](https://modelcontextprotocol.io) (Model Context Pro
 
 ## Instalación
 
+**Con el instalador** no hace falta nada más: `nervi-mcp` viene junto a Nervi.
+
+- **Windows:** `nervi-mcp.exe` está en la carpeta donde se instaló Nervi (por omisión `C:\Program Files\Nervi\nervi-mcp.exe`). En la configuración de la app de IA, `"command"` es esa ruta completa.
+- **Linux (AppImage):** `Nervi-….AppImage mcp` lanza el servidor en vez de la ventana. En la configuración, `"command"` es la ruta del AppImage y `"args": ["mcp"]` (o `["mcp", "ruta/al/portico.nrv"]` para un archivo).
+
+**Con Python:**
+
 ```bash
 pip install "nervi[ia]"
 ```
