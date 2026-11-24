@@ -32,7 +32,7 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 
 -   **Verifiable**
 
-    Every type of calculation is compared with a known formula and cites its source. You can check how it reaches each number.
+    Every type of calculation is compared with a known formula and cites its source. You can check how it reaches each number and see the [verified cases](casos-verificados.md).
 
 -   **Free and open**
 

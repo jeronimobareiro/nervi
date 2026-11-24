@@ -11,6 +11,7 @@ nav:
   - Baixar: descargar.md
   - Primeiros passos: primeros-pasos.md
   - Documentação técnica:
+      - Casos verificados: casos-verificados.md
       - Especificação técnica: tecnica/especificacion.md
       - Convenções de sinais: tecnica/convenciones.md
       - Contrato de dados: tecnica/contrato-datos.md
@@ -28,6 +29,12 @@ aviso:
   titulo: Disponível apenas em espanhol
   texto: Esta página ainda não foi traduzida; ela é exibida em espanhol, o idioma de trabalho do projeto. Você pode lê-la com um tradutor ou ajudar a traduzi-la.
   enlace: Ver a página original
+casos_cabecera: ["Caso", "Fonte"]
+casos_grupos:
+  vigas: Vigas
+  porticos: Pórticos
+  cerchas: Treliças
+  libros: Exemplos de livros
 creditos:
   autor desconocido: autor desconhecido
   Dominio público: Domínio público

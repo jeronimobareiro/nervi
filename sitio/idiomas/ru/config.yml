@@ -11,6 +11,7 @@ nav:
   - Скачать: descargar.md
   - Быстрый старт: primeros-pasos.md
   - Техническая документация:
+      - Проверочные примеры: casos-verificados.md
       - Техническая спецификация: tecnica/especificacion.md
       - Правила знаков: tecnica/convenciones.md
       - Контракт данных: tecnica/contrato-datos.md
@@ -28,6 +29,12 @@ aviso:
   titulo: Только на испанском
   texto: Эта страница ещё не переведена и показана на испанском, рабочем языке проекта. Вы можете прочитать её с помощью переводчика или помочь с переводом.
   enlace: Открыть оригинальную страницу
+casos_cabecera: ["Пример", "Источник"]
+casos_grupos:
+  vigas: Балки
+  porticos: Рамы
+  cerchas: Фермы
+  libros: Примеры из учебников
 creditos:
   autor desconocido: автор неизвестен
   Dominio público: общественное достояние
