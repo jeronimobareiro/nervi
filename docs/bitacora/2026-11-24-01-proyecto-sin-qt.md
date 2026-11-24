@@ -27,6 +27,7 @@ Jerónimo Bareiro pidió evaluar cómo conectar el agente de IA de cada persona 
 - Herencia y no composición: la interfaz lee y asigna atributos de la sesión (`sesion.doc`, `sesion.resultados`, `sesion.combinacion`…) en muchos lugares; heredando, ninguna vista cambió y la sesión sigue siendo un `Proyecto` para las integraciones.
 - La combinación activa y la selección quedan en `Proyecto`: un agente de IA necesita saber qué está mirando la persona ("explicame la barra seleccionada").
 - Nombre `nervi.proyecto`, distinto de `nervi.design.proyecto` (diseño de los elementos de un proyecto); el docstring del módulo lo aclara.
+- Firma DCO: Jerónimo Bareiro autorizó por escrito en el hilo del proyecto (24/11/2026) que el agente agregue su `Signed-off-by` a los commits de este trabajo, con el nombre `bareirojero` y su correo `noreply` de GitHub.
 
 ## Documentación actualizada
 

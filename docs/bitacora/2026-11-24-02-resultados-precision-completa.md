@@ -31,6 +31,7 @@ Resolver el redondeo: la memoria de cálculo guarda sus tablas como texto con 4 
 - Archivo aparte del `.nrv`: los resultados se derivan del modelo; guardarlos en el proyecto permitiría abrir resultados viejos. La huella dice a qué modelo corresponden.
 - Combinaciones resueltas junto con el modelo (diagramas exactos con estaciones comunes), las mismas que usa la memoria, y no `Resultados.combinar`.
 - La memoria en PDF sigue redondeando a 4 cifras: es para leer, y su formato está pendiente de revisión profesional.
+- Firma DCO: Jerónimo Bareiro autorizó por escrito en el hilo del proyecto (24/11/2026) que el agente agregue su `Signed-off-by` a los commits de este trabajo, con el nombre `bareirojero` y su correo `noreply` de GitHub.
 
 ## Documentación actualizada
 
