@@ -19,6 +19,7 @@ from nervi.design import proyecto as diseno_proyecto
 from nervi.ia.herramientas import (
     NOMBRES,
     NOMBRES_VENTANA,
+    PROPONEN,
     ErrorConsulta,
     FuenteArchivo,
     FuenteProyecto,
@@ -183,7 +184,7 @@ def test_servidor_lista_y_llama(proyecto):
         assert [t.name for t in herramientas] == [*NOMBRES, *NOMBRES_VENTANA]
         for t in herramientas:
             solo_lectura = t.annotations.model_dump(by_alias=True)["readOnlyHint"]
-            assert solo_lectura is (t.name != "proponer_modelo")
+            assert solo_lectura is (t.name not in PROPONEN)
         salida = await s.call_tool("leer_nudo", {"nudo": "N2", "resultado": "D"})
         contenido = salida if isinstance(salida, list | tuple) else salida.content
         if isinstance(contenido, tuple):  # SDK 1.x: (contenido, estructurado)
@@ -293,6 +294,26 @@ def test_herramientas_de_la_ventana(proyecto):
         h.proponer_modelo({"nudos": "no"}, "Rompe todo")
     with pytest.raises(ErrorConsulta, match="Falta la descripción"):
         h.proponer_modelo(modelo, " ")
+
+
+def test_proponer_un_dxf(proyecto, tmp_path):
+    from nervi.importar import dxf
+
+    ruta = tmp_path / "portico.dxf"
+    ruta.write_text(dxf._EJEMPLO, encoding="utf-8")
+    h = Herramientas(FuenteProyecto(proyecto))
+    antes = proyecto.copia_modelo()
+    with pytest.raises(ErrorConsulta, match="no agrega ninguna barra"):
+        h.proponer_dxf(str(ruta))  # el ejemplo ya tiene ese pórtico
+    r = h.ejecutar("proponer_dxf", {"ruta": str(ruta), "capas": ["VIGAS"], "unidad": "cm"})
+    assert r["capas"] == {"COLUMNAS": 2, "VIGAS": 1} and r["unidad"] == "cm"
+    assert r["barras_nuevas"] == 1 and r["estado"].startswith("pendiente")
+    assert proyecto.modelo == antes  # solo queda la propuesta
+    assert proyecto.propuestas[0].origen == "ia: agente MCP"
+    with pytest.raises(ErrorConsulta, match="No se pudo abrir"):
+        h.proponer_dxf(str(tmp_path / "no-esta.dxf"))
+    with pytest.raises(ErrorConsulta, match="no tienen líneas"):
+        h.proponer_dxf(str(ruta), capas=["COTAS"])
 
 
 def test_con_un_archivo_no_se_propone(archivo):

@@ -80,12 +80,13 @@ Las de consulta son de solo lectura (`readOnlyHint`) y devuelven JSON. Nudos y b
 | `leer_verificaciones(barra?)` | Diseño de hormigón armado (ACI 318-19, experimental): estado, armadura y cada verificación con solicitación, resistencia, relación y artículo. Solo si el proyecto tiene datos de diseño |
 | `leer_modos` | Periodo, frecuencia y masa participante en X e Y de cada modo. Solo si el proyecto tiene datos de dinámica con masa |
 
-Con la ventana abierta hay tres más:
+Con la ventana abierta hay cuatro más:
 
 | Herramienta | Qué hace |
 |---|---|
 | `leer_seleccion` | El nudo o la barra que la persona tiene seleccionado y la combinación que está mirando |
 | `proponer_modelo(modelo, descripcion)` | Deja pendiente un `modelo.json` nuevo (el de `leer_modelo` con lo pedido cambiado) con su resumen de cambios; la persona lo aplica o lo descarta. Si el modelo propuesto no es válido, dice por qué |
+| `proponer_dxf(ruta, capas?, unidad?, tolerancia_mm?, al_origen?, empotrar_base?)` | Deja pendiente lo que agregaría *Archivo › Importar DXF…* con ese dibujo de la computadora (mismo importador, sin IA en el medio), y devuelve las capas del dibujo, lo que se agrega y los avisos |
 | `listar_propuestas` | Las propuestas que siguen pendientes; una que ya no aparece fue aplicada o descartada |
 
 Además publica dos recursos: `nervi://modelo` (el `modelo.json`) y, con un archivo, `nervi://resultados` (todos los resultados sin redondear, en el formato de [`formato-resultados.md`](formato-resultados.md)).

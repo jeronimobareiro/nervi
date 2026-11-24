@@ -162,6 +162,7 @@ class Ventana(QMainWindow):
         self.a_nuevo = self._accion("Nuevo proyecto", self.nuevo, QKeySequence.New)
         self.a_ejemplo = self._accion("Abrir ejemplo: pórtico simple", self.abrir_ejemplo)
         self.a_abrir = self._accion("Abrir…", self.abrir_dialogo, QKeySequence.Open)
+        self.a_importar_dxf = self._accion("Importar DXF…", self.importar_dxf_dialogo)
         self.a_guardar = self._accion("Guardar", self.guardar, QKeySequence.Save)
         self.a_guardar_como = self._accion("Guardar como…", self.guardar_como, QKeySequence.SaveAs)
         self.a_deshacer = self._accion("Deshacer", self.deshacer, QKeySequence.Undo)
@@ -226,6 +227,7 @@ class Ventana(QMainWindow):
             self.a_nuevo,
             self.a_abrir,
             self.a_ejemplo,
+            self.a_importar_dxf,
             None,
             self.a_guardar,
             self.a_guardar_como,
@@ -349,6 +351,8 @@ class Ventana(QMainWindow):
                 self.a_abrir,
                 self.menu_recientes,
                 self.a_ejemplo,
+                None,
+                self.a_importar_dxf,
                 None,
                 self.a_guardar,
                 self.a_guardar_como,
@@ -893,6 +897,26 @@ class Ventana(QMainWindow):
         )
         if ruta:
             self.abrir(ruta)
+
+    def importar_dxf_dialogo(self) -> None:
+        ruta, _ = QFileDialog.getOpenFileName(self, "Importar DXF", "", "Dibujos DXF (*.dxf *.DXF)")
+        if ruta:
+            self.importar_dxf(ruta)
+
+    def importar_dxf(self, ruta: str | Path):
+        """Abre el diálogo de importación de un DXF. Devuelve el diálogo (o ``None``
+        si el archivo no se pudo leer)."""
+        from ..importar.dxf import DXFError
+        from .importar import DialogoImportarDXF
+
+        try:
+            dialogo = DialogoImportarDXF(self.sesion, ruta, self)
+        except (DXFError, OSError) as e:
+            QMessageBox.warning(self, "No se pudo importar el DXF", str(e))
+            return None
+        dialogo.setAttribute(Qt.WA_DeleteOnClose)
+        dialogo.open()
+        return dialogo
 
     def abrir_reciente(self, ruta: str) -> bool:
         return self._seguir_si_hay_cambios() and self.abrir(ruta)

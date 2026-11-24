@@ -829,3 +829,43 @@ def test_propuesta_sobre_un_modelo_que_cambio(ventana, monkeypatch):
     assert not ventana.asistente.aplicar(p.id)
     assert "cambió" in avisos[0] and "rehaga" in avisos[0]
     assert s.modelo == otro
+
+
+def test_importar_dxf_con_vista_previa(ventana, tmp_path, qtbot):
+    from nervi.importar import dxf
+
+    ruta = tmp_path / "nave.dxf"
+    # El pórtico del ejemplo de dxf.py, en cm: queda al lado del que ya está.
+    ruta.write_text(dxf._EJEMPLO.replace("$INSUNITS\n70\n4", "$INSUNITS\n70\n5"), "utf-8")
+    antes = ventana.sesion.copia_modelo()
+    d = ventana.importar_dxf(ruta)
+    assert d is not None and d.unidad.currentData() == "cm"
+    assert not d.al_origen.isEnabled()  # el modelo ya tiene nudos
+    assert d.lbl_resumen.text() == "Se agregan 3 nudos y 3 barras"
+    assert len(d.vista.colores_barra) == 3  # lo nuevo, resaltado
+    assert "textos" in d.lbl_avisos.text()
+    assert ventana.sesion.modelo == antes  # mirar no cambia nada
+    d.casillas["VIGAS"].setChecked(False)
+    assert d.lbl_resumen.text() == "Se agregan 3 nudos y 2 barras"
+    d.casillas["COLUMNAS"].setChecked(False)
+    assert not d.b_importar.isEnabled()
+    assert "no tienen líneas" in d.lbl_resumen.text()
+    d.casillas["COLUMNAS"].setChecked(True)
+    d.b_importar.click()
+    assert len(ventana.sesion.modelo["barras"]) == len(antes["barras"]) + 2
+    cambio = ventana.sesion.doc.historial["cambios"][-1]
+    assert cambio["origen"] == "importador: DXF"
+    assert cambio["descripcion"].startswith("Importar nave.dxf")
+    assert ventana.deshacer()
+    assert ventana.sesion.modelo == antes
+
+
+def test_importar_un_archivo_que_no_es_dxf(ventana, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+
+    avisos = []
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a: avisos.append(a[2]))
+    ruta = tmp_path / "plano.dxf"
+    ruta.write_bytes(b"AutoCAD Binary DXF\r\n\x1a\x00")
+    assert ventana.importar_dxf(ruta) is None
+    assert "binario" in avisos[0]
