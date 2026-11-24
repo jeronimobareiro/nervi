@@ -7,7 +7,7 @@
 
 ## 1. Visión
 
-Nervi es un software libre para análisis estructural por el Método de los Elementos Finitos (MEF), dimensionamiento según normas y flujo de trabajo BIM (IFC). Busca ser una alternativa abierta a programas comerciales de cálculo de estructuras, empezando por el mercado sudamericano.
+Nervi es un software libre y colaborativo de diseño y cálculo de estructuras de **hormigón armado, acero y mixtas**: análisis por el Método de los Elementos Finitos (MEF), predimensionado, dimensionamiento según normas y documentación de obra (memoria de cálculo, cómputos métricos, planillas de armaduras y planos de detalle de hormigón y de acero), partiendo del plano de arquitectura en DXF o IFC. Busca ser una alternativa abierta a programas comerciales de cálculo de estructuras, empezando por el mercado sudamericano. El recorrido completo y las etapas están en `docs/hoja-de-ruta.md` §Visión.
 
 Principios:
 
@@ -220,7 +220,7 @@ $$
 - Columnas: diagrama de interacción $P_u$–$M_{ux}$–$M_{uy}$ por fibras, cuantía entre 1 % y 8 % (§10.6.1.1), esbeltez.
 - Combinaciones de carga (ACI/ASCE 7 y las regionales) y envolventes.
 - EN 1992-1-1: flexión, cortante, torsión, fisuración ($w_k$, §7.3.4) y flechas (§7.4). Bielas y tirantes solo para regiones D.
-- AISC 360-16/22: pandeo por flexión, torsional y lateral-torsional.
+- AISC 360-22 (Fase 9): barras (tracción, compresión, flexión con pandeo lateral-torsional, cortante e interacción) y uniones; mixtas según su capítulo I (Fase 11).
 
 ---
 
@@ -249,9 +249,15 @@ $$
 | **1. MVP pórtico 2D** | Motor 2D (§3), binding Python, cargas nodales y en barra, liberaciones, asentamientos, resortes, varios casos | Batería de verificación ≥ 8 casos analíticos con error relativo < $10^{-9}$; pórtico de 10 000 barras en < 1 s |
 | **2. Pórtico 3D y dinámica** | Barra 12×12, ejes locales, brazos rígidos, diafragma rígido, masa, modal, espectro de respuesta, P-Δ | Verificación contra ejemplos publicados de referencia |
 | **3. Diseño** | ACI 318-19 vigas y columnas, combinaciones, primera norma regional | Ejemplos resueltos de libros/manuales reproducidos con < 0.5 % |
-| **4. IFC y salida** | Importación IFC (ambos casos), exportación de armaduras, memoria de cálculo PDF, planos DXF (`ezdxf`), planilla de doblado | Ida y vuelta IFC con un modelo real abierto en Revit/Tekla |
+| **4. IFC y salida** | Importación IFC (ambos casos), exportación de armaduras y de un IFC estructural, memoria de cálculo PDF | Ida y vuelta IFC con un modelo real abierto en Revit/Tekla |
 | **5. GUI** | Visor 3D, edición de modelo, diagramas de esfuerzos | Un usuario modela y calcula un edificio de 3 pisos sin escribir código |
-| **6. Láminas** | Losas y muros por elementos finitos | Placas de referencia (Timoshenko) dentro de la tolerancia |
+| **6. Láminas** | Losas y muros por elementos finitos, mallado y unión con el pórtico, cargas de superficie | Placas de referencia (Timoshenko) dentro de la tolerancia |
+| **7. Del plano al modelo** | Modelo físico (pisos, ejes, vigas, columnas, losas, muros), modelo de cálculo generado desde él, reconocimiento del DXF de arquitectura y de sus revisiones | Un edificio de 3 pisos sale de un DXF de arquitectura y da los mismos esfuerzos que armado a mano |
+| **8. Cargas y predimensionado** | Cargas por uso, viento y sismo según norma; predimensionado | Ejemplos resueltos publicados reproducidos con < 0.5 % |
+| **9. Acero** | Perfiles, barras y uniones según AISC 360-22 | Ejemplos resueltos publicados con < 0.5 % y revisión de un ingeniero |
+| **10. Losas, muros, fundaciones** | Losas, muros, fundaciones con datos del suelo, escaleras, tanques, contención; derivas y vibraciones | Ejemplos resueltos publicados con < 0.5 % y revisión de un ingeniero |
+| **11. Mixtas** | Vigas y columnas mixtas, losa colaborante | Ejemplos resueltos publicados con < 0.5 % y revisión de un ingeniero |
+| **12. Documentación de obra** | Modelo de armado, planillas, planos de detalle de hormigón y de taller de acero en láminas DXF/PDF (`ezdxf`), cómputos y presupuesto, control de entregas | Un edificio de prueba sale con planos, planillas y cómputos válidos para obra |
 
 ---
 

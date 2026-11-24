@@ -7,6 +7,12 @@
     {"nombre": "fase-4", "color": "3B82F6", "descripcion": "Hito Fase 4: IFC y documentos"},
     {"nombre": "fase-5", "color": "60A5FA", "descripcion": "Hito Fase 5: interfaz gráfica"},
     {"nombre": "fase-6", "color": "93C5FD", "descripcion": "Hito Fase 6: láminas"},
+    {"nombre": "fase-7", "color": "0F766E", "descripcion": "Hito Fase 7: del plano de arquitectura al modelo"},
+    {"nombre": "fase-8", "color": "0D9488", "descripcion": "Hito Fase 8: cargas y predimensionado"},
+    {"nombre": "fase-9", "color": "14B8A6", "descripcion": "Hito Fase 9: estructuras de acero"},
+    {"nombre": "fase-10", "color": "2DD4BF", "descripcion": "Hito Fase 10: losas, muros, fundaciones y elementos especiales"},
+    {"nombre": "fase-11", "color": "5EEAD4", "descripcion": "Hito Fase 11: estructuras mixtas"},
+    {"nombre": "fase-12", "color": "99F6E4", "descripcion": "Hito Fase 12: documentación de obra"},
     {"nombre": "buen-primer-aporte", "color": "7057FF", "descripcion": "Tarea acotada para un primer aporte"},
     {"nombre": "proyecto-academico", "color": "0E8A16", "descripcion": "Del tamaño de un trabajo práctico, final o práctica profesional"},
     {"nombre": "tesis-posible", "color": "006B75", "descripcion": "Tema para una tesis de grado o posgrado"},
@@ -14,6 +20,7 @@
     {"nombre": "normas", "color": "B60205", "descripcion": "Diseño según normas"},
     {"nombre": "ifc", "color": "5319E7", "descripcion": "Interoperabilidad IFC y BIM"},
     {"nombre": "interfaz", "color": "00E5FF", "descripcion": "Interfaz gráfica (nervi.gui)"},
+    {"nombre": "planos", "color": "8B5CF6", "descripcion": "Lectura de planos DXF y generación de planos y láminas"},
     {"nombre": "verificacion", "color": "FBCA04", "descripcion": "Casos de verificación y pruebas"},
     {"nombre": "documentacion", "color": "C5DEF5", "descripcion": "Documentación y material didáctico"},
     {"nombre": "revision-ingenieria", "color": "D93F0B", "descripcion": "Necesita la revisión de un ingeniero estructural antes de dejar de ser experimental"},
@@ -26,8 +33,14 @@
     {"titulo": "Fase 2a · Pórtico espacial", "etiqueta": "fase-2a", "descripcion": "Barra 3D, contrato v2, brazos rígidos y diafragma rígido. Ver docs/hoja-de-ruta.md."},
     {"titulo": "Fase 2b · Dinámica y sismo", "etiqueta": "fase-2b", "descripcion": "Masa, análisis modal, espectro de respuesta y P-Δ. Ver docs/hoja-de-ruta.md."},
     {"titulo": "Fase 3 · Diseño de hormigón armado", "etiqueta": "fase-3", "descripcion": "Combinaciones, vigas y columnas según ACI 318-19 y la norma regional. Ver docs/hoja-de-ruta.md."},
-    {"titulo": "Fase 4 · IFC y documentos", "etiqueta": "fase-4", "descripcion": "Importación y exportación IFC, memoria PDF y planos DXF. Ver docs/hoja-de-ruta.md."},
+    {"titulo": "Fase 4 · IFC y documentos", "etiqueta": "fase-4", "descripcion": "Importación y exportación IFC y memoria PDF (los planos pasaron a la Fase 12). Ver docs/hoja-de-ruta.md."},
     {"titulo": "Fase 5 · Interfaz gráfica", "etiqueta": "fase-5", "descripcion": "Visor 3D y edición de modelos sin escribir código. Ver docs/hoja-de-ruta.md."},
-    {"titulo": "Fase 6 · Láminas", "etiqueta": "fase-6", "descripcion": "Losas y muros por elementos finitos. Ver docs/hoja-de-ruta.md."}
+    {"titulo": "Fase 6 · Láminas", "etiqueta": "fase-6", "descripcion": "Elemento de lámina, mallado de losas y muros unido al pórtico y cargas de superficie. Ver docs/hoja-de-ruta.md."},
+    {"titulo": "Fase 7 · Del plano de arquitectura al modelo", "etiqueta": "fase-7", "descripcion": "Modelo físico, modelo de cálculo generado desde él y reconocimiento del DXF de arquitectura. Ver docs/hoja-de-ruta.md."},
+    {"titulo": "Fase 8 · Cargas y predimensionado", "etiqueta": "fase-8", "descripcion": "Cargas por uso, viento y sismo según norma y predimensionado. Ver docs/hoja-de-ruta.md."},
+    {"titulo": "Fase 9 · Estructuras de acero", "etiqueta": "fase-9", "descripcion": "Perfiles, barras según AISC 360-22, uniones y placas base. Ver docs/hoja-de-ruta.md."},
+    {"titulo": "Fase 10 · Losas, muros, fundaciones y elementos especiales", "etiqueta": "fase-10", "descripcion": "Diseño de losas, muros, fundaciones, escaleras, tanques y contención, y verificaciones de servicio. Ver docs/hoja-de-ruta.md."},
+    {"titulo": "Fase 11 · Estructuras mixtas", "etiqueta": "fase-11", "descripcion": "Vigas y columnas mixtas y losa colaborante. Ver docs/hoja-de-ruta.md."},
+    {"titulo": "Fase 12 · Documentación de obra", "etiqueta": "fase-12", "descripcion": "Armado, planillas, planos de detalle, láminas, cómputos y control de entregas. Ver docs/hoja-de-ruta.md."}
   ]
 }

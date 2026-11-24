@@ -8,6 +8,19 @@ Este documento baja a tareas concretas la hoja de ruta por fases de la [especifi
 - Qué se hizo y por qué: [`bitacora/`](bitacora/).
 - Cómo aportar: [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 
+## Visión
+
+_Ampliada el 2026-11-24, entrada [2026-11-24-13](bitacora/2026-11-24-13-vision-y-hoja-de-ruta.md)._
+
+Nervi es un programa libre y colaborativo para que los ingenieros **diseñen, predimensionen y dimensionen estructuras de hormigón armado, acero y mixtas**, y entreguen la documentación de obra completa. El recorrido que guía este plan es el de un proyecto real:
+
+1. El arquitecto entrega su plano en **DXF** (o IFC, si lo tiene). Nervi reconoce ejes, columnas, muros y losas y propone una estructura inicial, y sigue las revisiones del plano sin rehacer el modelo.
+2. El ingeniero predimensiona, genera las cargas según la norma (uso, viento y sismo) y calcula el edificio: pórticos, losas y muros, fundaciones con los datos del suelo y elementos especiales (escaleras, tanques, contención).
+3. Dimensiona y verifica cada elemento según norma, en hormigón armado, acero (barras y uniones) y mixtas, con verificaciones de servicio (derivas, flechas, vibraciones).
+4. Entrega la memoria de cálculo, los cómputos métricos y el presupuesto, las planillas de armaduras y de doblado, los planos de detalle de hormigón (varillas, armados, cortes) y de acero (uniones y soldaduras) en láminas con rótulo en DXF y PDF, y un IFC estructural para coordinar con el arquitecto. Cada documento sabe qué versión del cálculo lo respalda.
+
+El DWG queda fuera del alcance: se trabaja en DXF (decisión del 24/11/2026).
+
 ## Punto de partida
 
 _Actualizado el 2026-11-24 (fechas ajustadas a lo hecho)._ La Fase 0 (repositorio, CI, reglas) y casi toda la Fase 1 están en `main`: motor de pórtico plano en Rust con API Python y todos los tipos de carga (trapezoidales, térmicas y momentos en el tramo), diagnóstico de mecanismos, biblioteca `verification/`, formato `.nrv`, memoria de cálculo en PDF e interfaz de escritorio con tema claro y nocturno, panel de estructura, preferencias y configuración del proyecto. Para cerrar la Fase 1 faltan ejemplos transcriptos de libros (#6) y el material didáctico (#10).
@@ -37,9 +50,15 @@ Cada tarea y cada hito lleva su estado:
 | **Fase 2a · Pórtico espacial** | Barra 12×12, contrato v2, brazos rígidos, diafragma rígido | Ejemplos 3D publicados reproducidos; un pórtico 3D plano da lo mismo que el motor 2D | Fase 1 | Motor en nov 2026; verificación e interfaz 3D, 1.er semestre 2027 | 🧪 Hecha y preliminar, solo desde Python; falta la verificación con ejemplos publicados (#15) y la interfaz |
 | **Fase 2b · Dinámica y sismo** | Masa, modal, espectro de respuesta, P-Δ | Frecuencias y cargas críticas contra soluciones cerradas; ejemplo espectral publicado reproducido | Fase 2a; norma sísmica (#20) | Modal y espectro en nov 2026; P-Δ y espectros normativos, 1.er semestre 2027 | 🧪 Masa, modal y espectro hechos (preliminar), también en la interfaz del plano; faltan P-Δ (#19) y el espectro normativo |
 | **Fase 3 · Diseño de hormigón armado** | Combinaciones y envolventes, vigas (flexión y cortante) y columnas según ACI 318-19, primera norma regional | Ejemplos resueltos de libros o manuales reproducidos con < 0.5 %; revisión de un ingeniero estructural | Esfuerzos 2D (ya) o 3D; decisión de norma (#20) | Vigas y columnas en nov 2026; revisión de ingeniero y norma regional, 1.er semestre 2027 | 🧪 Combinaciones, vigas y columnas hechas (experimental); falta la revisión de un ingeniero y decidir la norma regional (#20) |
-| **Fase 4 · IFC y documentos** | Importación IFC (analítica e idealizada), exportación de armaduras, memoria PDF, planos DXF | Ida y vuelta IFC con un modelo real abierto en Revit o Tekla | Fase 2a para 3D, Fase 3 para armaduras | Memoria PDF en nov 2026; IFC y planos, 2.º semestre 2027 – 2028 | 🚧 En curso: la memoria PDF ya existe; IFC y planos DXF sin empezar |
+| **Fase 4 · IFC y documentos** | Importación IFC (analítica e idealizada), exportación de armaduras y de un IFC estructural, memoria PDF | Ida y vuelta IFC con un modelo real abierto en Revit o Tekla | Fase 2a para 3D, Fase 3 para armaduras, Fase 7 para el IFC estructural | Memoria PDF en nov 2026; IFC, 2028 | 🚧 En curso: la memoria PDF ya existe; IFC sin empezar. Los planos DXF pasaron a la Fase 12 |
 | **Fase 5 · Interfaz gráfica** | Visor 3D y edición de modelos | Un usuario modela y calcula un edificio de 3 pisos sin escribir código | Fase 2a | Ventana y visor 3D en marcha desde nov 2026; edición gráfica en 2027 | 🚧 En marcha como vía paralela: ventana de escritorio, visor 3D y panel del asistente de IA; falta la edición gráfica (#31) |
-| **Fase 6 · Láminas** | Losas y muros por elementos finitos | Placas de referencia (Timoshenko) dentro de la tolerancia | Fase 2a | Investigación, sin fecha | ⬜ Sin empezar (investigación) |
+| **Fase 6 · Láminas** | Elemento de lámina, mallado de losas y muros unido al pórtico, cargas de superficie | Placas de referencia (Timoshenko) dentro de la tolerancia | Fase 2a | 2.º semestre 2027 | ⬜ Sin empezar (objetivo firme desde el 24/11/2026) |
+| **Fase 7 · Del plano de arquitectura al modelo** | Modelo físico (pisos, ejes, vigas, columnas, losas, muros), modelo de cálculo generado desde él, reconocimiento del DXF de arquitectura, revisiones del plano | Un edificio de 3 pisos sale de un DXF de arquitectura y da los mismos esfuerzos que armado a mano | Fase 2a, Fase 5 (#31); Fase 6 para losas y muros | Modelo físico, 1.er semestre 2027; reconocimiento del plano, 2.º semestre 2027 | ⬜ Sin empezar |
+| **Fase 8 · Cargas y predimensionado** | Cargas por uso, viento y sismo según norma; predimensionado de losas, vigas, columnas y perfiles | Ejemplos resueltos publicados reproducidos con < 0.5 % | Fase 7; norma regional (#20) | Predimensionado y uso, 1.er semestre 2027; viento y sismo, 2.º semestre 2027 | ⬜ Sin empezar |
+| **Fase 9 · Estructuras de acero** | Catálogo de perfiles, barras según AISC 360-22, uniones apernadas y soldadas y placas base | Ejemplos resueltos publicados reproducidos con < 0.5 %; revisión de un ingeniero estructural | Fase 2a, P-Δ (#19), combinaciones (#21) | Barras, 1.er semestre 2027; uniones, 2.º semestre 2027 | ⬜ Sin empezar |
+| **Fase 10 · Losas, muros, fundaciones y elementos especiales** | Diseño de losas y muros, fundaciones con datos del suelo, escaleras, tanques y contención, derivas y vibraciones | Ejemplos resueltos publicados reproducidos con < 0.5 %; revisión de un ingeniero estructural | Fases 3 y 6 | 2028 | ⬜ Sin empezar |
+| **Fase 11 · Estructuras mixtas** | Vigas y columnas mixtas (AISC 360-22 cap. I), losa colaborante | Ejemplos resueltos publicados reproducidos con < 0.5 %; revisión de un ingeniero estructural | Fases 3, 9 y 10 | 2028 | ⬜ Sin empezar |
+| **Fase 12 · Documentación de obra** | Modelo de armado, planillas de armaduras y doblado, planos de detalle de hormigón y de taller de acero, láminas con rótulo en DXF y PDF, cómputos y presupuesto, control de versiones de la entrega | Un edificio de prueba sale con planos, planillas y cómputos que un ingeniero da por válidos para obra | Fase 3 (vigas y columnas), Fase 7; Fases 9 y 10 para acero, losas y fundaciones | Armado y planillas de vigas y columnas, 1.er semestre 2027; láminas y planos, 2.º semestre 2027 – 2028 | ⬜ Sin empezar (ya existe el detalle de armaduras de vigas, experimental) |
 
 Los horizontes son **tentativos**: dependen de cuántas personas se sumen y siguen el calendario académico (semestres de marzo a julio y de agosto a diciembre). Se revisan al cerrar cada hito.
 
@@ -54,9 +73,33 @@ flowchart LR
     F3 --> F4
     F2a --> F5["Fase 5<br/>interfaz"]
     F2a --> F6["Fase 6<br/>láminas"]
+    F5 --> F7["Fase 7<br/>plano → modelo"]
+    F6 --> F7
+    F7 --> F8["Fase 8<br/>cargas y predim."]
+    F2b --> F9["Fase 9<br/>acero"]
+    F3 --> F10["Fase 10<br/>losas, muros, fundaciones"]
+    F6 --> F10
+    F9 --> F11["Fase 11<br/>mixtas"]
+    F10 --> F11
+    F3 --> F12["Fase 12<br/>documentación de obra"]
+    F7 --> F12
+    F9 --> F12
+    F10 --> F12
     N["#20 norma<br/>regional"] --> F2b
     N --> F3
+    N --> F8
 ```
+
+## Etapas propuestas
+
+Ordenadas por dependencias. Las fechas son una propuesta (24/11/2026) y se revisan al cerrar cada etapa.
+
+| Etapa | Qué entra | Horizonte |
+|---|---|---|
+| **1 · Base sólida** | Cerrar la Fase 1 (#6, #10), verificación 3D (#15), P-Δ (#19), norma regional (#20), revisión de ingeniería de la Fase 3, edición gráfica (#31) | Hasta marzo 2027 |
+| **2 · Modelo físico y primeras entregas** | Modelo físico y modelo de cálculo (#73, #74), cargas por uso (#79), predimensionado (#82), perfiles y barras de acero (#83, #84), modelo de armado y planilla de vigas y columnas (#93, #29) | 1.er semestre 2027 |
+| **3 · Del plano a la lámina** | Reconocer el DXF y sus revisiones (#75, #76), láminas (#32, #77, #78), viento y sismo (#80, #81), uniones de acero (#85), láminas de entrega (#95), cómputos (#96) | 2.º semestre 2027 |
+| **4 · Edificio completo** | Losas, muros, fundaciones y especiales (#86 a #89), servicio (#90), mixtas (#91, #92), planos de taller (#94), control de entregas (#97), IFC (#25 a #27, #98) | 2028 |
 
 ## Tareas por hito
 
@@ -106,7 +149,7 @@ Etiquetas de tamaño: **BPA** = `buen-primer-aporte`, **PA** = `proyecto-academi
 | 🧪  [#24](https://github.com/jeronimobareiro/nervi/issues/24) | Columnas: interacción biaxial y esbeltez (hecho, experimental; cálculo en Rust) | T | normas |
 | 🧪  — | Flechas, fisuración y detalle de armaduras de vigas (hecho, experimental; falta llevarlo a la etapa Diseño) | PA | normas |
 
-Después de ACI 318-19 y la norma regional siguen CIRSOC 201, NBR 6118, NCh 430/433, EN 1992-1-1 y AISC 360 (especificación §5). Se abren como issues cuando haya un grupo interesado en cada una.
+Después de ACI 318-19 y la norma regional siguen CIRSOC 201, NBR 6118, NCh 430/433 y EN 1992-1-1 (especificación §5). El acero (AISC 360-22) tiene su propia Fase 9. Se abren como issues cuando haya un grupo interesado en cada una.
 
 ### Fase 4 · IFC y documentos
 
@@ -116,7 +159,7 @@ Después de ACI 318-19 y la norma regional siguen CIRSOC 201, NBR 6118, NCh 430/
 | ⬜  [#26](https://github.com/jeronimobareiro/nervi/issues/26) | Idealizar el modelo analítico desde elementos físicos | T | ifc |
 | ⬜  [#27](https://github.com/jeronimobareiro/nervi/issues/27) | Exportar armaduras (`IfcReinforcingBar`) | PA | ifc |
 | 🚧  [#28](https://github.com/jeronimobareiro/nervi/issues/28) | Memoria de cálculo en PDF (en curso: falta la revisión de formato) | PA | documentación |
-| ⬜  [#29](https://github.com/jeronimobareiro/nervi/issues/29) | Planos DXF y planilla de doblado | PA | — |
+| ⬜  [#98](https://github.com/jeronimobareiro/nervi/issues/98) | Exportar un IFC estructural para coordinar con el arquitecto | PA | ifc |
 
 ### Fase 5 · Interfaz gráfica
 
@@ -132,6 +175,62 @@ Desde noviembre de 2026 la interfaz es una **vía paralela**: `nervi.gui` (PySid
 | Estado | Issue | Tarea | Tamaño | Área |
 |:-:|---|---|---|---|
 | ⬜  [#32](https://github.com/jeronimobareiro/nervi/issues/32) | Elemento de lámina para losas y muros | T | motor |
+| ⬜  [#77](https://github.com/jeronimobareiro/nervi/issues/77) | Mallado de losas y muros y unión con el pórtico espacial | T | motor |
+| ⬜  [#78](https://github.com/jeronimobareiro/nervi/issues/78) | Cargas de superficie en losas y su reparto | PA | motor |
+
+### Fase 7 · Del plano de arquitectura al modelo
+
+| Estado | Issue | Tarea | Tamaño | Área |
+|:-:|---|---|---|---|
+| ⬜  [#73](https://github.com/jeronimobareiro/nervi/issues/73) | Modelo físico: pisos, ejes, vigas, columnas, losas y muros | T | interfaz |
+| ⬜  [#74](https://github.com/jeronimobareiro/nervi/issues/74) | Generar el modelo de cálculo desde el modelo físico | T | motor |
+| ⬜  [#75](https://github.com/jeronimobareiro/nervi/issues/75) | Reconocer ejes, columnas, muros y losas en un DXF de arquitectura | T | planos |
+| ⬜  [#76](https://github.com/jeronimobareiro/nervi/issues/76) | Comparar revisiones del plano de arquitectura y actualizar el modelo | PA | planos |
+
+### Fase 8 · Cargas y predimensionado
+
+| Estado | Issue | Tarea | Tamaño | Área |
+|:-:|---|---|---|---|
+| ⬜  [#79](https://github.com/jeronimobareiro/nervi/issues/79) | Cargas por uso del local según norma | PA | normas |
+| ⬜  [#80](https://github.com/jeronimobareiro/nervi/issues/80) | Cargas de viento según norma | PA | normas |
+| ⬜  [#81](https://github.com/jeronimobareiro/nervi/issues/81) | Fuerzas sísmicas estáticas y espectro normativo | PA | normas |
+| ⬜  [#82](https://github.com/jeronimobareiro/nervi/issues/82) | Predimensionado de losas, vigas, columnas y perfiles | PA | normas |
+
+### Fase 9 · Estructuras de acero
+
+| Estado | Issue | Tarea | Tamaño | Área |
+|:-:|---|---|---|---|
+| ⬜  [#83](https://github.com/jeronimobareiro/nervi/issues/83) | Catálogo de perfiles de acero | BPA | normas |
+| ⬜  [#84](https://github.com/jeronimobareiro/nervi/issues/84) | Verificación de barras de acero según AISC 360-22 | T | normas |
+| ⬜  [#85](https://github.com/jeronimobareiro/nervi/issues/85) | Uniones de acero apernadas y soldadas y placas base | T | normas |
+
+### Fase 10 · Losas, muros, fundaciones y elementos especiales
+
+| Estado | Issue | Tarea | Tamaño | Área |
+|:-:|---|---|---|---|
+| ⬜  [#86](https://github.com/jeronimobareiro/nervi/issues/86) | Diseño de losas de hormigón armado (primero macizas) | PA | normas |
+| ⬜  [#87](https://github.com/jeronimobareiro/nervi/issues/87) | Diseño de muros de hormigón armado | PA | normas |
+| ⬜  [#88](https://github.com/jeronimobareiro/nervi/issues/88) | Fundaciones con los datos del estudio de suelos | T | normas |
+| ⬜  [#89](https://github.com/jeronimobareiro/nervi/issues/89) | Escaleras, tanques y muros de contención | PA | normas |
+| ⬜  [#90](https://github.com/jeronimobareiro/nervi/issues/90) | Derivas de piso, flechas de losas y vibraciones de entrepisos | PA | normas |
+
+### Fase 11 · Estructuras mixtas
+
+| Estado | Issue | Tarea | Tamaño | Área |
+|:-:|---|---|---|---|
+| ⬜  [#91](https://github.com/jeronimobareiro/nervi/issues/91) | Vigas y columnas mixtas según AISC 360-22 cap. I | T | normas |
+| ⬜  [#92](https://github.com/jeronimobareiro/nervi/issues/92) | Losa colaborante con chapa (steel deck) | PA | normas |
+
+### Fase 12 · Documentación de obra
+
+| Estado | Issue | Tarea | Tamaño | Área |
+|:-:|---|---|---|---|
+| ⬜  [#93](https://github.com/jeronimobareiro/nervi/issues/93) | Modelo de armado: posiciones, ganchos, empalmes y anclajes | PA | normas |
+| ⬜  [#29](https://github.com/jeronimobareiro/nervi/issues/29) | Planos DXF de armado y planilla de doblado | PA | planos |
+| ⬜  [#94](https://github.com/jeronimobareiro/nervi/issues/94) | Planos de taller de estructuras de acero con detalles de soldadura | T | planos |
+| ⬜  [#95](https://github.com/jeronimobareiro/nervi/issues/95) | Láminas de entrega con rótulo en DXF y PDF | PA | planos |
+| ⬜  [#96](https://github.com/jeronimobareiro/nervi/issues/96) | Cómputos métricos y presupuesto | PA | documentacion |
+| ⬜  [#97](https://github.com/jeronimobareiro/nervi/issues/97) | Control de versiones de la entrega | PA | documentacion |
 
 ### Línea transversal · Integración con agentes de IA, API y complementos
 
@@ -157,7 +256,7 @@ Abierta el 24/11/2026, en paralelo a las fases y sin frenarlas. Objetivo: que la
 | Tesis de grado o posgrado | `tesis-posible` | Barra 3D, análisis modal, columnas por fibras, láminas |
 | Docente o ingeniero con experiencia en una norma | `revision-ingenieria` | Revisar y aprobar un módulo de diseño |
 
-Las etiquetas de área (`motor`, `normas`, `ifc`, `interfaz`, `verificacion`, `documentacion`) ayudan a cada cátedra a encontrar lo suyo: Análisis Estructural y Métodos Numéricos en `motor` y `verificacion`, Hormigón Armado en `normas`, BIM e Informática en `ifc` e `interfaz`.
+Las etiquetas de área (`motor`, `normas`, `ifc`, `interfaz`, `planos`, `verificacion`, `documentacion`) ayudan a cada cátedra a encontrar lo suyo: Análisis Estructural y Métodos Numéricos en `motor` y `verificacion`, Hormigón Armado en `normas`, Estructuras Metálicas también en `normas`, Dibujo y Representación Gráfica en `planos`, BIM e Informática en `ifc` e `interfaz`.
 
 ### Cómo se toma una tarea
 
@@ -185,3 +284,5 @@ Las etiquetas de área (`motor`, `normas`, `ifc`, `interfaz`, `verificacion`, `d
 - **Norma regional prioritaria** para hormigón y sismo ([#20](https://github.com/jeronimobareiro/nervi/issues/20)). La toma el responsable del proyecto.
 - **Biblioteca de autovalores** para el análisis modal: propia sobre `faer` o un binding con licencia compatible (se decide en [#17](https://github.com/jeronimobareiro/nervi/issues/17)).
 - **Formulación de láminas**: MITC4 o DKT (se decide en [#32](https://github.com/jeronimobareiro/nervi/issues/32)).
+- **Tipos de losa** después de las macizas: nervadas y pretensadas (se abren como issues si hay interés; ver [#86](https://github.com/jeronimobareiro/nervi/issues/86)).
+- **Perfiles conformados en frío** (AISI S100), muy usados en la región: si entran en la Fase 9 o después.

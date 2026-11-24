@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-24 · entrada [2026-11-24-12](bitacora/2026-11-24-12-sitio-casos-traducciones-vista-previa.md)_
+_Última actualización: 2026-11-24 · entrada [2026-11-24-13](bitacora/2026-11-24-13-vision-y-hoja-de-ruta.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
@@ -9,6 +9,8 @@ Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia est
 El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python `nervi`. Repositorio: [github.com/jeronimobareiro/nervi](https://github.com/jeronimobareiro/nervi). Logo e identidad visual en [`marca/`](marca/) (ver especificación §1).
 
 ## Fase actual
+
+**Visión ampliada (24/11/2026):** Nervi apunta a diseñar, predimensionar y dimensionar estructuras de hormigón armado, acero y mixtas y a entregar la documentación de obra completa (memoria, cómputos, planillas de armaduras y planos de detalle), partiendo del plano de arquitectura en DXF. La hoja de ruta suma las fases 7 a 12 y la Fase 6 (láminas) pasa a ser objetivo firme; issues #73 a #98. Medido contra esa visión, lo hecho es una parte chica: falta casi todo lo que viene después del análisis y diseño de barras, empezando por el modelo físico (#73) y las láminas (#32).
 
 **Fase 1: pórtico plano lineal elástico**, casi completa, con una **interfaz de escritorio preliminar** que crece en paralelo. **Fase 2a (pórtico espacial) empezada**: el motor y la API Python 3D ya funcionan (#11, #12), con brazos rígidos (#13) y diafragma rígido por piso (#14). **Fase 2b (dinámica) empezada**: masas, análisis modal y espectro de respuesta del pórtico espacial (#16, #17, #18), preliminar, y del pórtico plano en la interfaz y en la memoria. Fases en [`especificacion-tecnica.md`](especificacion-tecnica.md) §7; plan con hitos e issues (#2 a #32) en [`hoja-de-ruta.md`](hoja-de-ruta.md).
 
@@ -61,6 +63,8 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 
 ## Próximos pasos sugeridos
 
+0. Visión ampliada: seguir las cuatro etapas de [`hoja-de-ruta.md`](hoja-de-ruta.md) §Etapas propuestas. Lo primero que destraba casi todo es el modelo físico (#73) y el modelo de cálculo generado desde él (#74); en paralelo se pueden empezar el predimensionado (#82), el acero (#83, #84) y el modelo de armado (#93).
+
 0. Rendimiento: plan cerrado el 19/11/2026 con las fases 0 a 2. La búsqueda de la armadura óptima de columnas, que es casi todo el tiempo que queda, se deja como está, y las fases 3 y 4 no se hacen por ahora. Rige la regla de exactitud (`AGENTS.md` §2): ninguna optimización baja tolerancias ni exactitud. Queda sumar el banco de tiempos al CI.
 0. Integración con agentes de IA (línea transversal en [`hoja-de-ruta.md`](hoja-de-ruta.md)): con el canal y el panel del asistente hechos, con importar DXF hecho (etapa 6), siguen complementos (etapa 7) y el chat dentro de Nervi con clave de API (etapa 8).
 0. Interfaz: dibujar cargas en la vista 2D, crear barras con el mouse (deshacer y rehacer ya están). Visor 3D (#30): mostrar los modelos de `nervi.Modelo3D` con sus diagramas en los dos planos locales, y achicar lo que agrega VTK a los instaladores (unos 170 MB comprimido).
@@ -75,3 +79,4 @@ El proyecto se llama **Nervi**: crates `nervi-core` y `nervi-py`, paquete Python
 - Dominio propio para el sitio (por ejemplo `nervi.lat`).
 
 - Norma regional prioritaria ([#20](https://github.com/jeronimobareiro/nervi/issues/20)).
+- Tipos de losa después de las macizas (nervadas, pretensadas) y si los perfiles conformados en frío (AISI) entran en la Fase 9.
