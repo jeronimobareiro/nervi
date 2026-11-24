@@ -27,6 +27,7 @@ from . import canal
 from .herramientas import (
     NOMBRES,
     NOMBRES_VENTANA,
+    PROPONEN,
     ErrorConsulta,
     FuenteArchivo,
     FuenteProyecto,
@@ -55,7 +56,8 @@ cambies el valor.
 - El diseño de hormigón es experimental: repetí su aviso cuando lo uses.
 - Si algo no se puede calcular, explicá el motivo que da la herramienta; no lo suplas.
 - No podés cambiar el proyecto. Con la ventana abierta podés proponer un cambio \
-(proponer_modelo): la persona lo revisa y decide si lo aplica. No digas que un \
+(proponer_modelo, o proponer_dxf para sumar un dibujo DXF): la persona lo revisa y \
+decide si lo aplica. No digas que un \
 cambio está hecho hasta que listar_propuestas muestre que ya no está pendiente y \
 leer_modelo lo refleje.
 - La responsabilidad del cálculo es de la persona profesional que firma.
@@ -117,7 +119,7 @@ def crear_servidor(
             _publicar(nombre, ejecutar),
             name=nombre,
             description=" ".join(funcion.__doc__.split()),
-            annotations=_anotaciones(nombre != "proponer_modelo"),
+            annotations=_anotaciones(nombre not in PROPONEN),
         )
 
     def leer(nombre: str) -> str:

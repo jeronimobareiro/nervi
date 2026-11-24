@@ -459,6 +459,62 @@ class Herramientas:
             "estado": "pendiente: la persona la aplica o la descarta en la ventana de Nervi",
         }
 
+    def proponer_dxf(
+        self,
+        ruta: str,
+        capas: list[str] | None = None,
+        unidad: str | None = None,
+        tolerancia_mm: float = 10.0,
+        al_origen: bool = True,
+        empotrar_base: bool = False,
+    ) -> dict:
+        """Propone sumar al modelo las líneas de un dibujo DXF (en texto) de esta
+        computadora, con el mismo importador que "Archivo > Importar DXF". No cambia
+        nada: queda como propuesta que la persona aplica o descarta. ``capas`` son las
+        que se importan (todas si no se dice); ``unidad`` la del dibujo (mm, cm, m, in,
+        ft; si no se dice, la que declara el DXF); ``tolerancia_mm`` une puntos más
+        cercanos que eso; ``al_origen`` lleva el dibujo al (0, 0) si el modelo está
+        vacío; ``empotrar_base`` empotra los nudos nuevos más bajos. Devuelve las capas
+        del dibujo, lo que se agrega y los avisos del importador."""
+        from ..importar import dxf
+
+        p = self._vivo()
+        if not isinstance(ruta, str) or not ruta.strip():
+            raise ErrorConsulta("Falta la ruta del archivo DXF.")
+        try:
+            dibujo = dxf.leer(os.path.expanduser(ruta.strip()))
+            r = dxf.importar(
+                dibujo,
+                capas=capas,
+                unidad=unidad,
+                base=p.modelo,
+                tolerancia=float(tolerancia_mm) / 1000,
+                al_origen=bool(al_origen),
+                empotrar_base=bool(empotrar_base),
+            )
+        except OSError as e:
+            raise ErrorConsulta(f"No se pudo abrir el archivo: {e.strerror or e}") from None
+        except (dxf.DXFError, TypeError, ValueError) as e:
+            raise ErrorConsulta(str(e)) from None
+        if not r.barras_nuevas:
+            raise ErrorConsulta("El dibujo no agrega ninguna barra al modelo.")
+        nombre = os.path.basename(ruta.strip())
+        propuesta = p.proponer(
+            r.modelo,
+            self.origen,
+            f"Importar {nombre} ({r.nudos_nuevos} nudos, {r.barras_nuevas} barras)",
+        )
+        return {
+            "propuesta": propuesta.id,
+            "capas": {c: len(s) for c, s in dibujo.capas.items()},
+            "unidad": unidad or dibujo.unidad,
+            "nudos_nuevos": r.nudos_nuevos,
+            "barras_nuevas": r.barras_nuevas,
+            "avisos": r.avisos,
+            "resumen": propuesta.resumen,
+            "estado": "pendiente: la persona la aplica o la descarta en la ventana de Nervi",
+        }
+
     def listar_propuestas(self) -> list[dict]:
         """Propuestas que siguen pendientes, con su resumen. Una que ya no aparece fue
         aplicada o descartada por la persona."""
@@ -487,4 +543,6 @@ NOMBRES = (
     "leer_modos",
 )
 #: Herramientas que necesitan la ventana abierta.
-NOMBRES_VENTANA = ("leer_seleccion", "proponer_modelo", "listar_propuestas")
+NOMBRES_VENTANA = ("leer_seleccion", "proponer_modelo", "proponer_dxf", "listar_propuestas")
+#: Las que dejan una propuesta (no son de solo lectura).
+PROPONEN = ("proponer_modelo", "proponer_dxf")

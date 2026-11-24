@@ -60,6 +60,14 @@ Decidido el 24/11/2026 con muestras en los dos temas.
 - *Vista previa* abre el modelo propuesto en una ventana aparte, sin aplicarlo. *Aplicar* se deshace con Ctrl+Z.
 - Abajo, *Conectar con mi IA* (`primario`) o *Desconectar*, *Cómo conectar mi app…* y el aviso de que lo que lee el agente viaja a su proveedor.
 
+## Importar DXF
+
+Decidido el 24/11/2026 con muestras en los dos temas.
+
+- *Archivo › Importar DXF…* abre un diálogo con la misma cabecera y el mismo pie que Preferencias (`barra`, `pie_ajustes`): título y nombre del archivo arriba; *Cancelar* e *Importar* (`primario`) abajo.
+- A la izquierda, en cajas (`caja_ajustes`) con su título de `seccion`: **Capas** (una casilla por capa con su cantidad de líneas), **Dibujo** (unidad y tolerancia) y **Opciones** (llevar al origen, que solo se ofrece con el modelo vacío, y empotrar los nudos más bajos), y una nota tenue sobre los ejes del dibujo y Ctrl+Z.
+- A la derecha, el modelo que quedaría en una vista 2D, recalculado con cada cambio, sin leyenda de resultados. Si el modelo ya tenía barras, las nuevas van en color de acento. Arriba, cuánto se agrega; abajo, los avisos del importador en palabras. Si las opciones no alcanzan (sin unidad, sin capas), el motivo reemplaza al resumen e *Importar* queda inactivo.
+
 ## Árbol del modelo
 
 Decidido el 24/11/2026 con muestras en los dos temas (entrada [2026-11-24-07](bitacora/2026-11-24-07-arbol-del-modelo.md)).
