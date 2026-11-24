@@ -23,7 +23,7 @@ Línea de diseño de `nervi.gui`, acordada con el responsable del proyecto el 20
 | Botón primario | negro `#14171C` | azul `#3B82F6` |
 | Cumple / no cumple | `#15803D` / `#C2410C` | `#22C55E` / `#F97316` |
 
-El oscuro usa los colores del logo y de la maqueta (azul marino, azul y cian). Se elige en el menú del logo (**Tema claro** / **Tema oscuro**) y se guarda en `QSettings` (`interfaz/tema`).
+El oscuro usa los colores del logo y de la maqueta (azul marino, azul y cian). Se elige en **Preferencias › Apariencia** o en el menú del logo (**Tema claro** / **Tema oscuro**) y se guarda en las preferencias (`interfaz/tema`). **Tamaño de letra** (Normal 9,5 pt o Grande 11 pt) cambia el token `tamano` del tema.
 
 Medidas comunes: esquinas de 6 px (4 px dentro de otro control), controles de 28 px de alto, letra del sistema a 9,5 pt.
 
@@ -38,6 +38,18 @@ Medidas comunes: esquinas de 6 px (4 px dentro de otro control), controles de 28
 - **Pestañas:** texto con subrayado de acento en la activa, sin cajas.
 - **Tablas:** encabezados en texto tenue y negrita, filas alternadas con el color de fondo, selección con acento suave. Números alineados a la derecha.
 - **Avisos:** `aviso` con fondo, borde y texto ámbar; etiquetas de estado `etiqueta`.
+
+## Menús y ajustes
+
+Decidido el 23/11/2026 con muestras en los dos temas.
+
+- **Barra lateral de menús.** Una columna de íconos de 52 px a la izquierda (`riel`, botones `menu_riel` de 40 px con íconos de 20 px). Arriba: Archivo, Modelo, Calcular, Ver y Herramientas; abajo: Ayuda y Preferencias. Cada ícono abre su menú **hacia la derecha** y muestra su nombre al pasar el mouse; mientras el menú está abierto el botón queda marcado con acento suave y el ícono en color de acento. *Preferencias* abre directamente su ventana. El menú del logo se conserva como acceso rápido.
+- **Íconos propios** de 24 × 24 con trazo de 1,7 px (`estilo.ICONOS_MENU`), en el color del texto secundario o del acento. No se copian íconos de otros programas.
+- **Solo acciones que existen.** Un menú no muestra opciones grises de cosas que todavía no hace (Deshacer, Importar, complementos); se agregan cuando llegan. Por eso todavía no hay menú *Editar*.
+- **Dos ventanas de ajustes**, con la misma forma: apartados a la izquierda (`apartados`), contenido en cajas (`caja_ajustes`) con título de `seccion`, buscador arriba y *Restablecer este apartado*, *Cancelar*, *Aplicar* y *Aceptar* abajo.
+  - **Preferencias** (`ajustes.Preferencias`): de la persona, en esta computadora. Apartados General (qué abrir al iniciar) y Apariencia (tema y tamaño de letra).
+  - **Configuración del proyecto** (`ajustes.ConfiguracionProyecto`): dentro del `.nrv`. Apartados Datos del proyecto (carátula de la memoria), Unidades (solo con el modelo vacío, porque cambiarlas exige convertir los valores), Materiales y Diseño (criterios y diámetros permitidos para columnas).
+- **Regla para un ajuste nuevo:** si cambiarlo puede cambiar un número del cálculo o de la memoria, va en Configuración del proyecto y en el `.nrv` (con su versión de módulo y migración); si solo cambia cómo se ve o se usa la aplicación, va en Preferencias. Una preferencia se declara una sola vez en `ajustes.PREFERENCIAS` y la ventana se arma sola. Un apartado nuevo aparece recién cuando tiene algo que ajustar.
 
 ## Cómo agregar algo
 

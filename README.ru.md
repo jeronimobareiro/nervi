@@ -88,7 +88,7 @@ pip install "nervi[visor3d]"   # по желанию: 3D-просмотрщик 
 nervi-gui                      # или: python -m nervi.gui проект.nrv
 ```
 
-Светлая или тёмная тема выбирается в меню логотипа. Установщики для Windows (`.exe`) и Linux (AppImage) собираются в [Releases](https://github.com/jeronimobareiro/nervi/releases) при публикации тега `v*`; они не подписаны. Пошаговое руководство — на [сайте](https://jeronimobareiro.github.io/nervi/ru/).
+Светлая или тёмная тема и размер шрифта выбираются в **Preferencias** (нижний значок боковой панели); данные титульного листа, материалы и критерии проектирования — в **Configuración del proyecto** (меню Archivo). Установщики для Windows (`.exe`) и Linux (AppImage) собираются в [Releases](https://github.com/jeronimobareiro/nervi/releases) при публикации тега `v*`; они не подписаны. Пошаговое руководство — на [сайте](https://jeronimobareiro.github.io/nervi/ru/).
 
 > **Предварительная версия, не для реальных проектов.** Линейно-упругий расчёт проверен на аналитических решениях; пространственные рамы и динамика — предварительные, а проектирование по ACI 318-19 экспериментальное и ещё не проверено инженером-конструктором.
 

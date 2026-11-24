@@ -272,3 +272,55 @@ def test_carga_momento_invalida():
         d["cargas_barra"] = [carga]
         with pytest.raises(formato.FormatoError, match=motivo):
             formato.validar(d)
+
+
+@pytest.mark.parametrize(
+    ("diametros", "mensaje"),
+    [
+        ([], "al menos un diámetro"),
+        ([16, 18], r"\[1\]"),
+        ([16, 16], "repetidos"),
+        ("16", "al menos un diámetro"),
+        ([True], r"\[0\]"),
+    ],
+)
+def test_diametros_de_columna_invalidos(diametros, mensaje):
+    d = formato.diseno.nuevo()
+    d["criterios"]["diametros_columna"] = diametros
+    with pytest.raises(formato.FormatoError, match=mensaje):
+        formato.diseno.validar(d)
+
+
+def test_diseno_nuevo_permite_todos_los_diametros():
+    assert formato.diseno.nuevo()["criterios"]["diametros_columna"] == [12, 16, 20, 25, 32]
+
+
+@pytest.mark.parametrize(
+    ("proyecto", "mensaje"),
+    [
+        ({}, "falta"),
+        ({"datos": {"cliente": "x"}}, "clave desconocida"),
+        ({"datos": {"autor": 3}}, "texto"),
+        ({"datos": {"autor": "x" * 501}}, "500"),
+        ({"datos": {}, "otra": 1}, "clave desconocida"),
+    ],
+)
+def test_proyecto_invalido(proyecto, mensaje):
+    with pytest.raises(formato.FormatoError, match=mensaje):
+        formato.proyecto.validar(proyecto)
+
+
+def test_datos_del_proyecto_ida_y_vuelta(tmp_path):
+    doc = formato.Documento.nuevo()
+    doc.proyecto = {"datos": {"nombre": "Galpón", "autor": "Ing. Pérez"}}
+    formato.guardar(doc, tmp_path / "p.nrv")
+    doc2 = formato.abrir(tmp_path / "p.nrv")
+    assert doc2.proyecto == doc.proyecto
+    assert doc2.manifiesto["modulos"]["proyecto"]["version"] == 1
+    assert formato.proyecto.para_caratula(doc2.proyecto) == {
+        "Proyecto": "Galpón",
+        "Autor": "Ing. Pérez",
+    }
+    # Sin datos del proyecto no se escribe el módulo.
+    formato.guardar(formato.Documento.nuevo(), tmp_path / "q.nrv")
+    assert "proyecto" not in formato.abrir(tmp_path / "q.nrv").manifiesto["modulos"]

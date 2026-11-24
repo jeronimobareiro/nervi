@@ -88,7 +88,7 @@ pip install "nervi[visor3d]"   # optional: 3D viewer (PyVista and VTK)
 nervi-gui                      # or: python -m nervi.gui project.nrv
 ```
 
-Choose the light or dark theme in the logo menu. Windows (`.exe`) and Linux (AppImage) installers are built in [Releases](https://github.com/jeronimobareiro/nervi/releases) when a `v*` tag is published; they are not signed. A step-by-step guide is on the [website](https://jeronimobareiro.github.io/nervi/en/).
+Choose the light or dark theme and the font size in **Preferencias** (the bottom icon of the side bar); the report cover data, materials and design criteria go in **Configuración del proyecto** (Archivo menu). Windows (`.exe`) and Linux (AppImage) installers are built in [Releases](https://github.com/jeronimobareiro/nervi/releases) when a `v*` tag is published; they are not signed. A step-by-step guide is on the [website](https://jeronimobareiro.github.io/nervi/en/).
 
 > **Preliminary version, not fit for real projects.** Linear elastic analysis is verified against analytical solutions; space frames and dynamics are preliminary, and ACI 318-19 design is experimental and has not yet been reviewed by a structural engineer.
 

@@ -16,6 +16,7 @@ from . import dinamica as _dinamica
 from . import diseno as _diseno
 from . import migraciones
 from . import modelo as _modelo
+from . import proyecto as _proyecto
 from .errores import FormatoError
 
 MIMETYPE = "application/vnd.nervi.proyecto+zip"
@@ -53,9 +54,12 @@ class Modulo:
 MODULOS: dict[str, Modulo] = {
     "modelo": Modulo("modelo", 1, (_modelo.MIEMBRO,), requerido=True),
     # Datos de diseño (Fase 3): se escribe solo si el proyecto los tiene.
-    "diseno": Modulo("diseno", 1, (_diseno.MIEMBRO,), requerido=False),
+    # Versión 2: agrega los diámetros permitidos para columnas (migración en migraciones.py).
+    "diseno": Modulo("diseno", 2, (_diseno.MIEMBRO,), requerido=False),
     # Datos del análisis modal y espectral (Fase 2b): solo si el proyecto los tiene.
     "dinamica": Modulo("dinamica", 1, (_dinamica.MIEMBRO,), requerido=False),
+    # Datos del proyecto para la carátula de la memoria: solo si el proyecto los tiene.
+    "proyecto": Modulo("proyecto", 1, (_proyecto.MIEMBRO,), requerido=False),
 }
 
 
@@ -83,7 +87,8 @@ class Documento:
     original si al abrir hubo que migrarlo (``{"modelo": 1}``), y ``avisos``
     explica lo que se conservó sin leer. ``diseno`` es el diccionario de
     ``diseno.json`` (``None`` si el proyecto todavía no tiene datos de diseño) y
-    ``dinamica`` el de ``dinamica.json`` (``None`` sin datos de dinámica)."""
+    ``dinamica`` el de ``dinamica.json`` (``None`` sin datos de dinámica) y
+    ``proyecto`` el de ``proyecto.json`` (``None`` sin datos del proyecto)."""
 
     modelo: dict
     manifiesto: dict = field(default_factory=dict)
@@ -92,6 +97,7 @@ class Documento:
     avisos: list[str] = field(default_factory=list)
     diseno: dict | None = None
     dinamica: dict | None = None
+    proyecto: dict | None = None
 
     @classmethod
     def nuevo(cls) -> Documento:
@@ -247,6 +253,9 @@ def abrir(ruta: str | os.PathLike) -> Documento:
         dinamica = leidos.get(_dinamica.MIEMBRO)
         if dinamica is not None:
             _dinamica.validar(dinamica)
+        proyecto = leidos.get(_proyecto.MIEMBRO)
+        if proyecto is not None:
+            _proyecto.validar(proyecto)
         propios = {"mimetype", MANIFIESTO, *leidos}
         otros = {
             i.filename: zf.read(i.filename)
@@ -254,7 +263,7 @@ def abrir(ruta: str | os.PathLike) -> Documento:
             if i.filename not in propios and not i.is_dir()
         }
     manifiesto["modulos"] = modulos
-    return Documento(modelo, manifiesto, otros, migrado or None, avisos, diseno, dinamica)
+    return Documento(modelo, manifiesto, otros, migrado or None, avisos, diseno, dinamica, proyecto)
 
 
 def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) -> None:
@@ -266,6 +275,8 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
         _diseno.validar(doc.diseno)
     if doc.dinamica is not None:
         _dinamica.validar(doc.dinamica)
+    if doc.proyecto is not None:
+        _proyecto.validar(doc.proyecto)
     ruta = Path(ruta)
     ahora = _ahora()
     manifiesto = {k: v for k, v in doc.manifiesto.items()}
@@ -285,6 +296,7 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
     presentes = {"modelo"}
     presentes |= {"diseno"} if doc.diseno is not None else set()
     presentes |= {"dinamica"} if doc.dinamica is not None else set()
+    presentes |= {"proyecto"} if doc.proyecto is not None else set()
     modulos.update(
         {n: m.entrada() for n, m in MODULOS.items() if n not in modulos and n in presentes}
     )
@@ -302,6 +314,8 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
         miembros[_diseno.MIEMBRO] = _json(doc.diseno)
     if doc.dinamica is not None and modulos["dinamica"]["version"] <= MODULOS["dinamica"].version:
         miembros[_dinamica.MIEMBRO] = _json(doc.dinamica)
+    if doc.proyecto is not None and modulos["proyecto"]["version"] <= MODULOS["proyecto"].version:
+        miembros[_proyecto.MIEMBRO] = _json(doc.proyecto)
 
     tmp = ruta.with_name(ruta.name + ".tmp")
     with open(tmp, "wb") as f:
