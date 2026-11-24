@@ -18,7 +18,7 @@ Suma el SDK oficial de MCP (licencia MIT) y el comando `nervi-mcp`. Funciona con
 
 La app de IA lanza `nervi-mcp` y le habla por la entrada y salida estándar (`stdio`). Hay dos modos:
 
-- **Con la ventana abierta** (`nervi-mcp`, sin argumentos). En Nervi, la persona busca "Conectar con mi IA" (Ctrl+K). Desde ahí el agente consulta lo que está abierto, aunque no esté guardado, ve lo que la persona tiene seleccionado ("¿cuánto momento tiene esta barra?") y puede dejar propuestas. Al desconectar o cerrar Nervi, el agente deja de tener acceso y lo dice.
+- **Con la ventana abierta** (`nervi-mcp`, sin argumentos). En Nervi, la persona toca el ícono del asistente (✦) en la barra lateral y luego **Conectar con mi IA** (también está en el buscador, Ctrl+K). En ese panel aparecen las propuestas del agente para aplicarlas, verlas antes o descartarlas, y cada consulta que hace. Desde ahí el agente consulta lo que está abierto, aunque no esté guardado, ve lo que la persona tiene seleccionado ("¿cuánto momento tiene esta barra?") y puede dejar propuestas. Al desconectar o cerrar Nervi, el agente deja de tener acceso y lo dice.
 - **Con un archivo** (`nervi-mcp ruta/al/portico.nrv`). Solo lectura, no necesita la ventana. Si la persona vuelve a guardar el archivo, la consulta siguiente ve lo nuevo.
 
 En los dos modos, lo que se calcula para responder (el análisis, el diseño, la dinámica) se hace sobre una copia: no cambia lo que ve la persona ni el archivo.

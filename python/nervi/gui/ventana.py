@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
 from .. import MecanismoError, formato
 from . import ajustes, estilo, vista3d
 from .ajustes import ConfiguracionProyecto, Preferencias
+from .asistente import PanelAsistente
 from .canal import CanalVentana
 from .consola import Consola
 from .dinamica import PanelDinamica, fase
@@ -64,6 +65,7 @@ MENUS_RIEL = (
     ("calcular", "Calcular"),
     ("ver", "Ver"),
     ("herramientas", "Herramientas"),
+    ("ia", "Asistente de IA"),
 )
 MENUS_RIEL_ABAJO = (("ayuda", "Ayuda"), ("preferencias", "Preferencias"))
 
@@ -108,12 +110,17 @@ class Ventana(QMainWindow):
         centro.setStretchFactor(1, 1)
         centro.setSizes([560, 250])
 
+        # Panel del asistente de IA: junto a la barra lateral, se abre con su ícono.
+        self.asistente = PanelAsistente(self.sesion, self.canal)
+        self.asistente.hide()
         horizontal = QSplitter(Qt.Horizontal)
+        horizontal.addWidget(self.asistente)
         horizontal.addWidget(self._explorador())
         horizontal.addWidget(centro)
         horizontal.addWidget(self._propiedades())
-        horizontal.setStretchFactor(1, 1)
-        horizontal.setSizes([240, 900, 290])
+        horizontal.setStretchFactor(2, 1)
+        horizontal.setSizes([360, 240, 900, 290])
+        self.horizontal = horizontal
         cuerpo = QHBoxLayout()
         cuerpo.setContentsMargins(0, 0, 0, 0)
         cuerpo.setSpacing(0)
@@ -131,6 +138,9 @@ class Ventana(QMainWindow):
         s.seleccion_cambiada.connect(self._actualizar_propiedades)
         s.diseno_cambiado.connect(self._actualizar_diseno)
         s.historial_cambiado.connect(self._actualizar_deshacer)
+        self.asistente.pendientes_cambiadas.connect(self._actualizar_insignia)
+        self.canal.estado_cambiado.connect(self.a_conectar_ia.setChecked)
+        self._actualizar_insignia(len(s.propuestas))
         self._actualizar_deshacer()
         self.vista.diagrama_cambiado.connect(self._marcar_diagrama)
         self._actualizar_todo()
@@ -301,6 +311,12 @@ class Ventana(QMainWindow):
                 self.botones_riel[clave] = b
                 capa.addWidget(b, 0, Qt.AlignHCenter)
         self._iconos_riel()
+        # Cuántas propuestas de la IA esperan, sobre el ícono del asistente.
+        self.insignia_ia = QLabel(self.botones_riel["ia"], objectName="insignia")
+        self.insignia_ia.setAlignment(Qt.AlignCenter)
+        self.insignia_ia.setFixedSize(14, 14)
+        self.insignia_ia.move(24, 2)
+        self.insignia_ia.hide()
         return riel
 
     def _menus_riel(self) -> dict[str, QMenu]:
@@ -357,6 +373,9 @@ class Ventana(QMainWindow):
     def abrir_menu_riel(self, clave: str) -> None:
         """Abre el menú de ese ícono a su derecha; *Preferencias* abre su ventana."""
         b = self.botones_riel[clave]
+        if clave == "ia":
+            self.mostrar_asistente(not self.asistente.isVisible())
+            return
         if clave == "preferencias":
             b.setChecked(False)
             self.abrir_preferencias()
@@ -1114,6 +1133,29 @@ class Ventana(QMainWindow):
         if isinstance(self.vista3d, Vista3D):
             self.vista3d.actualizar()
 
+    def mostrar_asistente(self, mostrar: bool = True) -> None:
+        """Abre o cierra el panel del asistente de IA junto a la barra lateral."""
+        if mostrar and not self.asistente.isVisible():
+            tamanos = self.horizontal.sizes()
+            ancho = 370
+            tamanos[0] = ancho
+            tamanos[2] = max(tamanos[2] - ancho, 300)  # lo toma de la vista central
+            self.asistente.setVisible(True)
+            self.horizontal.setSizes(tamanos)
+        else:
+            self.asistente.setVisible(mostrar)
+        self.botones_riel["ia"].setChecked(mostrar)
+
+    def _actualizar_insignia(self, pendientes: int) -> None:
+        self.insignia_ia.setText(str(pendientes) if pendientes < 10 else "9+")
+        self.insignia_ia.setVisible(pendientes > 0)
+        self.botones_riel["ia"].setToolTip(
+            f"Asistente de IA · {pendientes} propuesta{'s' if pendientes != 1 else ''} pendiente"
+            f"{'s' if pendientes != 1 else ''}"
+            if pendientes
+            else "Asistente de IA"
+        )
+
     def conectar_ia(self, conectar: bool | None = None) -> bool:
         """Abre o cierra el canal local para que la app de IA de la persona use
         ``nervi-mcp`` con este proyecto (``docs/agentes-ia.md``)."""
@@ -1123,7 +1165,6 @@ class Ventana(QMainWindow):
             self.canal.abrir() if conectar else self.canal.cerrar()
         except OSError as e:
             QMessageBox.warning(self, "Conectar con mi IA", str(e))
-        self.a_conectar_ia.setChecked(self.canal.activo)
         self.statusBar().showMessage(
             "IA conectada: tu app de IA ya puede usar nervi-mcp con este proyecto"
             if self.canal.activo

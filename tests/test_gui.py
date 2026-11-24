@@ -609,6 +609,7 @@ def test_barra_lateral_abre_cada_menu(ventana, qtbot):
         "calcular",
         "ver",
         "herramientas",
+        "ia",
         "ayuda",
         "preferencias",
     }
@@ -735,3 +736,86 @@ def test_recientes_y_abrir_el_ultimo(ventana, tmp_path):
     vacia = crear_ventana([])
     assert vacia.sesion.modelo["nudos"] == []
     vacia.close()
+
+
+def test_panel_del_asistente(ventana, qtbot, tmp_path, monkeypatch):
+    from PySide6.QtWidgets import QLabel, QPushButton
+
+    monkeypatch.setenv("NERVI_CANAL", str(tmp_path / "canal.json"))
+    panel = ventana.asistente
+    assert not panel.isVisible() and not ventana.insignia_ia.isVisible()
+    ventana.abrir_menu_riel("ia")
+    assert panel.isVisible() and ventana.botones_riel["ia"].isChecked()
+    assert panel.b_conectar.isVisible() and panel.lbl_conexion.text() == "Sin conectar"
+    panel.b_conectar.click()
+    assert ventana.canal.activo and ventana.a_conectar_ia.isChecked()
+    assert panel.lbl_conexion.text().endswith("Conectado") and panel.b_desconectar.isVisible()
+
+    # Llega una propuesta: insignia en el ícono y tarjeta con su resumen.
+    s = ventana.sesion
+    m = s.copia_modelo()
+    m["nudos"][1]["y"] += 0.5
+    s.proponer(m, "ia: Claude Desktop", "Sube N2")
+    assert ventana.insignia_ia.isVisible() and ventana.insignia_ia.text() == "1"
+    assert panel.lbl_propuestas.text() == "PROPUESTAS PENDIENTES · 1"
+    qtbot.wait(20)  # las tarjetas nuevas se muestran al volver al bucle de eventos
+    textos = [w.text() for w in panel.findChildren(QLabel) if w.isVisibleTo(panel)]
+    assert "Sube N2" in textos and "•  Cambia N2 (y)" in textos
+    assert any(t.startswith("de Claude Desktop") for t in textos)
+
+    dialogo = panel.vista_previa(s.propuestas[0].id)
+    assert dialogo.isVisible() and dialogo._sesion.modelo["nudos"][1]["y"] == m["nudos"][1]["y"]
+    assert s.modelo["nudos"][1]["y"] != m["nudos"][1]["y"]  # la vista previa no aplica
+    dialogo.close()
+
+    qtbot.wait(20)
+    aplicar = next(
+        b for b in panel.findChildren(QPushButton) if b.text() == "Aplicar" and b.isVisibleTo(panel)
+    )
+    aplicar.click()
+    assert s.modelo["nudos"][1]["y"] == m["nudos"][1]["y"] and not s.propuestas
+    assert not ventana.insignia_ia.isVisible()
+    assert s.doc.historial["cambios"][-1]["origen"] == "ia: Claude Desktop"
+    ventana.deshacer()
+    assert s.modelo["nudos"][1]["y"] != m["nudos"][1]["y"]
+
+    # Descartar no cambia nada.
+    s.proponer(m, "ia: Claude Desktop", "Sube N2 otra vez")
+    antes = s.copia_modelo()
+    qtbot.wait(20)
+    descartar = next(
+        b
+        for b in panel.findChildren(QPushButton)
+        if b.text() == "Descartar" and b.isVisibleTo(panel)
+    )
+    descartar.click()
+    assert not s.propuestas and s.modelo == antes
+
+    # Las consultas del agente quedan a la vista.
+    ventana.canal.consulta.emit("leer_barra", True)
+    ventana.canal.consulta.emit("leer_verificaciones", False)
+    assert [c[1:] for c in panel.consultas] == [
+        ("leer_barra", True),
+        ("leer_verificaciones", False),
+    ]
+    panel.b_desconectar.click()
+    assert not ventana.canal.activo and not ventana.a_conectar_ia.isChecked()
+    ventana.abrir_menu_riel("ia")
+    assert not panel.isVisible() and not ventana.botones_riel["ia"].isChecked()
+
+
+def test_propuesta_sobre_un_modelo_que_cambio(ventana, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+
+    avisos = []
+    monkeypatch.setattr(QMessageBox, "warning", lambda *a: avisos.append(a[2]))
+    s = ventana.sesion
+    m = s.copia_modelo()
+    m["nudos"][1]["y"] += 0.5
+    p = s.proponer(m, "ia: prueba", "Sube N2")
+    otro = s.copia_modelo()
+    otro["nudos"][2]["y"] += 1.0
+    s.editar(otro)
+    assert not ventana.asistente.aplicar(p.id)
+    assert "cambió" in avisos[0] and "rehaga" in avisos[0]
+    assert s.modelo == otro
