@@ -605,6 +605,7 @@ def test_app_de_ia_con_la_ventana_abierta(ventana, qtbot, tmp_path, monkeypatch)
 def test_barra_lateral_abre_cada_menu(ventana, qtbot):
     assert set(ventana.botones_riel) == {
         "archivo",
+        "editar",
         "modelo",
         "calcular",
         "ver",
@@ -616,7 +617,10 @@ def test_barra_lateral_abre_cada_menu(ventana, qtbot):
     for clave, menu in ventana.menus_riel.items():
         # Solo acciones que existen: ninguna gris ni sin texto.
         acciones = [a for a in menu.actions() if not a.isSeparator()]
-        assert acciones and all(a.text() and a.isEnabled() for a in acciones), clave
+        # Deshacer y Rehacer quedan inactivos mientras no hay nada que deshacer.
+        activas = acciones if clave != "editar" else []
+        assert acciones and all(a.text() for a in acciones), clave
+        assert all(a.isEnabled() for a in activas), clave
         ventana.abrir_menu_riel(clave)
         qtbot.waitUntil(menu.isVisible)
         assert ventana.botones_riel[clave].isChecked()
@@ -624,6 +628,12 @@ def test_barra_lateral_abre_cada_menu(ventana, qtbot):
         assert menu.pos().x() >= boton.mapToGlobal(boton.rect().topRight()).x()
         menu.hide()
         assert not ventana.botones_riel[clave].isChecked()
+    editar = ventana.menus_riel["editar"].actions()
+    assert [a.text() for a in editar] == ["Deshacer", "Rehacer"]
+    m = ventana.sesion.copia_modelo()
+    m["nudos"][1]["y"] += 0.5
+    ventana.sesion.editar(m, descripcion="Mover N2")
+    assert editar[0].isEnabled() and "Mover N2" in editar[0].text()
     textos = [a.text() for a in ventana.menus_riel["archivo"].actions()]
     assert "Configuración del proyecto…" in textos and "Abrir reciente" in textos
 

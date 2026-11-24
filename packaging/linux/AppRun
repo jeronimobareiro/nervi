@@ -1,5 +1,10 @@
 #!/bin/sh
 # SPDX-License-Identifier: GPL-3.0-or-later
-# Arranque del AppImage de Nervi.
+# Arranque del AppImage de Nervi. "Nervi.AppImage mcp [proyecto.nrv]" lanza el servidor
+# MCP para la app de IA de la persona (docs/agentes-ia.md) en vez de la ventana.
 AQUI="$(dirname "$(readlink -f "$0")")"
+if [ "$1" = "mcp" ]; then
+    shift
+    exec "$AQUI/usr/lib/nervi/nervi-mcp" "$@"
+fi
 exec "$AQUI/usr/lib/nervi/Nervi" "$@"

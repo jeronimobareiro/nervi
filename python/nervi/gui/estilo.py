@@ -178,6 +178,8 @@ def svg(forma: str, color: str) -> str:
 ICONOS_MENU = {
     "archivo": '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>'
     '<path d="M14 3v5h5"/>',
+    # Editar: flecha de deshacer.
+    "editar": '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
     "modelo": '<path d="M5 20V6h14v14"/><path d="M3 20h4M17 20h4"/><path d="M5 13h14"/>',
     "calcular": '<path d="M7 4l13 8-13 8z"/>',
     "ver": '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',

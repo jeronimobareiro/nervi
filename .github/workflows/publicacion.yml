@@ -35,14 +35,14 @@ jobs:
         shell: bash
         run: |
           python -m pip install --upgrade pip
-          pip install maturin pyinstaller "PySide6-Essentials>=6.6" reportlab "pyvista>=0.44" "pyvistaqt>=0.11"
+          pip install maturin pyinstaller "PySide6-Essentials>=6.6" reportlab "pyvista>=0.44" "pyvistaqt>=0.11" "mcp>=1.2,<3"
           maturin build --release --out wheels
           pip install wheels/*.whl
           python packaging/generar_iconos.py build/iconos
           # El visor 3D (PyVista y VTK) va incluido: agrega unos 170 MB comprimidos al instalador.
-          pyinstaller --noconfirm --windowed --name Nervi --icon build/iconos/nervi.ico \
-            --collect-data nervi --collect-data pyvista --hidden-import nervi.memoria.pdf \
-            packaging/pyinstaller/nervi_gui.py
+          # La receta arma dos ejecutables en la misma carpeta: Nervi (ventana) y nervi-mcp
+          # (consola, para la app de IA de la persona).
+          NERVI_ICONO=build/iconos/nervi.ico pyinstaller --noconfirm packaging/pyinstaller/nervi.spec
       - name: Prueba de arranque del ejecutable
         shell: bash
         run: |
@@ -55,6 +55,9 @@ jobs:
         # Sin placa de video en el runner no se renderiza: solo se comprueba que PyVista,
         # pyvistaqt y VTK estén dentro del ejecutable.
         run: timeout 60 dist/Nervi/Nervi.exe --comprobar-visor3d
+      - name: Prueba de nervi-mcp incluido
+        shell: bash
+        run: timeout 60 python packaging/probar_nervi_mcp.py dist/Nervi/nervi-mcp.exe
       - name: Instalador (Inno Setup)
         shell: pwsh
         run: |
@@ -89,12 +92,11 @@ jobs:
       - name: Compilar el motor y crear el ejecutable
         run: |
           python -m pip install --upgrade pip
-          pip install maturin pyinstaller "PySide6-Essentials>=6.6" reportlab "pyvista>=0.44" "pyvistaqt>=0.11"
+          pip install maturin pyinstaller "PySide6-Essentials>=6.6" reportlab "pyvista>=0.44" "pyvistaqt>=0.11" "mcp>=1.2,<3"
           maturin build --release --out wheels
           pip install wheels/*.whl
           python packaging/generar_iconos.py build/iconos
-          pyinstaller --noconfirm --windowed --name Nervi --collect-data nervi --collect-data pyvista \
-            --hidden-import nervi.memoria.pdf packaging/pyinstaller/nervi_gui.py
+          pyinstaller --noconfirm packaging/pyinstaller/nervi.spec
       - name: Prueba de arranque del ejecutable
         run: |
           QT_QPA_PLATFORM=offscreen timeout 20 dist/Nervi/Nervi & pid=$!
@@ -104,6 +106,8 @@ jobs:
       - name: Prueba del visor 3D incluido
         # Renderiza el pórtico de ejemplo a una imagen sin pantalla (OSMesa).
         run: timeout 60 dist/Nervi/Nervi --comprobar-visor3d visor3d.png && test -s visor3d.png
+      - name: Prueba de nervi-mcp incluido
+        run: timeout 60 python packaging/probar_nervi_mcp.py dist/Nervi/nervi-mcp
       - name: AppImage
         run: |
           curl -sSfL -o appimagetool "$APPIMAGETOOL"
