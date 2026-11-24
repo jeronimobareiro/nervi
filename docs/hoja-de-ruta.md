@@ -131,7 +131,7 @@ Abierta el 24/11/2026, en paralelo a las fases y sin frenarlas. Objetivo: que la
 1. Capa de proyecto sin Qt, `nervi.proyecto` (hecha): la comparten la interfaz, los scripts y las integraciones.
 2. Resultados a precisión completa en JSON, `nervi.resultados` (hecha, [`formato-resultados.md`](formato-resultados.md)).
 3. Deshacer, rehacer y propuestas de cambio con su origen (hecha: `Proyecto.proponer`, `aplicar`, `deshacer`, Ctrl+Z y Ctrl+Y en la interfaz, y módulo `historial` del `.nrv` para auditar los cambios que no hizo la persona).
-4. Servidor MCP `nervi-mcp`, primero de solo lectura.
+4. Servidor MCP `nervi-mcp`, primero de solo lectura (hecha: `nervi.ia`, 10 herramientas de consulta, [`agentes-ia.md`](agentes-ia.md)).
 5. Canal local con la ventana abierta, botón "Conectar con mi IA" y panel del asistente (con muestra visual en los dos temas antes de implementarlo).
 6. Importar DXF con vista previa.
 7. Complementos con *entry points*, permisos y camino a oficial, con su regla de licencia en `GOVERNANCE.md`.

@@ -206,3 +206,4 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | deshacer, rehacer (`Proyecto.deshacer`, `rehacer`), cambio (`Cambio`) | undo, redo, change | desfazer, refazer, alteração | отменить, повторить, изменение |
 | propuesta (`Proyecto.proponer`, `aplicar`, `descartar`), origen | proposal (propose, apply, discard), source | proposta (propor, aplicar, descartar), origem | предложение (предложить, применить, отклонить), источник |
 | historial (módulo `historial` del `.nrv`), resumen de cambios (`resumir_cambios`) | change log, change summary | histórico, resumo de alterações | журнал изменений, сводка изменений |
+| agente de IA, servidor MCP (`nervi-mcp`), herramienta de consulta (`nervi.ia.herramientas`) | AI agent, MCP server, query tool | agente de IA, servidor MCP, ferramenta de consulta | ИИ-агент, MCP-сервер, инструмент запроса |

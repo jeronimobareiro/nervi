@@ -102,6 +102,7 @@ nav:
       - Contrato de datos: tecnica/contrato-datos.md
       - Formato de archivo .nrv: tecnica/formato-nrv.md
       - Resultados a precisión completa: tecnica/formato-resultados.md
+      - Conectar un agente de IA: tecnica/agentes-ia.md
   - Hoja de ruta: hoja-de-ruta.md
   - Participar:
       - Resumen: participar/index.md

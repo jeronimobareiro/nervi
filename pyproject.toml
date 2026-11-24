@@ -24,6 +24,8 @@ gui = ["PySide6-Essentials>=6.6", "reportlab>=4", "tomli>=2; python_version < '3
 memoria = ["reportlab>=4", "tomli>=2; python_version < '3.11'"]
 # Visor 3D (issue #30): PyVista y pyvistaqt (MIT) sobre VTK (BSD-3-Clause), compatibles con GPL-3.0.
 visor3d = ["PySide6-Essentials>=6.6", "pyvista>=0.44", "pyvistaqt>=0.11"]
+# Servidor MCP para agentes de IA (nervi-mcp). SDK oficial de MCP, licencia MIT.
+ia = ["mcp>=1.2,<3"]
 dev = [
     "pytest>=8",
     "ruff>=0.6",
@@ -31,7 +33,11 @@ dev = [
     "tomli>=2; python_version < '3.11'",
     "reportlab>=4",
     "pypdf>=4",  # BSD-3-Clause; solo para leer el texto de la memoria en las pruebas
+    "mcp>=1.2,<3",  # MIT; pruebas del servidor MCP
 ]
+
+[project.scripts]
+nervi-mcp = "nervi.ia.servidor:main"
 
 [project.gui-scripts]
 nervi-gui = "nervi.gui:main"
