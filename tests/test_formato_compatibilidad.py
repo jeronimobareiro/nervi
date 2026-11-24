@@ -93,17 +93,19 @@ def test_modulo_desconocido_opcional_se_conserva(tmp_path):
 
 
 def test_diseno_de_version_futura_se_conserva(tmp_path):
+    # Hasta la entrada 2026-11-24-01 esta prueba usaba la versión 2, que desde
+    # entonces es la que escribe Nervi; la 3 sigue siendo una versión futura.
     ruta = _con_manifiesto(
         tmp_path,
-        _modulo("diseno", 2, ["diseno.json"], False),
+        _modulo("diseno", 3, ["diseno.json"], False),
         [("diseno.json", '{"norma": "ACI 318-25"}')],
     )
     doc = formato.abrir(ruta)
     assert doc.diseno is None
-    assert len(doc.avisos) == 1 and "'diseno' versión 2" in doc.avisos[0]
+    assert len(doc.avisos) == 1 and "'diseno' versión 3" in doc.avisos[0]
     formato.guardar(doc, ruta)
     doc2 = formato.abrir(ruta)
-    assert doc2.manifiesto["modulos"]["diseno"]["version"] == 2
+    assert doc2.manifiesto["modulos"]["diseno"]["version"] == 3
     assert doc2.otros["diseno.json"] == b'{"norma": "ACI 318-25"}'
 
 
@@ -121,6 +123,42 @@ def test_referencia_del_modulo_diseno():
     for el in proyecto.elementos(doc.modelo, d):
         e = esperado[f"B{el.barra}"]
         assert (el.tipo, el.b, el.h) == (e["tipo"], e["b"], e["h"])
+    # La versión 1 buscaba la armadura de columnas con todos los diámetros: la
+    # migración a la versión 2 lo deja escrito y los resultados no cambian.
+    assert doc.migrado_desde == {"diseno": 1}
+    assert d["criterios"]["diametros_columna"] == [12, 16, 20, 25, 32]
+
+
+def test_referencia_del_modulo_diseno_v2():
+    # diseno-v2.nrv limita las columnas a Ø16: la armadura sale con esas barras.
+    import warnings
+
+    from nervi.design import proyecto
+
+    esperado = _esperado(DATOS / "diseno-v2.nrv")["diseno"]
+    doc = formato.abrir(DATOS / "diseno-v2.nrv")
+    d = doc.diseno
+    assert doc.migrado_desde is None
+    assert d["criterios"]["diametros_columna"] == esperado["diametros_columna"]
+    m, indices = formato.construir_modelo(doc.modelo)
+    combinaciones = {c["nombre"]: c["factores"] for c in doc.modelo["combinaciones"]}
+    res = m.resolver(combinaciones=combinaciones)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        resultados = {r.elemento.barra: r for r in proyecto.disenar(doc.modelo, d, res, indices)}
+    e = esperado["B1"]
+    col = resultados[1]
+    sec = col.detalle.seccion
+    assert col.estado == e["estado"]
+    assert sec.barras.shape[0] == e["barras"]
+    assert sec.dimensiones["diametro"] == e["diametro"]
+
+
+def test_referencia_del_modulo_proyecto():
+    esperado = _esperado(DATOS / "proyecto-v1.nrv")["proyecto"]
+    doc = formato.abrir(DATOS / "proyecto-v1.nrv")
+    assert doc.proyecto == esperado
+    assert formato.proyecto.para_caratula(doc.proyecto)["Ubicación"] == "Asunción, Paraguay"
 
 
 def test_referencia_del_modulo_historial():

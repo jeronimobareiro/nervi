@@ -503,6 +503,21 @@ class Proyecto:
         self._avisar("resultados")
         return self.resultados_dinamica
 
+    # --- Datos del proyecto -----------------------------------------------------------
+    @property
+    def proyecto(self) -> dict:
+        """Datos de ``proyecto.json`` (vacíos si el proyecto no tiene)."""
+        return self.doc.proyecto if self.doc.proyecto is not None else formato.proyecto.nuevo()
+
+    def editar_proyecto(self, nuevo: dict) -> None:
+        """Reemplaza los datos del proyecto. Lanza ``FormatoError`` si no son válidos.
+        Sin ningún dato el módulo deja de guardarse."""
+        formato.proyecto.validar(nuevo)
+        vacio = not nuevo["datos"] and not nuevo.get("extensiones")
+        self.doc.proyecto = None if vacio else nuevo
+        self.modificado = True
+        self._avisar("archivo")
+
     # --- Diseño --------------------------------------------------------------------
     @property
     def diseno(self) -> dict:
@@ -568,6 +583,7 @@ class Proyecto:
         m = self.modelo
         modelo, res, indices = self._resolver_con_combinaciones()
         datos = {"Proyecto": self.ruta.stem if self.ruta else "Sin título"}
+        datos.update(formato.proyecto.para_caratula(self.doc.proyecto))
         datos.update(datos_proyecto or {})
         u = m["unidades"]
         doc = memoria_de_calculo(

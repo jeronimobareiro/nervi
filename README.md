@@ -77,7 +77,7 @@ pip install "nervi[visor3d]"   # opcional: visor 3D (PyVista y VTK)
 nervi-gui                      # o: python -m nervi.gui proyecto.nrv
 ```
 
-El tema claro u oscuro se elige en el menú del logo. Los instaladores para Windows (`.exe`) y Linux (AppImage) se generan en [Releases](https://github.com/jeronimobareiro/nervi/releases) al publicar una etiqueta `v*`; no están firmados. Una guía paso a paso está en [Primeros pasos](https://jeronimobareiro.github.io/nervi/primeros-pasos/).
+El tema claro u oscuro y el tamaño de letra se eligen en **Preferencias** (el ícono de abajo en la barra lateral); los datos de la carátula, los materiales y los criterios de diseño, en **Configuración del proyecto** (menú Archivo). Los instaladores para Windows (`.exe`) y Linux (AppImage) se generan en [Releases](https://github.com/jeronimobareiro/nervi/releases) al publicar una etiqueta `v*`; no están firmados. Una guía paso a paso está en [Primeros pasos](https://jeronimobareiro.github.io/nervi/primeros-pasos/).
 
 > **Versión preliminar, no apta para proyecto.** El análisis lineal elástico está verificado contra soluciones analíticas; el pórtico espacial y la dinámica son preliminares, y el diseño según ACI 318-19 es experimental y todavía no lo revisó un ingeniero estructural.
 

@@ -18,6 +18,14 @@ from nervi.gui.sesion import Seleccion, Sesion, documento_ejemplo
 from nervi.gui.ventana import Ventana
 
 
+@pytest.fixture(autouse=True)
+def preferencias_aparte(tmp_path, monkeypatch):
+    # Las pruebas no leen ni tocan las preferencias de quien las corre.
+    from nervi.gui import ajustes
+
+    monkeypatch.setattr(ajustes, "ARCHIVO", str(tmp_path / "preferencias.ini"))
+
+
 @pytest.fixture
 def ventana(qtbot):
     v = Ventana(Sesion(documento_ejemplo()))
@@ -591,3 +599,139 @@ def test_app_de_ia_con_la_ventana_abierta(ventana, qtbot, tmp_path, monkeypatch)
     assert [t["name"] for t in lista] == [*NOMBRES, *NOMBRES_VENTANA]
     datos = json.loads(nudo["result"]["content"][0]["text"])
     assert datos == ventana.canal.herramientas.leer_nudo("N2", "D")
+
+
+# --- Barra lateral de menús y ajustes ------------------------------------------------
+def test_barra_lateral_abre_cada_menu(ventana, qtbot):
+    assert set(ventana.botones_riel) == {
+        "archivo",
+        "modelo",
+        "calcular",
+        "ver",
+        "herramientas",
+        "ayuda",
+        "preferencias",
+    }
+    for clave, menu in ventana.menus_riel.items():
+        # Solo acciones que existen: ninguna gris ni sin texto.
+        acciones = [a for a in menu.actions() if not a.isSeparator()]
+        assert acciones and all(a.text() and a.isEnabled() for a in acciones), clave
+        ventana.abrir_menu_riel(clave)
+        qtbot.waitUntil(menu.isVisible)
+        assert ventana.botones_riel[clave].isChecked()
+        boton = ventana.botones_riel[clave]
+        assert menu.pos().x() >= boton.mapToGlobal(boton.rect().topRight()).x()
+        menu.hide()
+        assert not ventana.botones_riel[clave].isChecked()
+    textos = [a.text() for a in ventana.menus_riel["archivo"].actions()]
+    assert "Configuración del proyecto…" in textos and "Abrir reciente" in textos
+
+
+def test_preferencias_cambian_tema_y_letra(ventana):
+    from nervi.gui import ajustes, estilo
+
+    dialogo = ventana.abrir_preferencias()
+    assert [dialogo.lista.item(k).text() for k in range(dialogo.lista.count())] == [
+        "General",
+        "Apariencia",
+    ]
+    dialogo.controles["interfaz/tema"].setCurrentIndex(1)
+    dialogo.controles["interfaz/tamano"].setCurrentIndex(1)
+    assert dialogo.aplicar()
+    assert ajustes.leer("interfaz/tema") == "oscuro"
+    assert estilo.actual.fondo == estilo.OSCURO.fondo and estilo.actual.tamano == 11.0
+    assert ventana.a_temas["oscuro"].isChecked()
+    # Restablecer el apartado vuelve a los valores por defecto.
+    dialogo.elegir_apartado("Apariencia")
+    dialogo._restablecer[dialogo.paginas.currentIndex()]()
+    assert dialogo.aplicar()
+    assert estilo.actual == estilo.CLARO
+    dialogo.close()
+
+
+def test_buscador_de_ajustes(ventana):
+    dialogo = ventana.configurar_proyecto()
+    dialogo.buscador.setText("diámetros")
+    visibles = [
+        dialogo.lista.item(k).text()
+        for k in range(dialogo.lista.count())
+        if not dialogo.lista.item(k).isHidden()
+    ]
+    assert visibles == ["Diseño"]
+    assert dialogo.lista.currentItem().text() == "Diseño"
+    dialogo.close()
+
+
+def test_configuracion_del_proyecto(ventana, tmp_path):
+    s = ventana.sesion
+    dialogo = ventana.configurar_proyecto()
+    # El modelo tiene datos: las unidades no se cambian sin convertir los valores.
+    assert not dialogo.fuerza.isEnabled()
+    dialogo.datos["nombre"].setText("  Galpón Norte ")
+    dialogo.datos["autor"].setText("Ing. Pérez")
+    dialogo.recubrimiento.setValue(30)
+    for d, cb in dialogo.diametros.items():
+        cb.setChecked(d in (16, 20))
+    assert dialogo.aplicar()
+    assert s.doc.proyecto == {"datos": {"nombre": "Galpón Norte", "autor": "Ing. Pérez"}}
+    c = s.diseno["criterios"]
+    assert c["recubrimiento"] == 30 and c["diametros_columna"] == [16, 20]
+    assert s.modificado
+    # La etapa Diseño muestra lo mismo.
+    assert ventana.panel_diseno.recubrimiento.value() == 30
+    s.guardar(tmp_path / "p.nrv")
+    doc = formato.abrir(tmp_path / "p.nrv")
+    assert doc.proyecto["datos"]["nombre"] == "Galpón Norte"
+    assert doc.diseno["criterios"]["diametros_columna"] == [16, 20]
+    dialogo.close()
+
+
+def test_configuracion_sin_diametros_no_se_aplica(ventana):
+    dialogo = ventana.configurar_proyecto()
+    for cb in dialogo.diametros.values():
+        cb.setChecked(False)
+    assert not dialogo.aplicar()
+    assert "al menos un diámetro" in dialogo.lbl_error.text()
+    assert dialogo.lista.currentItem().text() == "Diseño"
+    assert ventana.sesion.doc.diseno is None
+    dialogo.close()
+
+
+def test_sin_cambios_no_agrega_modulos(ventana):
+    dialogo = ventana.configurar_proyecto()
+    assert dialogo.aplicar()
+    assert ventana.sesion.doc.diseno is None and ventana.sesion.doc.proyecto is None
+    assert not ventana.sesion.modificado
+    dialogo.close()
+
+
+def test_unidades_de_un_modelo_vacio(ventana):
+    ventana.sesion.nuevo()
+    dialogo = ventana.configurar_proyecto()
+    assert dialogo.fuerza.isEnabled()
+    dialogo.fuerza.setCurrentIndex(dialogo.fuerza.findData("tf"))
+    dialogo.longitud.setCurrentIndex(dialogo.longitud.findData("cm"))
+    assert dialogo.aplicar()
+    assert ventana.sesion.modelo["unidades"] == {"fuerza": "tf", "longitud": "cm"}
+    assert ventana.lbl_unidades.text() == "tf · cm"
+    dialogo.close()
+
+
+def test_recientes_y_abrir_el_ultimo(ventana, tmp_path):
+    from nervi.gui import ajustes
+    from nervi.gui.app import crear_ventana
+
+    ruta = tmp_path / "porticos" / "a.nrv"
+    ruta.parent.mkdir()
+    assert ventana._guardar_en(ruta)
+    assert ajustes.recientes() == [str(ruta.resolve())]
+    ventana._llenar_recientes()
+    assert [a.text() for a in ventana.menu_recientes.actions()] == ["a.nrv"]
+    ajustes.guardar("general/inicio", "ultimo")
+    otra = crear_ventana([])
+    assert otra.sesion.ruta == ruta.resolve() or otra.sesion.ruta == ruta
+    otra.close()
+    ajustes.guardar("general/inicio", "vacio")
+    vacia = crear_ventana([])
+    assert vacia.sesion.modelo["nudos"] == []
+    vacia.close()

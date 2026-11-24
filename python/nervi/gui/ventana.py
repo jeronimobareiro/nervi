@@ -2,17 +2,17 @@
 """Ventana principal: todo el trabajo en una sola ventana.
 
 Arriba, el flujo de trabajo (Geometría › Cargas › Análisis › Resultados › Diseño) y la
-barra contextual; a la izquierda, el explorador del proyecto; al centro, la
-vista del pórtico; a la derecha, las propiedades de la selección; abajo, tablas,
-revisión del modelo y consola.
+barra contextual; a la izquierda, la barra lateral de menús (íconos) y el
+explorador del proyecto; al centro, la vista del pórtico; a la derecha, las
+propiedades de la selección; abajo, tablas, revisión del modelo y consola.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QElapsedTimer, QSettings, QSize, Qt, QTimer
-from PySide6.QtGui import QAction, QActionGroup, QColor, QIcon, QKeySequence
+from PySide6.QtCore import QElapsedTimer, QPoint, QSize, Qt, QTimer, QUrl
+from PySide6.QtGui import QAction, QActionGroup, QColor, QDesktopServices, QIcon, QKeySequence
 from PySide6.QtWidgets import (
     QButtonGroup,
     QComboBox,
@@ -37,7 +37,8 @@ from PySide6.QtWidgets import (
 )
 
 from .. import MecanismoError, formato
-from . import estilo, vista3d
+from . import ajustes, estilo, vista3d
+from .ajustes import ConfiguracionProyecto, Preferencias
 from .canal import CanalVentana
 from .consola import Consola
 from .dinamica import PanelDinamica, fase
@@ -54,11 +55,22 @@ AVISO_PRELIMINAR = "Versión preliminar · no apta para proyecto"
 
 
 CLAVE_TEMA = "interfaz/tema"
+URL_REPOSITORIO = "https://github.com/jeronimobareiro/nervi"
+
+#: Menús de la barra lateral: clave del ícono y nombre, arriba y abajo.
+MENUS_RIEL = (
+    ("archivo", "Archivo"),
+    ("modelo", "Modelo"),
+    ("calcular", "Calcular"),
+    ("ver", "Ver"),
+    ("herramientas", "Herramientas"),
+)
+MENUS_RIEL_ABAJO = (("ayuda", "Ayuda"), ("preferencias", "Preferencias"))
 
 
 def tema_guardado() -> str:
     """Tema elegido la última vez ("claro" u "oscuro")."""
-    return str(QSettings("Nervi", "Nervi").value(CLAVE_TEMA, "claro"))
+    return ajustes.leer(CLAVE_TEMA)
 
 
 def icono() -> QIcon:
@@ -72,7 +84,7 @@ class Ventana(QMainWindow):
         self.canal = CanalVentana(self.sesion, self)
         self.setWindowIcon(icono())
         self.resize(1440, 900)
-        estilo.aplicar(tema=estilo.TEMAS.get(tema_guardado(), estilo.CLARO))
+        estilo.aplicar(tema=ajustes.tema())
         self._acciones()
 
         raiz = QWidget(objectName="raiz")
@@ -102,7 +114,12 @@ class Ventana(QMainWindow):
         horizontal.addWidget(self._propiedades())
         horizontal.setStretchFactor(1, 1)
         horizontal.setSizes([240, 900, 290])
-        capa.addWidget(horizontal, 1)
+        cuerpo = QHBoxLayout()
+        cuerpo.setContentsMargins(0, 0, 0, 0)
+        cuerpo.setSpacing(0)
+        cuerpo.addWidget(self._riel())
+        cuerpo.addWidget(horizontal, 1)
+        capa.addLayout(cuerpo, 1)
         self.setCentralWidget(raiz)
         self._barra_estado()
 
@@ -148,6 +165,21 @@ class Ventana(QMainWindow):
         self.a_conectar_ia.setCheckable(True)
         self.a_buscar = self._accion("Buscar comando o elemento", self.abrir_paleta, "Ctrl+K")
         self.a_salir = self._accion("Salir", self.close, QKeySequence.Quit)
+        self.a_preferencias = self._accion("Preferencias…", self.abrir_preferencias, "Ctrl+,")
+        self.a_configuracion = self._accion(
+            "Configuración del proyecto…", self.configurar_proyecto, "Ctrl+Shift+,"
+        )
+        self.a_consola = self._accion("Consola Python", self.mostrar_consola)
+        self.a_revision = self._accion("Revisión del modelo", self.mostrar_revision)
+        self.a_acerca = self._accion("Acerca de Nervi", self.acerca_de)
+        self.a_informar = self._accion(
+            "Informar un error",
+            lambda: QDesktopServices.openUrl(QUrl(URL_REPOSITORIO + "/issues")),
+        )
+        self.a_codigo = self._accion(
+            "Código fuente y documentación",
+            lambda: QDesktopServices.openUrl(QUrl(URL_REPOSITORIO)),
+        )
         self.a_diagramas = {}
         for clave, nombre in DIAGRAMAS.items():
             atajo = {"M": "M", "V": "V", "N": "N", "D": "D"}[clave]
@@ -166,7 +198,7 @@ class Ventana(QMainWindow):
                 f"Tema {tema.nombre.lower()}", lambda _=False, c=clave: self.elegir_tema(c)
             )
             a.setCheckable(True)
-            a.setChecked(tema is estilo.actual)
+            a.setChecked(clave == tema_guardado())
             grupo_temas.addAction(a)
             self.a_temas[clave] = a
 
@@ -185,11 +217,13 @@ class Ventana(QMainWindow):
             self.a_guardar_como,
             self.a_memoria,
             self.a_resultados,
+            self.a_configuracion,
             None,
             self.a_deshacer,
             self.a_rehacer,
             None,
             *self.a_temas.values(),
+            self.a_preferencias,
             None,
             self.a_salir,
         ):
@@ -236,6 +270,110 @@ class Ventana(QMainWindow):
         capa.addWidget(buscar)
         capa.addWidget(calcular)
         return barra
+
+    # --- Barra lateral de menús -------------------------------------------------------
+    def _riel(self) -> QWidget:
+        """Barra de íconos a la izquierda: cada ícono abre su menú hacia la derecha.
+
+        Los menús solo tienen acciones que ya existen; el resto se agrega cuando llega
+        (``docs/diseno-interfaz.md`` §Menús y ajustes)."""
+        riel = QWidget(objectName="riel")
+        riel.setAttribute(Qt.WA_StyledBackground)
+        riel.setFixedWidth(52)
+        capa = QVBoxLayout(riel)
+        capa.setContentsMargins(6, 8, 6, 8)
+        capa.setSpacing(4)
+        self.menus_riel = self._menus_riel()
+        self.botones_riel: dict[str, QToolButton] = {}
+        for grupo in (MENUS_RIEL, MENUS_RIEL_ABAJO):
+            if grupo is MENUS_RIEL_ABAJO:
+                capa.addStretch()
+            for clave, nombre in grupo:
+                b = QToolButton(objectName="menu_riel")
+                b.setFixedSize(40, 40)
+                b.setIconSize(QSize(20, 20))
+                b.setCheckable(True)
+                b.setToolTip(nombre)
+                b.setAccessibleName(nombre)
+                b.clicked.connect(lambda _=False, c=clave: self.abrir_menu_riel(c))
+                if clave in self.menus_riel:
+                    self.menus_riel[clave].aboutToHide.connect(lambda b=b: b.setChecked(False))
+                self.botones_riel[clave] = b
+                capa.addWidget(b, 0, Qt.AlignHCenter)
+        self._iconos_riel()
+        return riel
+
+    def _menus_riel(self) -> dict[str, QMenu]:
+        def menu(*items) -> QMenu:
+            m = QMenu(self)
+            for a in items:
+                if a is None:
+                    m.addSeparator()
+                elif isinstance(a, QMenu):
+                    m.addMenu(a)
+                else:
+                    m.addAction(a)
+            return m
+
+        self.menu_recientes = QMenu("Abrir reciente", self)
+        self.menu_recientes.aboutToShow.connect(self._llenar_recientes)
+        modelo = QMenu(self)
+        for lista, (titulo, _cols) in LISTAS.items():
+            modelo.addAction(titulo, lambda l=lista: self.mostrar_tabla(l))
+        modelo.addSeparator()
+        modelo.addAction(self.a_revision)
+        modelo.addAction(self.a_configuracion)
+        return {
+            "archivo": menu(
+                self.a_nuevo,
+                self.a_abrir,
+                self.menu_recientes,
+                self.a_ejemplo,
+                None,
+                self.a_guardar,
+                self.a_guardar_como,
+                None,
+                self.a_memoria,
+                None,
+                self.a_configuracion,
+                None,
+                self.a_salir,
+            ),
+            "modelo": modelo,
+            "calcular": menu(self.a_calcular, self.a_dinamica, self.a_disenar),
+            "ver": menu(self.a_vista2d, self.a_vista3d, None, *self.a_diagramas.values()),
+            "herramientas": menu(self.a_buscar, self.a_consola),
+            "ayuda": menu(self.a_codigo, self.a_informar, None, self.a_acerca),
+        }
+
+    def _iconos_riel(self) -> None:
+        rutas = estilo.iconos_menu(estilo.actual)
+        for clave, b in self.botones_riel.items():
+            icono_b = QIcon()
+            icono_b.addFile(rutas[clave], QSize(), QIcon.Normal, QIcon.Off)
+            icono_b.addFile(rutas[clave + "_activo"], QSize(), QIcon.Normal, QIcon.On)
+            b.setIcon(icono_b)
+
+    def abrir_menu_riel(self, clave: str) -> None:
+        """Abre el menú de ese ícono a su derecha; *Preferencias* abre su ventana."""
+        b = self.botones_riel[clave]
+        if clave == "preferencias":
+            b.setChecked(False)
+            self.abrir_preferencias()
+            return
+        menu = self.menus_riel[clave]
+        b.setChecked(True)
+        menu.popup(b.mapToGlobal(QPoint(b.width() + 8, 0)))
+
+    def _llenar_recientes(self) -> None:
+        self.menu_recientes.clear()
+        rutas = ajustes.recientes()
+        for ruta in rutas:
+            a = self.menu_recientes.addAction(Path(ruta).name)
+            a.triggered.connect(lambda _=False, r=ruta: self.abrir_reciente(r))
+            a.setToolTip(ruta)
+        if not rutas:
+            self.menu_recientes.addAction("Todavía no hay proyectos recientes").setEnabled(False)
 
     def _barra_contextual(self) -> QWidget:
         barra = QWidget(objectName="contexto")
@@ -747,12 +885,16 @@ class Ventana(QMainWindow):
         if ruta:
             self.abrir(ruta)
 
+    def abrir_reciente(self, ruta: str) -> bool:
+        return self._seguir_si_hay_cambios() and self.abrir(ruta)
+
     def abrir(self, ruta: str | Path) -> bool:
         try:
             self.sesion.abrir(ruta)
         except (formato.FormatoError, OSError) as e:
             QMessageBox.warning(self, "No se pudo abrir el proyecto", str(e))
             return False
+        ajustes.agregar_reciente(self.sesion.ruta)
         doc = self.sesion.doc
         if doc.migrado_desde:
             partes = ", ".join(
@@ -786,6 +928,7 @@ class Ventana(QMainWindow):
         except (formato.FormatoError, OSError) as e:
             QMessageBox.warning(self, "No se pudo guardar", str(e))
             return False
+        ajustes.agregar_reciente(self.sesion.ruta)
         return True
 
     # --- Deshacer y rehacer -------------------------------------------------------------
@@ -927,11 +1070,43 @@ class Ventana(QMainWindow):
         paleta.campo.setFocus()
         return paleta
 
+    # --- Ajustes ------------------------------------------------------------------------
+    def abrir_preferencias(self) -> Preferencias:
+        dialogo = Preferencias(self)
+        dialogo.aplicado.connect(lambda: self.elegir_tema(ajustes.leer(CLAVE_TEMA)))
+        dialogo.open()
+        return dialogo
+
+    def configurar_proyecto(self, apartado: str | None = None) -> ConfiguracionProyecto:
+        dialogo = ConfiguracionProyecto(self.sesion, self)
+        if apartado:
+            dialogo.elegir_apartado(apartado)
+        dialogo.open()
+        return dialogo
+
+    def mostrar_consola(self) -> None:
+        self.panel_inferior.setCurrentWidget(self.consola)
+
+    def mostrar_revision(self) -> None:
+        self.panel_inferior.setCurrentWidget(self.revision)
+
+    def acerca_de(self) -> None:
+        version = formato.contenedor._version_programa()
+        QMessageBox.about(
+            self,
+            "Acerca de Nervi",
+            f"<b>Nervi</b> {version}<br>Software libre de análisis y dimensionamiento "
+            "estructural.<br><br>Licencia GPL-3.0-or-later. "
+            f'<a href="{URL_REPOSITORIO}">{URL_REPOSITORIO}</a>',
+        )
+
     def elegir_tema(self, clave: str) -> None:
-        """Cambia entre el tema claro y el oscuro y lo recuerda para la próxima vez."""
-        estilo.aplicar(tema=estilo.TEMAS[clave])
-        QSettings("Nervi", "Nervi").setValue(CLAVE_TEMA, clave)
+        """Cambia entre el tema claro y el oscuro y lo recuerda para la próxima vez.
+        Toma el tamaño de letra de las preferencias."""
+        ajustes.guardar(CLAVE_TEMA, clave)
+        estilo.aplicar(tema=ajustes.tema(clave))
         self.a_temas[clave].setChecked(True)
+        self._iconos_riel()
         self._actualizar_explorador()
         self._actualizar_resultados()
         self._actualizar_propiedades()

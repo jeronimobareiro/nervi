@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Módulo ``diseno`` del formato ``.nrv`` (``diseno.json``, versión 1).
+"""Módulo ``diseno`` del formato ``.nrv`` (``diseno.json``, versión 2).
 
 Guarda los datos que el usuario elige para diseñar: norma, materiales, criterios
 y, por barra, el tipo de elemento y la sección de hormigón. **No** guarda
@@ -7,6 +7,9 @@ resultados: se recalculan desde el modelo (``docs/formato-nrv.md`` §4b).
 
 Unidades fijas, independientes de las del modelo: MPa para tensiones y mm para
 medidas de la sección.
+
+La versión 2 agrega ``criterios.diametros_columna``: los diámetros entre los que
+el programa busca la armadura de las columnas (por omisión, todos).
 
 >>> d = nuevo()
 >>> d["norma"], d["hormigon"]["fc"], d["acero"]["fy"]
@@ -27,6 +30,9 @@ NORMAS = ("ACI 318-19",)
 #: Tipos de elemento: ``auto`` decide por la orientación de la barra.
 TIPOS = ("auto", "viga", "columna", "ninguno")
 DIAMETROS_ESTRIBO = (6, 8, 10, 12)
+#: Diámetros de barra para columnas, en mm. Los mismos que
+#: ``nervi.design.aci318.columna.DIAMETROS_COLUMNA``.
+DIAMETROS_COLUMNA = (12, 16, 20, 25, 32)
 
 _DEFECTO = {
     "norma": "ACI 318-19",
@@ -37,6 +43,7 @@ _DEFECTO = {
         "d_estribo": 10.0,
         "d_agregado": 19.0,
         "seccion_critica_a_d": True,
+        "diametros_columna": list(DIAMETROS_COLUMNA),
     },
     "elementos": [],
 }
@@ -111,7 +118,13 @@ def validar(d: dict) -> None:
     c = _objeto(
         d["criterios"],
         "criterios",
-        {"recubrimiento": True, "d_estribo": True, "d_agregado": True, "seccion_critica_a_d": True},
+        {
+            "recubrimiento": True,
+            "d_estribo": True,
+            "d_agregado": True,
+            "seccion_critica_a_d": True,
+            "diametros_columna": True,
+        },
     )
     _numero(c["recubrimiento"], "criterios.recubrimiento", estricto=False)
     _numero(c["d_estribo"], "criterios.d_estribo")
@@ -122,6 +135,15 @@ def validar(d: dict) -> None:
     _numero(c["d_agregado"], "criterios.d_agregado")
     if not isinstance(c["seccion_critica_a_d"], bool):
         raise _err("tiene que ser true o false", "criterios.seccion_critica_a_d")
+    diametros = c["diametros_columna"]
+    ruta_d = "criterios.diametros_columna"
+    if not isinstance(diametros, list) or not diametros:
+        raise _err("tiene que ser una lista con al menos un diámetro", ruta_d)
+    for k, d_b in enumerate(diametros):
+        if isinstance(d_b, bool) or d_b not in DIAMETROS_COLUMNA:
+            raise _err(f"= {d_b!r}: diámetros válidos {DIAMETROS_COLUMNA}", f"{ruta_d}[{k}]")
+    if len(set(diametros)) != len(diametros):
+        raise _err("tiene diámetros repetidos", ruta_d)
     if not isinstance(d["elementos"], list):
         raise _err("tiene que ser una lista", "elementos")
     vistas = set()

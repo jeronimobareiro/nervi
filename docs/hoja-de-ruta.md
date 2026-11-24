@@ -111,7 +111,7 @@ Después de ACI 318-19 y la norma regional siguen CIRSOC 201, NBR 6118, NCh 430/
 
 ### Fase 5 · Interfaz gráfica
 
-Desde noviembre de 2026 la interfaz es una **vía paralela**: `nervi.gui` (PySide6) ya cubre el pórtico plano de la Fase 1 en una sola ventana y crece junto con cada fase del motor, con instaladores preliminares para Windows y Linux. Ya tiene la etapa Diseño, la pestaña Dinámica, el visor 3D opcional y un sistema de diseño propio con tema claro y oscuro ([`diseno-interfaz.md`](diseno-interfaz.md)). Esta fase queda para lo que necesita la Fase 2a: llevar el pórtico espacial a la interfaz y al `.nrv`, y la edición gráfica de modelos. Regla: la interfaz no calcula ni guarda nada por su cuenta, solo usa `nervi` y `nervi.formato`.
+Desde noviembre de 2026 la interfaz es una **vía paralela**: `nervi.gui` (PySide6) ya cubre el pórtico plano de la Fase 1 en una sola ventana y crece junto con cada fase del motor, con instaladores preliminares para Windows y Linux. Ya tiene la etapa Diseño, la pestaña Dinámica, el visor 3D opcional, un sistema de diseño propio con tema claro y oscuro ([`diseno-interfaz.md`](diseno-interfaz.md)), la barra lateral de menús y las ventanas de Preferencias y Configuración del proyecto. Sus próximos apartados (unidades con conversión, normas, análisis, memoria, empresa y firma, IA y complementos) entran a medida que exista lo que ajustan. Esta fase queda para lo que necesita la Fase 2a: llevar el pórtico espacial a la interfaz y al `.nrv`, y la edición gráfica de modelos. Regla: la interfaz no calcula ni guarda nada por su cuenta, solo usa `nervi` y `nervi.formato`.
 
 | Issue | Tarea | Tamaño | Área |
 |---|---|---|---|

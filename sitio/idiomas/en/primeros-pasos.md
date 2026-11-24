@@ -20,7 +20,7 @@ All the work is done in a single window. At the top is the path **Geometry › L
 
 With **Ctrl+K** you open a search box to find any command or model element by name.
 
-In the logo menu you can choose **Tema claro** (light) or **Tema oscuro** (dark); Nervi remembers your choice.
+The menus are in the icon bar on the left. In **Preferencias** (the last icon) you choose the light or dark theme, the font size and what to open at startup; Nervi remembers it. In **Archivo › Configuración del proyecto** you enter the cover-page data of the report, the materials and the design criteria, including the bar diameters Nervi chooses from for columns.
 
 ## With Python
 

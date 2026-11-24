@@ -345,6 +345,16 @@ DISENADORES["viga"] = disenar_viga
 # --- Columnas (ACI 318-19 §10, §22.4, §6.6.4) ---------------------------------------------
 
 
+def diametros_columna(criterios: dict) -> tuple[int, ...]:
+    """Diámetros entre los que se busca la armadura de columnas (``diseno.json``
+    versión 2), de menor a mayor. Sin el dato, todos los de
+    :data:`aci318.columna.DIAMETROS_COLUMNA`, como antes de la versión 2."""
+    elegidos = criterios.get("diametros_columna")
+    if not elegidos:
+        return aci318.columna.DIAMETROS_COLUMNA
+    return tuple(d for d in aci318.columna.DIAMETROS_COLUMNA if d in elegidos)
+
+
 def disenar_columna(el: Elemento, ctx: Contexto) -> ResultadoElemento:
     """Armadura longitudinal de una columna con :func:`aci318.disenar_columna`.
 
@@ -388,6 +398,7 @@ def disenar_columna(el: Elemento, ctx: Contexto) -> ResultadoElemento:
                 mat,
                 ctx.combinaciones,
                 buscar_armadura=True,
+                diametros=diametros_columna(c),
             )
         except ValueError as e:
             return ResultadoElemento(el, "no cumple", mensajes=[_mensaje_falla(str(e))])
@@ -468,6 +479,13 @@ def capitulo_memoria(
         + " Las columnas se arman a flexocompresión con la armadura de menor área que "
         "cumple (1 % ≤ ρ ≤ 8 %), con k = 1, lu igual al largo de la barra, pórtico no "
         "desplazable y βdns = 1 para la esbeltez (§6.6.4)."
+        + (
+            ""
+            if diametros_columna(c) == aci318.columna.DIAMETROS_COLUMNA
+            else " La armadura de columnas se busca solo con barras de "
+            + ", ".join(f"Ø{d}" for d in diametros_columna(c))
+            + "."
+        )
     )
     filas = []
     for r in resultados:

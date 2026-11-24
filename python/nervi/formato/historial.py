@@ -3,7 +3,7 @@
 
 Registro de los cambios al proyecto que **no** hizo la persona a mano: los que
 propuso un agente de IA, un importador o un complemento y la persona aplicó, y
-si después los deshizo o los rehízo (``docs/formato-nrv.md`` §4d). Sirve para
+si después los deshizo o los rehízo (``docs/formato-nrv.md`` §4e). Sirve para
 auditar un proyecto: qué cambió, quién lo propuso y sobre qué modelo.
 
 Las ediciones a mano no se registran (serían miles por sesión); deshacer y

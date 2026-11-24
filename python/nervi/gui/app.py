@@ -7,17 +7,24 @@ import sys
 
 from PySide6.QtWidgets import QApplication
 
-from . import estilo
+from . import ajustes, estilo
 from .sesion import Sesion, documento_ejemplo
 from .ventana import Ventana, icono
 
 
 def crear_ventana(argumentos: list[str]) -> Ventana:
-    """Abre el proyecto indicado en la línea de comandos, o el ejemplo si no hay ninguno."""
+    """Abre el proyecto indicado en la línea de comandos. Sin archivo, hace lo que
+    diga la preferencia *Al abrir Nervi*: el ejemplo (por omisión), el último
+    proyecto o un proyecto vacío."""
     archivos = [a for a in argumentos if not a.startswith("-")]
-    ventana = Ventana(Sesion(documento_ejemplo()))
+    inicio = ajustes.leer("general/inicio")
+    recientes = ajustes.recientes() if inicio == "ultimo" else []
+    vacio = inicio == "vacio" or bool(recientes)
+    ventana = Ventana(Sesion(None if vacio else documento_ejemplo()))
     if archivos:
         ventana.abrir(archivos[0])
+    elif recientes and not ventana.abrir(recientes[0]):
+        ventana.sesion.nuevo(documento_ejemplo())
     return ventana
 
 

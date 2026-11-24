@@ -20,7 +20,7 @@ Todo el trabajo se hace en una sola ventana. Arriba está el recorrido **Geometr
 
 Con **Ctrl+K** abrís un buscador para encontrar cualquier comando o elemento del modelo por su nombre.
 
-En el menú del logo podés elegir **Tema claro** o **Tema oscuro**; Nervi recuerda la elección.
+Los menús están en la barra de íconos de la izquierda. En **Preferencias** (el último ícono) elegís el tema claro u oscuro, el tamaño de letra y qué abrir al iniciar; Nervi lo recuerda. En **Archivo › Configuración del proyecto** cargás los datos de la carátula de la memoria, los materiales y los criterios de diseño, entre ellos los diámetros entre los que Nervi elige la armadura de las columnas.
 
 ## Con Python
 
