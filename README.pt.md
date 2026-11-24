@@ -51,6 +51,7 @@ Ainda não foi revisado por um engenheiro estrutural: não use em projetos reais
 - **Interface** (`nervi-gui`, PySide6) em uma única janela, com as etapas Geometria › Cargas › Análise › Resultados › Dimensionamento: tabelas do modelo, cálculo com F5, diagramas com leitura de esforços sob o cursor, visualizador 3D opcional, aba **Dinámica** (massas, modos animados e espectros), etapa **Diseño** (todas as vigas e pilares, cada verificação com seu artigo), revisão do modelo, console Python e paleta de comandos (Ctrl+K). Tema claro por padrão e tema escuro com as cores da marca. Por enquanto a interface está em espanhol.
 - **Projetos** no formato [`.nrv`](docs/formato-nrv.md), com módulos versionados (modelo, dimensionamento, dinâmica) e migrações para que projetos antigos sempre abram.
 - **Memória de cálculo em PDF**, em espanhol e com modelo editável: capa, normas de referência, dados do modelo, cargas, combinações, resultados, diagramas, envoltórias e, quando houver, os capítulos de dimensionamento e de análise dinâmica (`nervi.memoria`, ou Ctrl+P na interface).
+- **Resultados com precisão completa** em JSON, sem o arredondamento da memória: deslocamentos, reações, esforços de extremidade e diagramas de cada caso e combinação, e o dimensionamento e a dinâmica quando atualizados, com a impressão digital do modelo a que correspondem ([`formato-resultados.md`](docs/formato-resultados.md)).
 
 ### Desempenho
 

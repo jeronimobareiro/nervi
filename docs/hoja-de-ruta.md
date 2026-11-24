@@ -124,6 +124,18 @@ Desde noviembre de 2026 la interfaz es una **vía paralela**: `nervi.gui` (PySid
 |---|---|---|---|
 | [#32](https://github.com/jeronimobareiro/nervi/issues/32) | Elemento de lámina para losas y muros | T | motor |
 
+### Línea transversal · Integración con agentes de IA, API y complementos
+
+Abierta el 24/11/2026, en paralelo a las fases y sin frenarlas. Objetivo: que la persona conecte el agente de IA que ya usa (Claude, ChatGPT, Gemini u otro) para cargar datos e interpretar resultados del programa abierto, y que la comunidad pueda escribir complementos, **sin que ninguno toque el motor**: la IA nunca produce un número de resultado, solo consulta a Nervi y propone cambios que la persona confirma. Etapas, cada una en su propio aporte:
+
+1. Capa de proyecto sin Qt, `nervi.proyecto` (hecha): la comparten la interfaz, los scripts y las integraciones.
+2. Resultados a precisión completa en JSON, `nervi.resultados` (hecha, [`formato-resultados.md`](formato-resultados.md)).
+3. Deshacer, rehacer y propuestas de cambio con su origen.
+4. Servidor MCP `nervi-mcp`, primero de solo lectura.
+5. Canal local con la ventana abierta, botón "Conectar con mi IA" y panel del asistente (con muestra visual en los dos temas antes de implementarlo).
+6. Importar DXF con vista previa.
+7. Complementos con *entry points*, permisos y camino a oficial, con su regla de licencia en `GOVERNANCE.md`.
+
 ## Colaboración con universidades
 
 ### Qué etiqueta mirar según el perfil

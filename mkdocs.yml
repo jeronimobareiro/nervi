@@ -101,6 +101,7 @@ nav:
       - Convenciones de signos: tecnica/convenciones.md
       - Contrato de datos: tecnica/contrato-datos.md
       - Formato de archivo .nrv: tecnica/formato-nrv.md
+      - Resultados a precisión completa: tecnica/formato-resultados.md
   - Hoja de ruta: hoja-de-ruta.md
   - Participar:
       - Resumen: participar/index.md

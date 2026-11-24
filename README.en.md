@@ -51,6 +51,7 @@ It has not yet been reviewed by a structural engineer: do not use it for real pr
 - **Interface** (`nervi-gui`, PySide6) in a single window, following the stages Geometry › Loads › Analysis › Results › Design: model tables, analysis with F5, diagrams with values under the cursor, optional 3D viewer, **Dinámica** tab (masses, animated modes and spectra), **Design** stage (every beam and column, each check with its code clause), model check, Python console and command palette (Ctrl+K). Light theme by default and a dark theme in the brand colors. The interface is currently in Spanish.
 - **Projects** in the [`.nrv`](docs/formato-nrv.md) format, with versioned modules (model, design, dynamics) and migrations so that old projects always open.
 - **Calculation report in PDF**, in Spanish with an editable template: cover page, reference codes, model data, loads, combinations, results, diagrams, envelopes and, when applicable, the design and dynamic analysis chapters (`nervi.memoria`, or Ctrl+P in the interface).
+- **Full-precision results** in JSON, without the rounding of the report: displacements, reactions, end forces and diagrams of every load case and combination, plus design and dynamics when up to date, with the fingerprint of the model they belong to ([`formato-resultados.md`](docs/formato-resultados.md)).
 
 ### Performance
 

@@ -201,3 +201,5 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | banco de tiempos (`scripts/medir_diseno.py`), pórtico de referencia | benchmark, reference frame | benchmark, pórtico de referência | замер времени, эталонная рама |
 | comparación cruzada (`test_columna_rust.py`) | cross-check test | comparação cruzada | перекрёстная проверка |
 | armadura candidata (`elegir_armadura`) | candidate reinforcement layout | armadura candidata | вариант армирования |
+| proyecto sin interfaz (`nervi.proyecto.Proyecto`), evento (`suscribir`) | headless project, event | projeto sem interface, evento | проект без интерфейса, событие |
+| resultados a precisión completa (`nervi.resultados`), huella del modelo (`huella_modelo`) | full-precision results, model fingerprint | resultados com precisão completa, impressão digital do modelo | результаты с полной точностью, отпечаток модели |

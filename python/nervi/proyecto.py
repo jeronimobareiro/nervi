@@ -489,6 +489,21 @@ class Proyecto:
             doc.agregar(capitulo, antes_de="Diseño")
         return doc
 
+    def resultados_completos(self) -> dict:
+        """Todos los resultados a precisión completa, sin redondear
+        (``nervi.resultados.exportar``). Calcula si hace falta."""
+        from . import resultados
+
+        return resultados.exportar(self)
+
+    def exportar_resultados(self, ruta: str | Path) -> Path:
+        """Escribe :meth:`resultados_completos` en un JSON (``nervi-resultados``)."""
+        from . import resultados
+
+        ruta = Path(ruta)
+        resultados.guardar(resultados.exportar(self), ruta)
+        return ruta
+
     def elegir_combinacion(self, nombre: str) -> None:
         if nombre != self.combinacion:
             self.combinacion = nombre
