@@ -6,7 +6,7 @@ Las unidades de esta guía son kN y m. El sentido de los ejes y los signos de lo
 
 ## Con la interfaz
 
-Todo el trabajo se hace en una sola ventana. Arriba está el recorrido **Geometría › Cargas › Análisis › Resultados › Diseño**, a la izquierda el árbol del proyecto y a la derecha las propiedades de lo que seleccionás.
+Todo el trabajo se hace en una sola ventana. Arriba está el recorrido **Geometría › Cargas › Análisis › Resultados › Diseño**, a la izquierda el panel **Estructura** con nudos, barras, apoyos, secciones, cargas y combinaciones en secciones plegables y a la derecha las propiedades de lo que seleccionás.
 
 1. **Geometría.** En la tabla de nudos cargá N1 en (0, 0) y N2 en (6, 0). En la tabla de barras uní N1 con N2 y escribí E = 2.5e7, A = 0.125, I = 0.0026.
 2. **Apoyos.** N1 con desplazamientos X e Y impedidos (articulado fijo) y N2 solo con Y impedido (carrito).

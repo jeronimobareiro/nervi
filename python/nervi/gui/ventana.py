@@ -30,15 +30,15 @@ from PySide6.QtWidgets import (
     QStackedWidget,
     QTabWidget,
     QToolButton,
-    QTreeWidget,
-    QTreeWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
 from .. import MecanismoError, formato
+from ..design import proyecto
 from . import ajustes, estilo, vista3d
 from .ajustes import ConfiguracionProyecto, Preferencias
+from .arbol import ArbolModelo
 from .asistente import PanelAsistente
 from .canal import CanalVentana
 from .consola import Consola
@@ -142,6 +142,9 @@ class Ventana(QMainWindow):
         self.canal.estado_cambiado.connect(self.a_conectar_ia.setChecked)
         self._actualizar_insignia(len(s.propuestas))
         self._actualizar_deshacer()
+        s.diseno_cambiado.connect(self._actualizar_explorador)
+        s.seleccion_cambiada.connect(self._marcar_arbol)
+        s.resultados_cambiados.connect(self._marcar_arbol)
         self.vista.diagrama_cambiado.connect(self._marcar_diagrama)
         self._actualizar_todo()
 
@@ -447,13 +450,15 @@ class Ventana(QMainWindow):
     def _explorador(self) -> QWidget:
         panel = QWidget(objectName="panel")
         capa = QVBoxLayout(panel)
-        capa.setContentsMargins(6, 8, 6, 8)
-        self.arbol = QTreeWidget()
-        self.arbol.setHeaderHidden(True)
-        self.arbol.setIndentation(14)
-        self.arbol.itemClicked.connect(self._item_explorador)
+        capa.setContentsMargins(0, 10, 0, 8)
+        capa.setSpacing(6)
+        titulo = QLabel("Estructura", objectName="titulo_arbol")
+        titulo.setContentsMargins(12, 0, 12, 0)
+        capa.addWidget(titulo)
+        self.arbol = ArbolModelo()
+        self.arbol.elegido.connect(self._item_explorador)
         capa.addWidget(self.arbol)
-        panel.setMinimumWidth(200)
+        panel.setMinimumWidth(240)
         return panel
 
     def _propiedades(self) -> QWidget:
@@ -574,37 +579,12 @@ class Ventana(QMainWindow):
 
     def _actualizar_explorador(self) -> None:
         m = self.sesion.modelo
-        self.arbol.clear()
-
-        def grupo(titulo: str) -> QTreeWidgetItem:
-            item = QTreeWidgetItem(self.arbol, [titulo])
-            item.setFlags(Qt.ItemIsEnabled)
-            item.setExpanded(True)
-            f = item.font(0)
-            f.setBold(True)
-            item.setFont(0, f)
-            return item
-
-        modelo = grupo("Modelo")
-        nudos = QTreeWidgetItem(modelo, [f"Nudos  ({len(m['nudos'])})"])
-        nudos.setData(0, Qt.UserRole, ("tabla", "nudos"))
-        barras = QTreeWidgetItem(modelo, [f"Barras  ({len(m['barras'])})"])
-        barras.setData(0, Qt.UserRole, ("tabla", "barras"))
-        for b in m["barras"]:
-            hijo = QTreeWidgetItem(barras, [f"B{b['id']}   N{b['i']} → N{b['j']}"])
-            hijo.setData(0, Qt.UserRole, ("barra", b["id"]))
-        apoyos = QTreeWidgetItem(modelo, [f"Apoyos  ({len(m.get('apoyos', []))})"])
-        apoyos.setData(0, Qt.UserRole, ("tabla", "apoyos"))
-        cargas = grupo("Cargas")
-        for c in m["casos"]:
-            item = QTreeWidgetItem(cargas, [f"{c['nombre']}"])
-            item.setData(0, Qt.UserRole, ("resultado", c["nombre"]))
-        combos = QTreeWidgetItem(cargas, [f"Combinaciones  ({len(m.get('combinaciones', []))})"])
-        combos.setData(0, Qt.UserRole, ("tabla", "combinaciones"))
-        for c in m.get("combinaciones", []):
-            item = QTreeWidgetItem(combos, [c["nombre"]])
-            item.setData(0, Qt.UserRole, ("resultado", c["nombre"]))
-        self.arbol.expandAll()
+        try:
+            elementos = proyecto.elementos(m, self.sesion.diseno)
+        except (KeyError, ValueError, ZeroDivisionError):
+            elementos = None  # sección sin A o I válidos: el árbol muestra solo los nudos
+        self.arbol.mostrar(m, elementos)
+        self._marcar_arbol()
         self._actualizar_etapas()
         self._actualizar_revision()
 
@@ -800,17 +780,25 @@ class Ventana(QMainWindow):
             self.vistas.setCurrentWidget(self.vista)
         self.botones_vista[nombre].setChecked(True)
 
-    def _item_explorador(self, item: QTreeWidgetItem) -> None:
-        dato = item.data(0, Qt.UserRole)
-        if not dato:
-            return
-        tipo, valor = dato
-        if tipo == "barra":
-            self.sesion.seleccionar(Seleccion("barra", valor))
+    def _item_explorador(self, tipo: str, valor) -> None:
+        if tipo in ("barra", "nudo"):
+            self.sesion.seleccionar(Seleccion(tipo, valor))
         elif tipo == "tabla":
             self.mostrar_tabla(valor)
         elif tipo == "resultado":
             self.combo.setCurrentText(valor)
+
+    def _marcar_arbol(self) -> None:
+        """Resalta en el árbol la barra o el nudo elegido y el caso o la combinación que se ve."""
+        sel = self.sesion.seleccion
+        if sel is not None and sel.tipo in ("barra", "nudo"):
+            clave = "barras" if sel.tipo == "barra" else "nudos"
+            self.arbol.marcar(clave, f"{sel.tipo[0].upper()}{sel.id}")
+        else:
+            self.arbol.marcar(None, None)
+        nombre = self.sesion.combinacion
+        casos = {c["nombre"] for c in self.sesion.modelo["casos"]}
+        self.arbol.marcar_activo("cargas" if nombre in casos else "combinaciones", nombre)
 
     def mostrar_tabla(self, lista: str) -> None:
         self.panel_inferior.setCurrentWidget(self.tabs_modelo)

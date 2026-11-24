@@ -463,6 +463,12 @@ QListWidget#apartados::item {{ padding: 6px 10px; border-radius: {rc}px; }}
 QWidget#pagina_ajustes {{ background: {t.fondo}; }}
 QWidget#caja_ajustes {{ background: {t.panel}; border: 1px solid {t.borde}; border-radius: {r}px; }}
 QWidget#pie_ajustes {{ background: {t.panel}; border-top: 1px solid {t.borde}; }}
+
+/* Árbol del modelo (panel Estructura): el delegado de arbol.py dibuja las filas */
+QLabel#titulo_arbol {{ font-weight: 600; font-size: {t.tamano + 1}pt; color: {t.texto}; }}
+QTreeView#arbol_modelo {{ border-top: 1px solid {t.borde}; }}
+QTreeView#arbol_modelo::item, QTreeView#arbol_modelo::item:hover,
+QTreeView#arbol_modelo::item:selected {{ background: transparent; padding: 0; border: 0; }}
 """
 
 

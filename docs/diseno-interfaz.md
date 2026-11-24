@@ -60,6 +60,16 @@ Decidido el 24/11/2026 con muestras en los dos temas.
 - *Vista previa* abre el modelo propuesto en una ventana aparte, sin aplicarlo. *Aplicar* se deshace con Ctrl+Z.
 - Abajo, *Conectar con mi IA* (`primario`) o *Desconectar*, *Cómo conectar mi app…* y el aviso de que lo que lee el agente viaja a su proveedor.
 
+## Árbol del modelo
+
+Decidido el 24/11/2026 con muestras en los dos temas (entrada [2026-11-24-07](bitacora/2026-11-24-07-arbol-del-modelo.md)).
+
+- **Panel *Estructura*** (`arbol.ArbolModelo`, nombre de objeto `arbol_modelo`) a la izquierda de la vista, con título `titulo_arbol`. Secciones plegables en este orden: Nudos, Barras, Apoyos, Secciones, Cargas y Combinaciones, separadas por una línea de 1 px del color de borde.
+- **Cabecera de sección:** ícono propio de 16 × 16 con trazo de 1,4 px (`arbol.ICONOS_ARBOL`) en texto secundario, título en negrita, contador en texto tenue y chevrón a la derecha (abajo si está abierta, a la derecha si está plegada). Clic en el título: despliega o pliega y, al abrir, muestra su tabla abajo. Clic en el chevrón: solo despliega o pliega. Abren desplegadas Barras, Cargas y Combinaciones, y el árbol recuerda qué abrió la persona mientras dura la sesión.
+- **Filas** colgadas de una guía vertical de 1 px: código (`B1`, `N1`, `D`) y detalle en texto secundario (`Columna 30×30`, `Empotrado`, `Permanente`). Con el panel de 300 px o más, a la derecha va un dato tenue (nudos de la barra, coordenadas del nudo, barras que usan la sección); más angosto se oculta en todas las filas a la vez y queda en la ayuda emergente.
+- **Dos resaltados:** la barra o el nudo elegido lleva fondo de acento suave con esquinas de 4 px y texto de acento; el caso o la combinación que muestran los diagramas lleva texto de acento y un punto de acento a la derecha.
+- Los nombres de los casos salen de su símbolo (ACI 318-19 §5.3: D Permanente, L Sobrecarga, W Viento, E Sismo…); la sección de cada barra es la rectangular equivalente de la etapa Diseño, en centímetros.
+
 ## Cómo agregar algo
 
 1. Usá los nombres de objeto existentes (`primario`, `fantasma`, `peligro`, `segmento`, `seccion`, `tenue`, `aviso`…) antes de crear uno nuevo.

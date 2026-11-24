@@ -6,7 +6,7 @@ The units in this guide are kN and m. The direction of the axes and the signs of
 
 ## With the interface
 
-All the work is done in a single window. At the top is the path **Geometry › Loads › Analysis › Results › Design**, on the left the project tree and on the right the properties of whatever you select.
+All the work is done in a single window. At the top is the path **Geometry › Loads › Analysis › Results › Design**, on the left the **Structure** panel with nodes, members, supports, sections, loads and combinations in collapsible sections and on the right the properties of whatever you select.
 
 1. **Geometry.** In the node table enter N1 at (0, 0) and N2 at (6, 0). In the member table join N1 with N2 and type E = 2.5e7, A = 0.125, I = 0.0026.
 2. **Supports.** N1 with X and Y displacements restrained (pinned) and N2 with only Y restrained (roller).

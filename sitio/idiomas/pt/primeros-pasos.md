@@ -6,7 +6,7 @@ As unidades deste guia são kN e m. O sentido dos eixos e os sinais dos esforço
 
 ## Com a interface
 
-Todo o trabalho é feito em uma única janela. No alto está o percurso **Geometria › Cargas › Análise › Resultados › Dimensionamento**, à esquerda a árvore do projeto e à direita as propriedades do que você seleciona.
+Todo o trabalho é feito em uma única janela. No alto está o percurso **Geometria › Cargas › Análise › Resultados › Dimensionamento**, à esquerda o painel **Estrutura** com nós, barras, apoios, seções, cargas e combinações em seções recolhíveis e à direita as propriedades do que você seleciona.
 
 1. **Geometria.** Na tabela de nós, cadastre N1 em (0, 0) e N2 em (6, 0). Na tabela de barras, una N1 com N2 e digite E = 2.5e7, A = 0.125, I = 0.0026.
 2. **Apoios.** N1 com deslocamentos X e Y impedidos (apoio fixo) e N2 apenas com Y impedido (apoio móvel).
