@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (
 
 from .. import MecanismoError, formato
 from . import estilo, vista3d
+from .canal import CanalVentana
 from .consola import Consola
 from .dinamica import PanelDinamica, fase
 from .diseno import PanelDiseno, color_estado
@@ -68,6 +69,7 @@ class Ventana(QMainWindow):
     def __init__(self, sesion: Sesion | None = None) -> None:
         super().__init__()
         self.sesion = sesion or Sesion()
+        self.canal = CanalVentana(self.sesion, self)
         self.setWindowIcon(icono())
         self.resize(1440, 900)
         estilo.aplicar(tema=estilo.TEMAS.get(tema_guardado(), estilo.CLARO))
@@ -142,6 +144,8 @@ class Ventana(QMainWindow):
         self.a_resultados = self._accion(
             "Exportar resultados a precisión completa (JSON)…", self.exportar_resultados
         )
+        self.a_conectar_ia = self._accion("Conectar con mi IA", self.conectar_ia)
+        self.a_conectar_ia.setCheckable(True)
         self.a_buscar = self._accion("Buscar comando o elemento", self.abrir_paleta, "Ctrl+K")
         self.a_salir = self._accion("Salir", self.close, QKeySequence.Quit)
         self.a_diagramas = {}
@@ -935,8 +939,27 @@ class Ventana(QMainWindow):
         if isinstance(self.vista3d, Vista3D):
             self.vista3d.actualizar()
 
+    def conectar_ia(self, conectar: bool | None = None) -> bool:
+        """Abre o cierra el canal local para que la app de IA de la persona use
+        ``nervi-mcp`` con este proyecto (``docs/agentes-ia.md``)."""
+        if conectar is None or not isinstance(conectar, bool):
+            conectar = not self.canal.activo
+        try:
+            self.canal.abrir() if conectar else self.canal.cerrar()
+        except OSError as e:
+            QMessageBox.warning(self, "Conectar con mi IA", str(e))
+        self.a_conectar_ia.setChecked(self.canal.activo)
+        self.statusBar().showMessage(
+            "IA conectada: tu app de IA ya puede usar nervi-mcp con este proyecto"
+            if self.canal.activo
+            else "IA desconectada",
+            6000,
+        )
+        return self.canal.activo
+
     def closeEvent(self, evento) -> None:
         if self._seguir_si_hay_cambios():
+            self.canal.cerrar()
             if isinstance(self.vista3d, Vista3D):
                 self.vista3d.plotter.close()
             evento.accept()

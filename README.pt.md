@@ -52,7 +52,7 @@ Ainda não foi revisado por um engenheiro estrutural: não use em projetos reais
 - **Projetos** no formato [`.nrv`](docs/formato-nrv.md), com módulos versionados (modelo, dimensionamento, dinâmica) e migrações para que projetos antigos sempre abram.
 - **Memória de cálculo em PDF**, em espanhol e com modelo editável: capa, normas de referência, dados do modelo, cargas, combinações, resultados, diagramas, envoltórias e, quando houver, os capítulos de dimensionamento e de análise dinâmica (`nervi.memoria`, ou Ctrl+P na interface).
 - **Resultados com precisão completa** em JSON, sem o arredondamento da memória: deslocamentos, reações, esforços de extremidade e diagramas de cada caso e combinação, e o dimensionamento e a dinâmica quando atualizados, com a impressão digital do modelo a que correspondem ([`formato-resultados.md`](docs/formato-resultados.md)).
-- **Conexão com agentes de IA** por MCP (`nervi-mcp`, somente leitura): o agente que você já usa (Claude, Gemini ou outro cliente MCP) consulta o projeto e explica os resultados, com cada número tirado do motor e sem alterar o arquivo ([`agentes-ia.md`](docs/agentes-ia.md), em espanhol).
+- **Conexão com agentes de IA** por MCP (`nervi-mcp`): o agente que você já usa (Claude, Gemini ou outro cliente MCP) consulta o projeto aberto ou um arquivo e explica os resultados, com cada número tirado do motor; não altera nada, só propõe mudanças que você aplica ou descarta ([`agentes-ia.md`](docs/agentes-ia.md), em espanhol).
 
 ### Desempenho
 

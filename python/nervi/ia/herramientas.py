@@ -9,8 +9,10 @@ número es el ``float64`` del motor, sin redondear.
 Nudos y barras se nombran con los ``id`` de ``modelo.json`` (``N3``, ``B2``); las
 herramientas aceptan el número solo (``3``) o con su letra (``"N3"``).
 
-Ninguna herramienta cambia el archivo del proyecto. Las que necesitan diseño o
-dinámica los calculan sobre la copia abierta en memoria.
+Las de consulta no cambian nada: con un archivo, lo leen; con la ventana abierta,
+trabajan sobre una copia del proyecto, así que calcular, diseñar o analizar para
+responder no toca lo que ve la persona. Las de la ventana (:data:`NOMBRES_VENTANA`)
+leen la selección y dejan propuestas que la persona aplica o descarta.
 
 >>> from nervi.proyecto import Proyecto, documento_ejemplo
 >>> h = Herramientas(FuenteProyecto(Proyecto(documento_ejemplo())))
@@ -20,6 +22,7 @@ dinámica los calculan sobre la copia abierta en memoria.
 
 from __future__ import annotations
 
+import copy
 import os
 import warnings
 from pathlib import Path
@@ -35,23 +38,37 @@ COMPONENTES_REACCION = ("Rx", "Ry", "Mz")
 COMPONENTES_EXTREMO = ("N_i", "V_i", "M_i", "N_j", "V_j", "M_j")
 ESFUERZOS = ("N", "V", "M")
 
+#: Origen de las propuestas que llegan por MCP (``Proyecto.proponer``).
+ORIGEN = "ia: agente MCP"
+
 
 class ErrorConsulta(ValueError):
     """La consulta no se puede responder (un id que no existe, falta calcular algo)."""
 
 
 class FuenteProyecto:
-    """Un proyecto ya abierto (por ejemplo, el de la interfaz)."""
+    """Un proyecto abierto (el de la ventana). Las consultas usan una copia, que se
+    renueva cuando cambian el modelo, el diseño o la dinámica; ``vivo`` es el
+    proyecto mismo, para leer la selección y dejar propuestas."""
 
     def __init__(self, proyecto: Proyecto) -> None:
-        self._proyecto = proyecto
+        self.vivo = proyecto
+        self._copia: tuple | None = None
 
     @property
     def descripcion(self) -> str:
-        return self._proyecto.titulo
+        return self.vivo.titulo
 
     def proyecto(self) -> Proyecto:
-        return self._proyecto
+        from ..resultados import huella
+
+        doc = self.vivo.doc
+        clave = tuple(
+            huella(x) if x is not None else None for x in (doc.modelo, doc.diseno, doc.dinamica)
+        )
+        if self._copia is None or self._copia[0] != clave:
+            self._copia = (clave, Proyecto(copy.deepcopy(doc)))
+        return self._copia[1]
 
 
 class FuenteArchivo:
@@ -112,9 +129,32 @@ def _por_componente(valores, nombres) -> dict[str, float]:
 class Herramientas:
     """Consultas de solo lectura sobre el proyecto que da ``fuente``."""
 
-    def __init__(self, fuente: FuenteProyecto | FuenteArchivo) -> None:
+    def __init__(self, fuente: FuenteProyecto | FuenteArchivo, origen: str = ORIGEN) -> None:
         self.fuente = fuente
+        self.origen = origen
         self._cache: tuple | None = None
+
+    @property
+    def nombres(self) -> tuple[str, ...]:
+        """Herramientas disponibles con esta fuente."""
+        if isinstance(self.fuente, FuenteProyecto):
+            return NOMBRES + NOMBRES_VENTANA
+        return NOMBRES
+
+    def ejecutar(self, nombre: str, argumentos: dict | None = None):
+        """Llama a la herramienta ``nombre`` con ``argumentos`` (lo que llega por el
+        canal de la ventana). Lanza :class:`ErrorConsulta` si no existe o si los
+        argumentos no corresponden."""
+        if nombre not in self.nombres:
+            raise ErrorConsulta(f"No hay una herramienta {nombre!r}.")
+        if argumentos is None:
+            argumentos = {}
+        if not isinstance(argumentos, dict):
+            raise ErrorConsulta("Los argumentos tienen que ser un objeto.")
+        try:
+            return getattr(self, nombre)(**argumentos)
+        except TypeError as e:
+            raise ErrorConsulta(f"Argumentos que no corresponden a {nombre}: {e}") from None
 
     # --- Acceso al proyecto y a sus resultados ---------------------------------------
     def _proyecto(self) -> Proyecto:
@@ -317,7 +357,8 @@ class Herramientas:
     def leer_verificaciones(self, barra: int | str | None = None) -> dict:
         """Diseño de hormigón armado (ACI 318-19, experimental): estado, armadura y cada
         verificación con solicitación, resistencia, relación y artículo. Solo si el
-        proyecto tiene datos de diseño; se calcula en memoria, sin tocar el archivo."""
+        proyecto tiene datos de diseño; se calcula sobre una copia, sin tocar el
+        proyecto."""
         from ..design import proyecto as diseno_proyecto
         from ..resultados import _diseno
 
@@ -344,7 +385,7 @@ class Herramientas:
     def leer_modos(self) -> dict:
         """Análisis modal del pórtico: periodo, frecuencia y fracción de masa
         participante en X e Y de cada modo. Solo si el proyecto tiene datos de dinámica
-        con masa; se calcula en memoria, sin tocar el archivo."""
+        con masa; se calcula sobre una copia, sin tocar el proyecto."""
         p, _res, _i = self._resuelto()
         if p.doc.dinamica is None or not any(p.dinamica["masas"]["casos"].values()):
             raise ErrorConsulta(
@@ -375,8 +416,64 @@ class Herramientas:
         """Todos los resultados sin redondear (formato ``nervi-resultados``)."""
         return self._proyecto().resultados_completos()
 
+    # --- Herramientas con la ventana abierta -------------------------------------------
+    def _vivo(self) -> Proyecto:
+        if not isinstance(self.fuente, FuenteProyecto):
+            raise ErrorConsulta(
+                "Esta herramienta necesita la ventana de Nervi abierta y conectada; con un "
+                "archivo solo se puede consultar."
+            )
+        return self.fuente.vivo
 
-#: Herramientas que publica el servidor, en orden.
+    def leer_seleccion(self) -> dict:
+        """Lo que la persona tiene seleccionado en la ventana (un nudo o una barra) y la
+        combinación que está mirando. Sirve para "esta barra" o "este nudo"."""
+        p = self._vivo()
+        sel = p.seleccion
+        return {
+            "seleccion": None
+            if sel is None
+            else {"tipo": sel.tipo, "id": f"{'N' if sel.tipo == 'nudo' else 'B'}{sel.id}"},
+            "combinacion": p.combinacion or None,
+        }
+
+    def proponer_modelo(self, modelo: dict, descripcion: str) -> dict:
+        """Propone reemplazar ``modelo.json`` por ``modelo`` (leelo antes con
+        leer_modelo y cambiá solo lo pedido). No cambia nada: la persona ve el resumen
+        en la ventana y la aplica o la descarta. ``descripcion`` dice en pocas
+        palabras qué hace (por ejemplo "Agrega la carga de viento en B1")."""
+        p = self._vivo()
+        if not isinstance(modelo, dict):
+            raise ErrorConsulta("El modelo tiene que ser un objeto, como el de leer_modelo.")
+        if not isinstance(descripcion, str) or not descripcion.strip():
+            raise ErrorConsulta("Falta la descripción de la propuesta.")
+        try:
+            propuesta = p.proponer(modelo, self.origen, descripcion.strip())
+        except formato.FormatoError as e:
+            raise ErrorConsulta(f"El modelo propuesto no es válido: {e}") from None
+        except ValueError as e:
+            raise ErrorConsulta(str(e)) from None
+        return {
+            "propuesta": propuesta.id,
+            "resumen": propuesta.resumen,
+            "estado": "pendiente: la persona la aplica o la descarta en la ventana de Nervi",
+        }
+
+    def listar_propuestas(self) -> list[dict]:
+        """Propuestas que siguen pendientes, con su resumen. Una que ya no aparece fue
+        aplicada o descartada por la persona."""
+        return [
+            {
+                "propuesta": x.id,
+                "origen": x.origen,
+                "descripcion": x.descripcion,
+                "resumen": x.resumen,
+            }
+            for x in self._vivo().propuestas
+        ]
+
+
+#: Herramientas de consulta, en orden.
 NOMBRES = (
     "resumen_proyecto",
     "leer_modelo",
@@ -389,3 +486,5 @@ NOMBRES = (
     "leer_verificaciones",
     "leer_modos",
 )
+#: Herramientas que necesitan la ventana abierta.
+NOMBRES_VENTANA = ("leer_seleccion", "proponer_modelo", "listar_propuestas")

@@ -4,7 +4,7 @@ Nervi trae un servidor [MCP](https://modelcontextprotocol.io) (Model Context Pro
 
 **El agente nunca produce un número de resultado.** Cada cifra sale del motor de Nervi a través de una herramienta, sin redondear, y el servidor le pide al agente que diga de qué herramienta y de qué caso o combinación la sacó. La responsabilidad del cálculo sigue siendo de la persona profesional que firma.
 
-Esta primera versión es **de solo lectura**: ninguna herramienta cambia el `.nrv`. Las que cambien el proyecto (cargar datos, importar un DXF) van a llegar como propuestas que la persona aplica o descarta ([`hoja-de-ruta.md`](hoja-de-ruta.md), línea "Integración con agentes de IA", etapas 5 y 6).
+**El agente no cambia el proyecto.** Con la ventana abierta puede *proponer* un cambio del modelo: Nervi calcula un resumen de lo que cambia ("Agrega N5", "Cambia B2 (A, I)") y la persona lo aplica o lo descarta; lo aplicado se puede deshacer con Ctrl+Z y queda anotado en el historial del `.nrv` con su origen.
 
 ## Instalación
 
@@ -16,13 +16,14 @@ Suma el SDK oficial de MCP (licencia MIT) y el comando `nervi-mcp`. Funciona con
 
 ## Cómo se usa
 
-El agente lanza el servidor con la ruta del proyecto y le habla por la entrada y salida estándar (`stdio`):
+La app de IA lanza `nervi-mcp` y le habla por la entrada y salida estándar (`stdio`). Hay dos modos:
 
-```bash
-nervi-mcp ruta/al/portico.nrv
-```
+- **Con la ventana abierta** (`nervi-mcp`, sin argumentos). En Nervi, la persona busca "Conectar con mi IA" (Ctrl+K). Desde ahí el agente consulta lo que está abierto, aunque no esté guardado, ve lo que la persona tiene seleccionado ("¿cuánto momento tiene esta barra?") y puede dejar propuestas. Al desconectar o cerrar Nervi, el agente deja de tener acceso y lo dice.
+- **Con un archivo** (`nervi-mcp ruta/al/portico.nrv`). Solo lectura, no necesita la ventana. Si la persona vuelve a guardar el archivo, la consulta siguiente ve lo nuevo.
 
-El servidor lee el archivo guardado. Si la persona lo vuelve a guardar desde la interfaz, la consulta siguiente ve lo nuevo, sin reiniciar nada. Lo que se calcula para responder (el análisis, el diseño, la dinámica) se hace en memoria y no se escribe.
+En los dos modos, lo que se calcula para responder (el análisis, el diseño, la dinámica) se hace sobre una copia: no cambia lo que ve la persona ni el archivo.
+
+El canal con la ventana escucha solo en `127.0.0.1`, en un puerto que elige el sistema, y exige un secreto que Nervi genera al conectar y deja en un archivo que solo puede leer el usuario (`%APPDATA%\Nervi\canal.json` en Windows, `~/.config/nervi/canal.json` en Linux y macOS). Al desconectar, el archivo se borra y el secreto deja de valer.
 
 ### Claude Desktop
 
@@ -32,32 +33,32 @@ En `claude_desktop_config.json` (menú *Configuración → Desarrollador → Edi
 {
   "mcpServers": {
     "nervi": {
-      "command": "nervi-mcp",
-      "args": ["C:\\Proyectos\\portico.nrv"]
+      "command": "nervi-mcp"
     }
   }
 }
 ```
 
-Si `nervi-mcp` no está en el `PATH`, poné la ruta completa del ejecutable (en Windows, algo como `C:\\Users\\vos\\AppData\\Local\\Programs\\Python\\Python313\\Scripts\\nervi-mcp.exe`) o usá `"command": "python", "args": ["-m", "nervi.ia.servidor", "…/portico.nrv"]`.
+Así se conecta con la ventana abierta. Para consultar un archivo fijo, agregá `"args": ["C:\\Proyectos\\portico.nrv"]`. Si `nervi-mcp` no está en el `PATH`, poné la ruta completa del ejecutable (en Windows, algo como `C:\\Users\\vos\\AppData\\Local\\Programs\\Python\\Python313\\Scripts\\nervi-mcp.exe`) o usá `"command": "python", "args": ["-m", "nervi.ia.servidor"]`.
 
 ### Claude Code
 
 ```bash
-claude mcp add nervi -- nervi-mcp ruta/al/portico.nrv
+claude mcp add nervi -- nervi-mcp                     # ventana abierta
+claude mcp add nervi-portico -- nervi-mcp portico.nrv  # un archivo, solo lectura
 ```
 
 ### Gemini CLI y otros clientes con servidores locales
 
-Gemini CLI (`~/.gemini/settings.json`), VS Code, Cursor, LM Studio y la mayoría de los clientes MCP aceptan servidores locales por `stdio` con la misma forma: un `command` (`nervi-mcp`) y sus `args` (la ruta del `.nrv`). La clave exacta del archivo de configuración cambia de un cliente a otro; está en la documentación de cada uno.
+Gemini CLI (`~/.gemini/settings.json`), VS Code, Cursor, LM Studio y la mayoría de los clientes MCP aceptan servidores locales por `stdio` con la misma forma: un `command` (`nervi-mcp`) y, si se quiere un archivo fijo, sus `args` (la ruta del `.nrv`). La clave exacta del archivo de configuración cambia de un cliente a otro; está en la documentación de cada uno.
 
 ### ChatGPT y clientes que solo aceptan servidores remotos
 
-Algunos clientes, como ChatGPT en la web, solo se conectan a servidores MCP remotos por HTTP, no a programas locales. Para ellos hace falta el canal local con la ventana abierta (etapa 5 de la hoja de ruta); `nervi-mcp` no abre ningún puerto de red.
+Algunos clientes, como ChatGPT en la web, solo se conectan a servidores MCP remotos por HTTP, no a programas locales. `nervi-mcp` no abre ningún puerto hacia afuera de la computadora, así que con ellos no funciona. Más adelante está previsto un chat dentro de Nervi con clave de API del proveedor ([`hoja-de-ruta.md`](hoja-de-ruta.md)).
 
 ## Herramientas
 
-Todas son de solo lectura (`readOnlyHint`) y devuelven JSON. Nudos y barras se nombran como en la interfaz (`N3`, `B2`); también se acepta el número solo. Las unidades son las del modelo y vienen en cada respuesta.
+Las de consulta son de solo lectura (`readOnlyHint`) y devuelven JSON. Nudos y barras se nombran como en la interfaz (`N3`, `B2`); también se acepta el número solo. Las unidades son las del modelo y vienen en cada respuesta.
 
 | Herramienta | Qué devuelve |
 |---|---|
@@ -72,7 +73,15 @@ Todas son de solo lectura (`readOnlyHint`) y devuelven JSON. Nudos y barras se n
 | `leer_verificaciones(barra?)` | Diseño de hormigón armado (ACI 318-19, experimental): estado, armadura y cada verificación con solicitación, resistencia, relación y artículo. Solo si el proyecto tiene datos de diseño |
 | `leer_modos` | Periodo, frecuencia y masa participante en X e Y de cada modo. Solo si el proyecto tiene datos de dinámica con masa |
 
-Además publica dos recursos: `nervi://modelo` (el `modelo.json`) y `nervi://resultados` (todos los resultados sin redondear, en el formato de [`formato-resultados.md`](formato-resultados.md)).
+Con la ventana abierta hay tres más:
+
+| Herramienta | Qué hace |
+|---|---|
+| `leer_seleccion` | El nudo o la barra que la persona tiene seleccionado y la combinación que está mirando |
+| `proponer_modelo(modelo, descripcion)` | Deja pendiente un `modelo.json` nuevo (el de `leer_modelo` con lo pedido cambiado) con su resumen de cambios; la persona lo aplica o lo descarta. Si el modelo propuesto no es válido, dice por qué |
+| `listar_propuestas` | Las propuestas que siguen pendientes; una que ya no aparece fue aplicada o descartada |
+
+Además publica dos recursos: `nervi://modelo` (el `modelo.json`) y, con un archivo, `nervi://resultados` (todos los resultados sin redondear, en el formato de [`formato-resultados.md`](formato-resultados.md)).
 
 Cuando una consulta no se puede responder (un nudo que no existe, un modelo inestable, un proyecto sin datos de diseño), la herramienta devuelve un error con el motivo en palabras, y el servidor le pide al agente que lo explique en vez de suplirlo.
 

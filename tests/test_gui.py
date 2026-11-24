@@ -472,3 +472,122 @@ def test_modo_en_la_escena_3d(ventana):
     ventana.analizar_dinamica()
     escena = escena3d.armar(s.modelo, s.resultado(), s.indices, "D", s.combinacion)
     assert escena.deformada
+
+
+def _en_hilo(qtbot, funcion):
+    """Corre ``funcion`` en otro hilo mientras la ventana sigue atendiendo eventos."""
+    import threading
+
+    salida = {}
+
+    def correr():
+        try:
+            salida["valor"] = funcion()
+        except Exception as e:  # se revisa en la prueba
+            salida["error"] = e
+
+    hilo = threading.Thread(target=correr)
+    hilo.start()
+    qtbot.waitUntil(lambda: not hilo.is_alive(), timeout=60000)
+    return salida
+
+
+def test_conectar_con_mi_ia(ventana, qtbot, tmp_path, monkeypatch):
+    from nervi.ia import canal
+    from nervi.ia.herramientas import ErrorConsulta
+
+    monkeypatch.setenv("NERVI_CANAL", str(tmp_path / "canal.json"))
+    consultas = []
+    ventana.canal.consulta.connect(lambda n, ok: consultas.append((n, ok)))
+    assert ventana.conectar_ia() and ventana.a_conectar_ia.isChecked()
+    assert (tmp_path / "canal.json").exists()
+    ventana.sesion.seleccionar(Seleccion("nudo", 3))
+    r = _en_hilo(qtbot, lambda: canal.consultar("leer_seleccion"))
+    assert r["valor"]["seleccion"] == {"tipo": "nudo", "id": "N3"}
+    modelo = _en_hilo(qtbot, lambda: canal.consultar("leer_modelo"))["valor"]
+    modelo["nudos"][1]["y"] += 0.5
+    r = _en_hilo(
+        qtbot,
+        lambda: canal.consultar("proponer_modelo", {"modelo": modelo, "descripcion": "Sube N2"}),
+    )
+    assert ventana.sesion.propuestas[0].id == r["valor"]["propuesta"]
+    assert ventana.sesion.modelo["nudos"][1]["y"] != modelo["nudos"][1]["y"]
+    r = _en_hilo(qtbot, lambda: canal.consultar("leer_nudo", {"nudo": "N99"}))
+    assert isinstance(r["error"], ErrorConsulta) and "N99" in str(r["error"])
+    assert consultas == [
+        ("leer_seleccion", True),
+        ("leer_modelo", True),
+        ("proponer_modelo", True),
+        ("leer_nudo", False),
+    ]
+    assert not ventana.conectar_ia() and not (tmp_path / "canal.json").exists()
+    r = _en_hilo(qtbot, lambda: canal.consultar("leer_modelo"))
+    assert isinstance(r["error"], canal.SinVentana)
+
+
+def test_app_de_ia_con_la_ventana_abierta(ventana, qtbot, tmp_path, monkeypatch):
+    """Lo que hace la app de IA: lanzar ``nervi-mcp`` sin argumentos y hablarle por
+    stdio; el puente le pasa cada consulta a esta ventana."""
+    import json
+    import subprocess
+    import sys
+
+    pytest.importorskip("mcp")
+    from nervi.ia.herramientas import NOMBRES, NOMBRES_VENTANA
+
+    monkeypatch.setenv("NERVI_CANAL", str(tmp_path / "canal.json"))
+    ventana.conectar_ia(True)
+    proceso = subprocess.Popen(
+        [sys.executable, "-m", "nervi.ia.servidor"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
+        env=os.environ,
+    )
+
+    def rpc(id_, metodo, params=None):
+        mensaje = {"jsonrpc": "2.0", "id": id_, "method": metodo, "params": params or {}}
+        proceso.stdin.write(json.dumps(mensaje) + "\n")
+        proceso.stdin.flush()
+        while True:
+            linea = proceso.stdout.readline()
+            if not linea:
+                raise RuntimeError(proceso.stderr.read())
+            respuesta = json.loads(linea)
+            if respuesta.get("id") == id_:
+                return respuesta
+
+    def sesion_mcp():
+        rpc(
+            1,
+            "initialize",
+            {
+                "protocolVersion": "2025-06-18",
+                "capabilities": {},
+                "clientInfo": {"name": "prueba", "version": "0"},
+            },
+        )
+        proceso.stdin.write(
+            json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}) + "\n"
+        )
+        proceso.stdin.flush()
+        lista = rpc(2, "tools/list")["result"]["tools"]
+        nudo = rpc(
+            3, "tools/call", {"name": "leer_nudo", "arguments": {"nudo": "N2", "resultado": "D"}}
+        )
+        return lista, nudo
+
+    try:
+        r = _en_hilo(qtbot, sesion_mcp)
+    finally:
+        proceso.stdin.close()
+        proceso.wait(timeout=10)
+        proceso.stdout.close()
+        proceso.stderr.close()
+    assert "error" not in r, r.get("error")
+    lista, nudo = r["valor"]
+    assert [t["name"] for t in lista] == [*NOMBRES, *NOMBRES_VENTANA]
+    datos = json.loads(nudo["result"]["content"][0]["text"])
+    assert datos == ventana.canal.herramientas.leer_nudo("N2", "D")

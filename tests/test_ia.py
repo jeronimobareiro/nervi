@@ -18,6 +18,7 @@ from nervi import resultados
 from nervi.design import proyecto as diseno_proyecto
 from nervi.ia.herramientas import (
     NOMBRES,
+    NOMBRES_VENTANA,
     ErrorConsulta,
     FuenteArchivo,
     FuenteProyecto,
@@ -179,9 +180,10 @@ def test_servidor_lista_y_llama(proyecto):
 
     async def probar():
         herramientas = await s.list_tools()
-        assert [t.name for t in herramientas] == list(NOMBRES)
+        assert [t.name for t in herramientas] == [*NOMBRES, *NOMBRES_VENTANA]
         for t in herramientas:
-            assert t.annotations.model_dump(by_alias=True)["readOnlyHint"] is True
+            solo_lectura = t.annotations.model_dump(by_alias=True)["readOnlyHint"]
+            assert solo_lectura is (t.name != "proponer_modelo")
         salida = await s.call_tool("leer_nudo", {"nudo": "N2", "resultado": "D"})
         contenido = salida if isinstance(salida, list | tuple) else salida.content
         if isinstance(contenido, tuple):  # SDK 1.x: (contenido, estructurado)
@@ -264,3 +266,106 @@ def test_main_con_archivo_que_no_existe(tmp_path, capsys):
 
     assert main([str(tmp_path / "no.nrv")]) == 2
     assert "No se puede leer" in capsys.readouterr().err
+
+
+# --- Ventana abierta: selección, propuestas y canal local ------------------------------
+
+
+def test_herramientas_de_la_ventana(proyecto):
+    from nervi.proyecto import Seleccion
+
+    h = Herramientas(FuenteProyecto(proyecto))
+    assert h.leer_seleccion() == {"seleccion": None, "combinacion": None}
+    proyecto.seleccionar(Seleccion("barra", 2))
+    assert h.leer_seleccion()["seleccion"] == {"tipo": "barra", "id": "B2"}
+    modelo = h.leer_modelo()
+    antes = proyecto.copia_modelo()
+    modelo["nudos"][1]["y"] += 0.5
+    r = h.proponer_modelo(modelo, "Sube N2 medio metro")
+    assert r["resumen"] == ["Cambia N2 (y)"]
+    assert proyecto.modelo == antes  # nada cambia hasta que la persona aplica
+    pendientes = h.listar_propuestas()
+    assert pendientes[0]["origen"] == "ia: agente MCP"
+    proyecto.aplicar(r["propuesta"])
+    assert h.listar_propuestas() == []
+    assert h.leer_modelo()["nudos"][1]["y"] == modelo["nudos"][1]["y"]
+    with pytest.raises(ErrorConsulta, match="no es válido"):
+        h.proponer_modelo({"nudos": "no"}, "Rompe todo")
+    with pytest.raises(ErrorConsulta, match="Falta la descripción"):
+        h.proponer_modelo(modelo, " ")
+
+
+def test_con_un_archivo_no_se_propone(archivo):
+    h = Herramientas(FuenteArchivo(archivo))
+    assert "proponer_modelo" not in h.nombres
+    with pytest.raises(ErrorConsulta, match="No hay una herramienta"):
+        h.ejecutar("proponer_modelo", {"modelo": {}, "descripcion": "x"})
+    with pytest.raises(ErrorConsulta, match="ventana de Nervi abierta"):
+        h.proponer_modelo({}, "x")
+
+
+def test_consultar_no_cambia_el_proyecto_abierto(proyecto):
+    """Calcular, diseñar o analizar para responder se hace sobre una copia."""
+    proyecto.editar_diseno(proyecto.diseno)
+    din = proyecto.dinamica
+    din["masas"]["casos"] = {"D": 1.0}
+    proyecto.editar_dinamica(din)
+    eventos = []
+    proyecto.suscribir(eventos.append)
+    h = Herramientas(FuenteProyecto(proyecto))
+    h.leer_verificaciones()
+    h.leer_modos()
+    h.leer_barra("B1", "D")
+    assert eventos == []
+    assert not proyecto.al_dia and not proyecto.diseno_al_dia and not proyecto.dinamica_al_dia
+    # Lo que cambia la persona se ve en la consulta siguiente.
+    m = proyecto.copia_modelo()
+    m["nudos"][1]["y"] += 1.0
+    proyecto.editar(m)
+    assert h.leer_modelo()["nudos"][1]["y"] == m["nudos"][1]["y"]
+
+
+def test_ejecutar_valida_nombre_y_argumentos(h):
+    assert h.ejecutar("listar_resultados") == h.listar_resultados()
+    with pytest.raises(ErrorConsulta, match="No hay una herramienta '__init__'"):
+        h.ejecutar("__init__", {})
+    with pytest.raises(ErrorConsulta, match="Argumentos que no corresponden"):
+        h.ejecutar("leer_nudo", {"nodo": 1})
+    with pytest.raises(ErrorConsulta, match="tienen que ser un objeto"):
+        h.ejecutar("leer_nudo", [1])
+
+
+def test_atender_pedidos_del_canal(h):
+    from nervi.ia import canal
+
+    def pedido(**cambios):
+        datos = {"version": 1, "secreto": "s", "herramienta": "leer_nudo"}
+        datos["argumentos"] = {"nudo": "N2", "resultado": "D"}
+        datos.update(cambios)
+        return json.dumps(datos).encode()
+
+    respuesta, nombre, ok = canal.atender(h, "s", pedido())
+    assert (nombre, ok) == ("leer_nudo", True)
+    assert json.loads(respuesta)["resultado"] == h.leer_nudo("N2", "D")
+    respuesta, nombre, ok = canal.atender(h, "s", pedido(secreto="otro"))
+    assert (nombre, ok) == (None, False) and b"secreto incorrecto" in respuesta
+    assert b"no soportada" in canal.atender(h, "s", pedido(version=2))[0]
+    assert b"No existe el nudo N9" in canal.atender(h, "s", pedido(argumentos={"nudo": 9}))[0]
+    assert b"no es JSON" in canal.atender(h, "s", b"{roto")[0]
+
+
+def test_sin_ventana_se_explica(tmp_path, monkeypatch):
+    from nervi.ia import canal
+
+    monkeypatch.setenv("NERVI_CANAL", str(tmp_path / "canal.json"))
+    with pytest.raises(canal.SinVentana, match="Conectar con mi IA"):
+        canal.consultar("resumen_proyecto")
+    canal.publicar(1, "s")  # puerto cerrado: la ventana se cerró sin borrar el archivo
+    with pytest.raises(canal.SinVentana):
+        canal.consultar("resumen_proyecto")
+    if os.name == "posix":
+        assert (tmp_path / "canal.json").stat().st_mode & 0o077 == 0
+    canal.retirar("otro")
+    assert (tmp_path / "canal.json").exists()  # no es el de este canal
+    canal.retirar("s")
+    assert not (tmp_path / "canal.json").exists()

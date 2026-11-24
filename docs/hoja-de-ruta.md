@@ -132,9 +132,10 @@ Abierta el 24/11/2026, en paralelo a las fases y sin frenarlas. Objetivo: que la
 2. Resultados a precisión completa en JSON, `nervi.resultados` (hecha, [`formato-resultados.md`](formato-resultados.md)).
 3. Deshacer, rehacer y propuestas de cambio con su origen (hecha: `Proyecto.proponer`, `aplicar`, `deshacer`, Ctrl+Z y Ctrl+Y en la interfaz, y módulo `historial` del `.nrv` para auditar los cambios que no hizo la persona).
 4. Servidor MCP `nervi-mcp`, primero de solo lectura (hecha: `nervi.ia`, 10 herramientas de consulta, [`agentes-ia.md`](agentes-ia.md)).
-5. Canal local con la ventana abierta, botón "Conectar con mi IA" y panel del asistente (con muestra visual en los dos temas antes de implementarlo).
+5. Canal local con la ventana abierta, botón "Conectar con mi IA" y panel del asistente (en curso: canal, selección y propuestas hechos; el panel, sin chat, va con muestra visual en los dos temas antes de implementarlo). La persona conversa en su propia app de IA, que no necesita clave de API.
 6. Importar DXF con vista previa.
 7. Complementos con *entry points*, permisos y camino a oficial, con su regla de licencia en `GOVERNANCE.md`.
+8. Chat dentro de Nervi, sobre las mismas herramientas, con la clave de API de la persona guardada en el llavero del sistema: primero Ollama (modelos locales, sin que los datos salgan de la computadora) y Claude, después los proveedores compatibles con la API de OpenAI.
 
 ## Colaboración con universidades
 
