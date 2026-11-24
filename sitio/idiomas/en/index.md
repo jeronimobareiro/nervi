@@ -60,7 +60,7 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 
 ## What is coming
 
-Second-order effects (P-Δ), regional concrete codes and spectra (CIRSOC, NBR, NCh, Eurocode), exchange with BIM programs (IFC), reinforcement drawings, graphical model editing, community plug-ins and a chat inside Nervi. The order and the tasks are in the [roadmap](hoja-de-ruta.md).
+The goal is for the engineer to receive the architectural drawing as a DXF and deliver the designed structure with complete documentation: calculation report, quantity takeoffs, rebar schedules and concrete and steel detail drawings. On the way come second-order effects (P-Δ), regional codes and spectra (CIRSOC, NBR, NCh, Eurocode), graphical model editing, slabs and walls, wind and seismic loads, preliminary sizing, steel (AISC 360) and composite structures, foundations, exchange with BIM programs (IFC), community plug-ins and a chat inside Nervi. The order and the tasks are in the [roadmap](hoja-de-ruta.md).
 
 ## Keep reading
 

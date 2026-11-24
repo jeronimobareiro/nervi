@@ -9,7 +9,7 @@
 
 [Español](README.md) · [English](README.en.md) · **Português** · [Русский](README.ru.md)
 
-Software livre e de código aberto para análise e dimensionamento estrutural, com um núcleo numérico em Rust e uma camada de aplicação em Python.
+Software livre e colaborativo de projeto e cálculo de estruturas, com um núcleo numérico em Rust e uma camada de aplicação em Python. A meta: que os engenheiros pré-dimensionem, calculem e dimensionem estruturas de concreto armado, aço e mistas a partir da planta de arquitetura, e entreguem o memorial, os quantitativos, as tabelas de armaduras e os desenhos de detalhe. Hoje cobre a análise de pórticos e o dimensionamento de vigas e pilares de concreto; o resto está no [roteiro](docs/hoja-de-ruta.md) (em espanhol).
 
 Site: **[jeronimobareiro.github.io/nervi](https://jeronimobareiro.github.io/nervi/)**.
 
@@ -146,6 +146,7 @@ Estas regras valem para toda contribuição, de pessoas ou de agentes de IA. Det
 - Fechar a Fase 1: exemplos resolvidos de livros em `verification/` ([#6](https://github.com/jeronimobareiro/nervi/issues/6)) e material didático ([#10](https://github.com/jeronimobareiro/nervi/issues/10)).
 - Pórtico espacial na interface e no `.nrv`, verificação contra exemplos 3D publicados ([#15](https://github.com/jeronimobareiro/nervi/issues/15)), P-Δ ([#19](https://github.com/jeronimobareiro/nervi/issues/19)) e espectro da norma regional ([#20](https://github.com/jeronimobareiro/nervi/issues/20)).
 - Revisão de engenharia do dimensionamento de concreto armado e comparação com exemplos publicados.
+- Visão ampliada (fases 6 a 12): modelo físico a partir do DXF de arquitetura, cascas para lajes e paredes, cargas normativas e pré-dimensionamento, aço segundo a AISC 360-22, lajes, paredes e fundações, estruturas mistas e documentação de obra (tabelas de armaduras, desenhos de detalhe, quantitativos). Issues [#73](https://github.com/jeronimobareiro/nervi/issues/73) a [#98](https://github.com/jeronimobareiro/nervi/issues/98).
 
 ## Contribuir
 

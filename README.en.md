@@ -9,7 +9,7 @@
 
 [Español](README.md) · **English** · [Português](README.pt.md) · [Русский](README.ru.md)
 
-Free and open-source structural analysis and design software, with a numerical core in Rust and an application layer in Python.
+Free, collaborative structural design and analysis software, with a numerical core in Rust and an application layer in Python. The goal: engineers size, analyze and design reinforced concrete, steel and composite structures starting from the architectural drawing, and deliver the calculation report, quantity takeoffs, rebar schedules and detail drawings. Today it covers frame analysis and the design of concrete beams and columns; the rest is in the [roadmap](docs/hoja-de-ruta.md) (Spanish).
 
 Website: **[jeronimobareiro.github.io/nervi](https://jeronimobareiro.github.io/nervi/)**.
 
@@ -146,6 +146,7 @@ These rules apply to every contribution, from people or from AI agents. Details 
 - Close Phase 1: textbook examples in `verification/` ([#6](https://github.com/jeronimobareiro/nervi/issues/6)) and teaching material ([#10](https://github.com/jeronimobareiro/nervi/issues/10)).
 - Space frames in the interface and the `.nrv` format, verification against published 3D examples ([#15](https://github.com/jeronimobareiro/nervi/issues/15)), P-Δ ([#19](https://github.com/jeronimobareiro/nervi/issues/19)) and the regional code spectrum ([#20](https://github.com/jeronimobareiro/nervi/issues/20)).
 - Engineering review of reinforced concrete design and comparison with published examples.
+- Expanded vision (phases 6 to 12): physical model from the architectural DXF, shells for slabs and walls, code loads and preliminary sizing, steel design to AISC 360-22, slabs, walls and foundations, composite structures and construction documents (rebar schedules, detail drawings, quantity takeoffs). Issues [#73](https://github.com/jeronimobareiro/nervi/issues/73) to [#98](https://github.com/jeronimobareiro/nervi/issues/98).
 
 ## Contributing
 

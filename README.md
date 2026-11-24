@@ -9,7 +9,7 @@
 
 **Español** · [English](README.en.md) · [Português](README.pt.md) · [Русский](README.ru.md)
 
-Software libre de análisis y dimensionamiento estructural, con un núcleo numérico en Rust y una capa de aplicación en Python.
+Software libre y colaborativo de diseño y cálculo de estructuras, con un núcleo numérico en Rust y una capa de aplicación en Python. La meta: que los ingenieros predimensionen, calculen y dimensionen estructuras de hormigón armado, acero y mixtas a partir del plano de arquitectura, y entreguen la memoria, los cómputos, las planillas de armaduras y los planos de detalle. Hoy cubre el análisis de pórticos y el diseño de vigas y columnas de hormigón; el resto está en la [hoja de ruta](docs/hoja-de-ruta.md).
 
 Documentación: **[jeronimobareiro.github.io/nervi](https://jeronimobareiro.github.io/nervi/)**.
 
@@ -133,6 +133,7 @@ Estas reglas valen para todo aporte, de personas o de agentes de IA. El detalle 
 - Cerrar la Fase 1: ejemplos resueltos de libros en `verification/` ([#6](https://github.com/jeronimobareiro/nervi/issues/6)) y material didáctico ([#10](https://github.com/jeronimobareiro/nervi/issues/10)).
 - Pórtico espacial en la interfaz y en el `.nrv`, verificación contra ejemplos 3D publicados ([#15](https://github.com/jeronimobareiro/nervi/issues/15)), P-Δ ([#19](https://github.com/jeronimobareiro/nervi/issues/19)) y espectro de la norma regional ([#20](https://github.com/jeronimobareiro/nervi/issues/20)).
 - Revisión de ingeniería del diseño de hormigón armado y comparación con ejemplos publicados.
+- Visión ampliada (fases 6 a 12): modelo físico desde el DXF de arquitectura, láminas para losas y muros, cargas según norma y predimensionado, acero según AISC 360-22, losas, muros y fundaciones, estructuras mixtas y documentación de obra (planillas, planos de detalle, cómputos). Issues [#73](https://github.com/jeronimobareiro/nervi/issues/73) a [#98](https://github.com/jeronimobareiro/nervi/issues/98).
 
 ## Contribuir
 

@@ -60,7 +60,7 @@ Nervi analiza pórticos por el método de los elementos finitos y muestra reacci
 
 ## Qué viene
 
-Efectos de segundo orden (P-Δ), espectros y normas de hormigón regionales (CIRSOC, NBR, NCh, Eurocódigo), intercambio con programas BIM (IFC), planos de armaduras, edición gráfica del modelo, complementos de la comunidad y un chat dentro de Nervi. El orden y las tareas están en la [hoja de ruta](hoja-de-ruta.md).
+La meta es que el ingeniero reciba el plano de arquitectura en DXF y entregue la estructura calculada con su documentación completa: memoria, cómputos, planillas de armaduras y planos de detalle de hormigón y de acero. En el camino vienen efectos de segundo orden (P-Δ), normas y espectros regionales (CIRSOC, NBR, NCh, Eurocódigo), edición gráfica del modelo, losas y muros, cargas de viento y sismo, predimensionado, estructuras de acero (AISC 360) y mixtas, fundaciones, intercambio con programas BIM (IFC), complementos de la comunidad y un chat dentro de Nervi. El orden y las tareas están en la [hoja de ruta](hoja-de-ruta.md).
 
 ## Para seguir leyendo
 
