@@ -126,7 +126,9 @@
   margin: 0.3rem;
 }
 [data-md-color-scheme="default"] .nv-oscuro,
-[data-md-color-scheme="slate"] .nv-claro {
+[data-md-color-scheme="slate"] .nv-claro,
+[data-md-color-scheme="default"] .md-typeset img.nv-oscuro,
+[data-md-color-scheme="slate"] .md-typeset img.nv-claro {
   display: none;
 }
 .md-typeset .nv-tarjetas > ul > li {

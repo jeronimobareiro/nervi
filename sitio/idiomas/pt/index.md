@@ -22,10 +22,11 @@ O Nervi analisa pórticos pelo método dos elementos finitos e mostra reações,
 
 </div>
 
-![Janela do Nervi com os diagramas de momento de um pórtico](img/interfaz.png){ .nv-captura }
+![Janela do Nervi com os diagramas de momento de um pórtico](img/interfaz-claro.png){ .nv-captura .nv-claro }
+![Janela do Nervi com os diagramas de momento de um pórtico](img/interfaz-oscuro.png){ .nv-captura .nv-oscuro }
 
 !!! warning "Versão preliminar, não apta para projeto"
-    O Nervi está em desenvolvimento. Hoje calcula pórticos planos com análise linear elástica; os pórticos espaciais e a dinâmica são preliminares, e o dimensionamento de vigas e pilares de concreto armado segundo norma é experimental e ainda não foi revisado por um engenheiro estrutural. Ele auxilia o engenheiro, não substitui seu critério nem sua assinatura.
+    O Nervi está em desenvolvimento. Calcula pórticos planos e espaciais com análise linear elástica; o espacial e a dinâmica são preliminares e o projeto de concreto armado segundo a ACI 318-19 é experimental até que um engenheiro estrutural o revise. Ele auxilia o engenheiro, não substitui seu critério nem sua assinatura.
 
 <div class="grid cards nv-tarjetas" markdown>
 
@@ -46,23 +47,20 @@ O Nervi analisa pórticos pelo método dos elementos finitos e mostra reações,
 ## O que faz hoje
 
 - **Pórticos planos** com barras, rótulas, treliças, apoios fixos ou elásticos e recalques.
-- **Cargas** em nós e em barras: uniformes, pontuais, trapezoidais ou parciais e momentos concentrados no vão.
+- **Pórticos espaciais (3D)**, em versão preliminar: barras de 12 graus de liberdade, trechos rígidos e diafragma rígido por pavimento.
+- **Cargas** em nós e em barras: uniformes, pontuais, trapezoidais ou parciais, momentos concentrados e térmicas.
 - **Casos e combinações** de carga, por exemplo 1.2D + 1.6L.
-- **Vigas de concreto armado** segundo a ACI 318-19, em versão experimental: armadura de flexão, barras comerciais e estribos, flechas, fissuração e ancoragens, a partir do Python.
-- **Pilares de concreto armado** segundo a ACI 318-19, em versão experimental: flexo-compressão em duas direções, esbeltez e escolha da armadura, a partir do Python.
-- **Etapa Diseño** (dimensionamento) na interface: dimensiona todas as vigas e pilares do pórtico, marca quais atendem e mostra cada verificação com o artigo da norma.
-- **Resultados**: reações, diagramas de esforço normal, cortante e momento, e a deformada. Ao passar o cursor sobre uma barra, os valores naquele ponto aparecem. Com o visualizador 3D opcional, o modelo, as cargas e os diagramas aparecem em perspectiva.
-- **Interface de desktop** em uma única janela, com tabelas para montar o modelo, ou uso a partir do Python para quem programa.
-- **Projetos** salvos em arquivos `.nrv`.
-- **Memória de cálculo em PDF** (em espanhol), com os dados do modelo, as cargas, as combinações, as tabelas de resultados, os diagramas e, se você dimensionou, as armaduras e verificações de vigas e pilares e, se você fez a análise dinâmica, os modos e espectros, a partir de um modelo editável.
-- **Pórticos espaciais (3D)**, por enquanto só a partir do Python e em versão preliminar: barras com flexão em dois planos e torção, treliças espaciais e seções retangulares e circulares.
-- **Análise modal e espectro de resposta** do pórtico espacial, a partir do Python e em versão preliminar: períodos, formas modais, massa participante e resposta sísmica com combinação SRSS ou CQC a partir do espectro indicado pela norma.
-- **Edifícios com diafragma rígido por pavimento e trechos rígidos** no pórtico espacial, a partir do Python e em versão preliminar: a massa de cada pavimento no nó mestre, centro de massa, deslocamentos relativos entre pavimentos e esforços das vigas na face do pilar.
-- **Modos e espectros na interface**, em versão preliminar: na aba **Dinámica** você escolhe de quais casos sai a massa e informa o espectro; vê a tabela de períodos e massa participante, cada forma modal desenhada e animada, e o cortante basal e os diagramas de cada espectro. Tudo é salvo no projeto e vai para a memória de cálculo.
+- **Resultados**: reações, diagramas de esforço normal, cortante e momento, e a deformada, em 2D e em um visualizador 3D. Ao passar o cursor sobre uma barra, os valores naquele ponto aparecem. Se o modelo for um mecanismo, indica qual nó se move sem rigidez.
+- **Análise dinâmica**: modos de vibração, participação de massa e espectro de resposta (CQC e SRSS), em versão preliminar.
+- **Projeto de concreto armado segundo a ACI 318-19**, experimental: vigas (flexão, cisalhamento, flechas e detalhamento das armaduras) e pilares (flexão composta biaxial e esbeltez), cada verificação com seu artigo.
+- **Memorial de cálculo em PDF** com geometria, cargas, diagramas, projeto e análise dinâmica.
+- **Interface de desktop** em uma única janela, com painel da estrutura, tabelas para montar o modelo, tema claro e noturno, e uso a partir do Python para quem programa.
+- **Assistente de IA do seu jeito**: você conecta a IA que já usa (pelo padrão MCP) para consultar o modelo e os resultados. Ela só propõe mudanças que você aplica ou descarta, e cada número é calculado pelo motor do Nervi, nunca pela IA.
+- **Projetos** salvos em arquivos `.nrv` e dezenas de casos de verificação contra soluções conhecidas.
 
 ## O que vem a seguir
 
-Dimensionamento mais rápido (todo o cálculo em Rust), pórticos 3D na interface, espectros sísmicos de norma e P-Δ, flechas, fissuração e ancoragens na etapa de dimensionamento, e intercâmbio com programas BIM (IFC). A ordem e as tarefas estão no [roteiro](hoja-de-ruta.md).
+Efeitos de segunda ordem (P-Δ), normas e espectros regionais (CIRSOC, NBR, NCh, Eurocódigo), intercâmbio com programas BIM (IFC), desenhos de armaduras, edição gráfica do modelo, complementos da comunidade e um chat dentro do Nervi. A ordem e as tarefas estão no [roteiro](hoja-de-ruta.md).
 
 ## Para continuar lendo
 

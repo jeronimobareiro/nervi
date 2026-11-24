@@ -22,10 +22,11 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 
 </div>
 
-![The Nervi window with the moment diagrams of a frame](img/interfaz.png){ .nv-captura }
+![The Nervi window with the moment diagrams of a frame](img/interfaz-claro.png){ .nv-captura .nv-claro }
+![The Nervi window with the moment diagrams of a frame](img/interfaz-oscuro.png){ .nv-captura .nv-oscuro }
 
 !!! warning "Preliminary version, not suitable for design work"
-    Nervi is under development. Today it analyses plane frames with linear elastic analysis; space frames and dynamics are preliminary, and reinforced concrete beam and column design to code is experimental and has not yet been reviewed by a structural engineer. It assists the engineer; it does not replace their judgment or their signature.
+    Nervi is under development. It analyses plane and space frames with linear elastic analysis; the space frame and dynamics are preliminary, and reinforced concrete design to ACI 318-19 is experimental until a structural engineer reviews it. It assists the engineer; it does not replace their judgment or their signature.
 
 <div class="grid cards nv-tarjetas" markdown>
 
@@ -46,23 +47,20 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 ## What it does today
 
 - **Plane frames** with members, hinges, trusses, fixed or elastic supports and support settlements.
-- **Loads** on nodes and members: uniform, point, trapezoidal or partial, and concentrated moments within a member.
+- **Space (3D) frames**, preliminary: 12-degree-of-freedom members, rigid offsets and a rigid diaphragm per floor.
+- **Loads** on nodes and members: uniform, point, trapezoidal or partial, concentrated moments and thermal loads.
 - **Load cases and combinations**, for example 1.2D + 1.6L.
-- **Reinforced concrete beams** per ACI 318-19, as an experimental feature: flexural reinforcement, commercial bars and stirrups, deflections, crack control and development lengths, from Python.
-- **Reinforced concrete columns** per ACI 318-19, as an experimental feature: axial load with bending in two directions, slenderness and choice of reinforcement, from Python.
-- **Design stage** in the interface: designs every beam and column of the frame, marks which ones pass and shows each check with its code article.
-- **Results**: reactions, axial force, shear and moment diagrams, and the deformed shape. Hovering over a member shows the values at that point. The optional 3D viewer shows the model, loads and diagrams in perspective.
-- **Desktop interface** in a single window, with tables to enter the model, or use from Python for those who program.
-- **Projects** saved as `.nrv` files.
-- **Calculation report in PDF** (in Spanish), with model data, loads, combinations, result tables, diagrams and, if you designed, the beam and column reinforcement and checks and, if you ran a dynamic analysis, the modes and spectra, from an editable template.
-- **Space frames (3D)**, for now only from Python and as a preview: members with bending in two planes and torsion, space trusses, and rectangular and circular sections.
-- **Modal and response spectrum analysis** of space frames, from Python and as a preview: periods, mode shapes, participating mass and seismic response with SRSS or CQC combination from the spectrum given by the code.
-- **Buildings with rigid floor diaphragms and rigid end offsets** in the space frame, from Python and as a preview: each floor's mass at its master node, center of mass, story drifts and beam forces at the column face.
-- **Modes and spectra in the interface**, as a preview: in the **Dinámica** tab you choose which load cases give the mass and enter the spectrum; you get the table of periods and participating mass, each mode shape drawn and animated, and the base shear and diagrams of each spectrum. Everything is saved in the project and goes into the calculation report.
+- **Results**: reactions, axial force, shear and moment diagrams and the deformed shape, in 2D and in a 3D viewer. Hovering over a member shows the values at that point. If the model is a mechanism, it tells you which node moves without stiffness.
+- **Dynamic analysis**: vibration modes, mass participation and response spectrum (CQC and SRSS), preliminary.
+- **Reinforced concrete design to ACI 318-19**, experimental: beams (flexure, shear, deflections and reinforcement detailing) and columns (biaxial bending with axial load, and slenderness), each check with its code article.
+- **Calculation report in PDF** with geometry, loads, diagrams, design and dynamic analysis.
+- **Desktop interface** in a single window, with a structure panel, tables to enter the model, light and night themes, and use from Python for those who program.
+- **An AI assistant on your terms**: you connect the AI you already use (through the MCP standard) to query the model and the results. It can only propose changes that you apply or discard, and every number is computed by Nervi's engine, never by the AI.
+- **Projects** saved as `.nrv` files and dozens of verification cases against known solutions.
 
 ## What is coming
 
-Faster design (all computation in Rust), 3D frames in the interface, code seismic spectra and P-Δ, deflections, cracking and anchorage in the Design stage, and exchange with BIM programs (IFC). The order and the tasks are in the [roadmap](hoja-de-ruta.md).
+Second-order effects (P-Δ), regional concrete codes and spectra (CIRSOC, NBR, NCh, Eurocode), exchange with BIM programs (IFC), reinforcement drawings, graphical model editing, community plug-ins and a chat inside Nervi. The order and the tasks are in the [roadmap](hoja-de-ruta.md).
 
 ## Keep reading
 
