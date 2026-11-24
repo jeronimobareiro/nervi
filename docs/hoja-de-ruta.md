@@ -10,9 +10,9 @@ Este documento baja a tareas concretas la hoja de ruta por fases de la [especifi
 
 ## Punto de partida
 
-_Actualizado el 2026-11-19._ La Fase 0 (repositorio, CI, reglas) y casi toda la Fase 1 están en `main`: motor de pórtico plano en Rust con API Python y todos los tipos de carga (trapezoidales, térmicas y momentos en el tramo), diagnóstico de mecanismos, biblioteca `verification/`, formato `.nrv`, memoria de cálculo en PDF e interfaz de escritorio con tema claro y oscuro. Para cerrar la Fase 1 faltan ejemplos transcriptos de libros (#6) y el material didáctico (#10).
+_Actualizado el 2026-11-24._ La Fase 0 (repositorio, CI, reglas) y casi toda la Fase 1 están en `main`: motor de pórtico plano en Rust con API Python y todos los tipos de carga (trapezoidales, térmicas y momentos en el tramo), diagnóstico de mecanismos, biblioteca `verification/`, formato `.nrv`, memoria de cálculo en PDF e interfaz de escritorio con tema claro y nocturno, panel de estructura, preferencias y configuración del proyecto. Para cerrar la Fase 1 faltan ejemplos transcriptos de libros (#6) y el material didáctico (#10).
 
-Las fases siguientes ya empezaron en paralelo: el pórtico espacial con brazos y diafragma rígido (Fase 2a), masas, análisis modal y espectro de respuesta (Fase 2b, el del plano también en la interfaz) y el diseño de vigas y columnas según ACI 318-19 con su etapa en la interfaz (Fase 3, experimental). El detalle está en [`ESTADO.md`](ESTADO.md).
+Las fases siguientes ya empezaron en paralelo: el pórtico espacial con brazos y diafragma rígido (Fase 2a), masas, análisis modal y espectro de respuesta (Fase 2b, el del plano también en la interfaz) y el diseño de vigas y columnas según ACI 318-19 con su etapa en la interfaz (Fase 3, experimental). En paralelo avanza la integración con agentes de IA: la persona conecta su propia IA, que consulta el proyecto abierto y deja propuestas que ella aplica o descarta, con el panel del asistente ya en la ventana (ver la línea transversal más abajo). El detalle está en [`ESTADO.md`](ESTADO.md).
 
 ## Principios que valen para todas las fases
 
@@ -22,15 +22,15 @@ Las fases siguientes ya empezaron en paralelo: el pórtico espacial con brazos y
 
 ## Hitos
 
-| Hito | Entregable | Criterio de salida | Depende de | Horizonte tentativo |
-|---|---|---|---|---|
-| **Fase 1 · Cierre del pórtico plano** | Cargas trapezoidales, momentos y térmicas; biblioteca `verification/`; material didáctico | Todos los tipos de carga de la §3 con casos analíticos (error < 1e-9); casos de libros en `verification/` corriendo en el CI | — | Dic 2026 – feb 2027 |
-| **Fase 2a · Pórtico espacial** | Barra 12×12, contrato v2, brazos rígidos, diafragma rígido | Ejemplos 3D publicados reproducidos; un pórtico 3D plano da lo mismo que el motor 2D | Fase 1 | 1.er semestre 2027 |
-| **Fase 2b · Dinámica y sismo** | Masa, modal, espectro de respuesta, P-Δ | Frecuencias y cargas críticas contra soluciones cerradas; ejemplo espectral publicado reproducido | Fase 2a; norma sísmica (#20) | 2.º semestre 2027 |
-| **Fase 3 · Diseño de hormigón armado** | Combinaciones y envolventes, vigas (flexión y cortante) y columnas según ACI 318-19, primera norma regional | Ejemplos resueltos de libros o manuales reproducidos con < 0.5 %; revisión de un ingeniero estructural | Esfuerzos 2D (ya) o 3D; decisión de norma (#20) | Empieza en paralelo en 2027 |
-| **Fase 4 · IFC y documentos** | Importación IFC (analítica e idealizada), exportación de armaduras, memoria PDF, planos DXF | Ida y vuelta IFC con un modelo real abierto en Revit o Tekla | Fase 2a para 3D, Fase 3 para armaduras | 2027 – 2028 |
-| **Fase 5 · Interfaz gráfica** | Visor 3D y edición de modelos | Un usuario modela y calcula un edificio de 3 pisos sin escribir código | Fase 2a | 2028 |
-| **Fase 6 · Láminas** | Losas y muros por elementos finitos | Placas de referencia (Timoshenko) dentro de la tolerancia | Fase 2a | Investigación, sin fecha |
+| Hito | Entregable | Criterio de salida | Depende de | Horizonte tentativo | Estado al 24/11/2026 |
+|---|---|---|---|---|---|
+| **Fase 1 · Cierre del pórtico plano** | Cargas trapezoidales, momentos y térmicas; biblioteca `verification/`; material didáctico | Todos los tipos de carga de la §3 con casos analíticos (error < 1e-9); casos de libros en `verification/` corriendo en el CI | — | Dic 2026 – feb 2027 | Casi completa: faltan ejemplos transcriptos de libros (#6) y el material didáctico (#10) |
+| **Fase 2a · Pórtico espacial** | Barra 12×12, contrato v2, brazos rígidos, diafragma rígido | Ejemplos 3D publicados reproducidos; un pórtico 3D plano da lo mismo que el motor 2D | Fase 1 | 1.er semestre 2027 | Hecha y preliminar, solo desde Python; falta la verificación con ejemplos publicados (#15) y la interfaz |
+| **Fase 2b · Dinámica y sismo** | Masa, modal, espectro de respuesta, P-Δ | Frecuencias y cargas críticas contra soluciones cerradas; ejemplo espectral publicado reproducido | Fase 2a; norma sísmica (#20) | 2.º semestre 2027 | Masa, modal y espectro hechos (preliminar), también en la interfaz del plano; faltan P-Δ (#19) y el espectro normativo |
+| **Fase 3 · Diseño de hormigón armado** | Combinaciones y envolventes, vigas (flexión y cortante) y columnas según ACI 318-19, primera norma regional | Ejemplos resueltos de libros o manuales reproducidos con < 0.5 %; revisión de un ingeniero estructural | Esfuerzos 2D (ya) o 3D; decisión de norma (#20) | Empieza en paralelo en 2027 | Combinaciones, vigas y columnas hechas (experimental); falta la revisión de un ingeniero y decidir la norma regional (#20) |
+| **Fase 4 · IFC y documentos** | Importación IFC (analítica e idealizada), exportación de armaduras, memoria PDF, planos DXF | Ida y vuelta IFC con un modelo real abierto en Revit o Tekla | Fase 2a para 3D, Fase 3 para armaduras | 2027 – 2028 | En curso: la memoria PDF ya existe; IFC y planos DXF sin empezar |
+| **Fase 5 · Interfaz gráfica** | Visor 3D y edición de modelos | Un usuario modela y calcula un edificio de 3 pisos sin escribir código | Fase 2a | 2028 | En marcha como vía paralela: ventana de escritorio, visor 3D y panel del asistente de IA; falta la edición gráfica (#31) |
+| **Fase 6 · Láminas** | Losas y muros por elementos finitos | Placas de referencia (Timoshenko) dentro de la tolerancia | Fase 2a | Investigación, sin fecha | Sin empezar (investigación) |
 
 Los horizontes son **tentativos**: dependen de cuántas personas se sumen y siguen el calendario académico (semestres de marzo a julio y de agosto a diciembre). Se revisan al cerrar cada hito.
 

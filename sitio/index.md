@@ -22,10 +22,11 @@ Nervi analiza pórticos por el método de los elementos finitos y muestra reacci
 
 </div>
 
-![Ventana de Nervi con los diagramas de momento de un pórtico](img/interfaz.png){ .nv-captura }
+![Ventana de Nervi con los diagramas de momento de un pórtico](img/interfaz-claro.png){ .nv-captura .nv-claro }
+![Ventana de Nervi con los diagramas de momento de un pórtico](img/interfaz-oscuro.png){ .nv-captura .nv-oscuro }
 
 !!! warning "Versión preliminar, no apta para proyecto"
-    Nervi está en desarrollo. Hoy calcula pórticos planos con análisis lineal elástico; los pórticos espaciales y la dinámica son preliminares, y el diseño de vigas y columnas de hormigón armado según norma es experimental y todavía no lo revisó un ingeniero estructural. Asiste al ingeniero, no reemplaza su criterio ni su firma.
+    Nervi está en desarrollo. Calcula pórticos planos y espaciales con análisis lineal elástico; el espacial y la dinámica son preliminares y el diseño de hormigón armado según ACI 318-19 es experimental hasta que lo revise un ingeniero estructural. Asiste al ingeniero, no reemplaza su criterio ni su firma.
 
 <div class="grid cards nv-tarjetas" markdown>
 
@@ -46,23 +47,20 @@ Nervi analiza pórticos por el método de los elementos finitos y muestra reacci
 ## Qué hace hoy
 
 - **Pórticos planos** con barras, articulaciones, cerchas, apoyos fijos o elásticos y asentamientos.
-- **Cargas** en nudos y en barras: uniformes, puntuales, trapezoidales o parciales y momentos concentrados en el tramo.
+- **Pórticos espaciales (3D)**, en versión preliminar: barras de 12 grados de libertad, brazos rígidos y diafragma rígido por piso.
+- **Cargas** en nudos y en barras: uniformes, puntuales, trapezoidales o parciales, momentos concentrados y térmicas.
 - **Casos y combinaciones** de carga, por ejemplo 1.2D + 1.6L.
-- **Vigas de hormigón armado** según ACI 318-19, en versión experimental: armadura a flexión, barras comerciales y estribos, flechas, fisuración y anclajes, desde Python.
-- **Columnas de hormigón armado** según ACI 318-19, en versión experimental: flexocompresión en dos direcciones, esbeltez y elección de la armadura, desde Python.
-- **Etapa Diseño** en la interfaz: arma todas las vigas y columnas del pórtico, marca cuáles cumplen y muestra cada verificación con su artículo de la norma.
-- **Resultados**: reacciones, diagramas de axil, cortante y momento, y deformada. Al pasar el cursor por una barra se leen los valores en ese punto. Con el visor 3D opcional se ven el modelo, las cargas y los diagramas en perspectiva.
-- **Interfaz de escritorio** en una sola ventana, con tablas para cargar el modelo, o uso desde Python para quien programa.
-- **Proyectos** guardados en archivos `.nrv`.
-- **Memoria de cálculo en PDF**, con los datos del modelo, las cargas, las combinaciones, las tablas de resultados, los diagramas y, si diseñaste, las armaduras y verificaciones de vigas y columnas y, si analizaste la dinámica, los modos y espectros, a partir de una plantilla editable.
-- **Pórticos espaciales (3D)**, por ahora solo desde Python y en versión preliminar: barras con flexión en dos planos y torsión, cerchas espaciales y secciones rectangulares y circulares.
-- **Análisis modal y espectro de respuesta** del pórtico espacial, desde Python y en versión preliminar: periodos, formas modales, masa participante y respuesta sísmica con combinación SRSS o CQC a partir del espectro que indique la norma.
-- **Edificios con diafragma rígido por piso y brazos rígidos** en el pórtico espacial, desde Python y en versión preliminar: la masa de cada piso en su nudo maestro, centro de masa, derivas de piso y esfuerzos de las vigas en la cara de la columna.
-- **Modos y espectros en la interfaz**, en versión preliminar: en la pestaña **Dinámica** elegís de qué casos sale la masa y cargás el espectro; ves la tabla de periodos y masa participante, cada forma modal dibujada y animada, y el cortante basal y los diagramas de cada espectro. Todo se guarda en el proyecto y va a la memoria de cálculo.
+- **Resultados**: reacciones, diagramas de axil, cortante y momento, y deformada, en 2D y en un visor 3D. Al pasar el cursor por una barra se leen los valores en ese punto. Si el modelo es un mecanismo, indica qué nudo se mueve sin rigidez.
+- **Análisis dinámico**: modos de vibración, participación de masa y espectro de respuesta (CQC y SRSS), en versión preliminar.
+- **Diseño de hormigón armado según ACI 318-19**, experimental: vigas (flexión, cortante, flechas y detalle de armaduras) y columnas (flexocompresión biaxial y esbeltez), cada verificación con su artículo.
+- **Memoria de cálculo en PDF** con geometría, cargas, diagramas, diseño y análisis dinámico.
+- **Interfaz de escritorio** en una sola ventana, con panel de estructura, tablas para cargar el modelo, tema claro y nocturno, y uso desde Python para quien programa.
+- **Asistente de IA a tu manera**: conectás la IA que ya usás (por el estándar MCP) para consultar el modelo y los resultados. Solo propone cambios que vos aplicás o descartás, y cada número lo calcula el motor de Nervi, nunca la IA.
+- **Proyectos** guardados en archivos `.nrv` y decenas de casos de verificación contra soluciones conocidas.
 
 ## Qué viene
 
-Diseño más rápido (todo el cálculo en Rust), pórticos 3D en la interfaz, espectros sísmicos según norma y P-Δ, flechas, fisuración y anclajes en la etapa Diseño, e intercambio con programas BIM (IFC). El orden y las tareas están en la [hoja de ruta](hoja-de-ruta.md).
+Efectos de segundo orden (P-Δ), espectros y normas de hormigón regionales (CIRSOC, NBR, NCh, Eurocódigo), intercambio con programas BIM (IFC), planos de armaduras, edición gráfica del modelo, complementos de la comunidad y un chat dentro de Nervi. El orden y las tareas están en la [hoja de ruta](hoja-de-ruta.md).
 
 ## Para seguir leyendo
 
