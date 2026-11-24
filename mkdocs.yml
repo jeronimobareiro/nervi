@@ -15,6 +15,7 @@ site_dir: build/html/es
 theme:
   name: material
   language: es
+  custom_dir: overrides
   logo: marca/nervi-isotipo.svg
   favicon: marca/nervi-favicon.svg
   font:
@@ -56,6 +57,7 @@ extra_javascript:
   - https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js
 extra:
   generator: false
+  imagen_social: https://jeronimobareiro.github.io/nervi/img/social.png
   alternate:
     - name: Español
       link: https://jeronimobareiro.github.io/nervi/
@@ -97,6 +99,7 @@ nav:
   - Descargar: descargar.md
   - Primeros pasos: primeros-pasos.md
   - Documentación técnica:
+      - Casos verificados: casos-verificados.md
       - Especificación técnica: tecnica/especificacion.md
       - Convenciones de signos: tecnica/convenciones.md
       - Contrato de datos: tecnica/contrato-datos.md

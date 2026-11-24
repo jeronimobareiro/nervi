@@ -30,6 +30,7 @@ import shutil
 import sys
 from pathlib import Path
 
+import tomllib
 import yaml
 
 RAIZ = Path(__file__).resolve().parent.parent
@@ -188,14 +189,43 @@ def creditos(idioma: str) -> str:
     return "\n".join(resultado)
 
 
+GRUPOS_CASOS = {  # carpeta de verification/ -> título en español
+    "vigas": "Vigas",
+    "porticos": "Pórticos",
+    "cerchas": "Cerchas",
+    "libros": "Ejemplos de libros",
+}
+CABECERA_CASOS = ("Caso", "Fuente")
+
+
+def casos(idioma: str) -> tuple[int, str]:
+    """Cantidad de casos de verification/ y su tabla en Markdown, por carpeta."""
+    config = leer_idioma(idioma) if idioma != IDIOMAS[0] else {}
+    grupos = config.get("casos_grupos", GRUPOS_CASOS)
+    cabecera = config.get("casos_cabecera", CABECERA_CASOS)
+    total, bloques = 0, []
+    for carpeta in grupos:
+        filas = []
+        for archivo in sorted((RAIZ / "verification" / carpeta).glob("*.toml")):
+            datos = tomllib.loads(archivo.read_text("utf-8"))
+            titulo = datos["titulo"].replace("|", "\\|")
+            fuente = datos.get("fuente", "").replace("|", "\\|")
+            filas.append(f"| {titulo} | {fuente} |")
+        if filas:
+            total += len(filas)
+            encabezado = f"### {grupos[carpeta]}\n\n| {cabecera[0]} | {cabecera[1]} |\n|---|---|\n"
+            bloques.append(encabezado + "\n".join(filas))
+    return total, "\n\n".join(bloques)
+
+
 def preparar_idioma(idioma: str, rutas: dict) -> int:
     destino = DESTINO / idioma
     ignorar = shutil.ignore_patterns("requirements.txt", "idiomas")
     shutil.copytree(RAIZ / "sitio", destino, ignore=ignorar)
     config = None if idioma == "es" else leer_idioma(idioma)
+    traducidas: set[str] = set()
     if config:
         # Páginas traducidas: reemplazan a las de sitio/.
-        traducidas = set()
         for origen in paginas_propias(idioma):
             relativa = origen.relative_to(RAIZ / "sitio" / "idiomas" / idioma).as_posix()
             texto = origen.read_text("utf-8").replace("{{CREDITOS}}", creditos(idioma))
@@ -209,6 +239,8 @@ def preparar_idioma(idioma: str, rutas: dict) -> int:
             print(f"{idioma}: faltan páginas traducidas: {faltan}", file=sys.stderr)
             return 1
     for origen_repo, origen_sitio in rutas.items():
+        if origen_sitio in traducidas:  # ya hay una versión traducida de esta página
+            continue
         archivo = destino / origen_sitio
         archivo.parent.mkdir(parents=True, exist_ok=True)
         if origen_repo.endswith(".md"):
@@ -227,6 +259,12 @@ def preparar_idioma(idioma: str, rutas: dict) -> int:
             archivo.write_text(texto, "utf-8")
         else:
             shutil.copyfile(RAIZ / origen_repo, archivo)
+    cantidad, tabla = casos(idioma)
+    for pagina in destino.rglob("*.md"):
+        texto = pagina.read_text("utf-8")
+        if "{{CASOS}}" in texto:
+            texto = texto.replace("{{CASOS}}", tabla).replace("{{N_CASOS}}", str(cantidad))
+            pagina.write_text(texto, "utf-8")
     indice = destino / "bitacora" / "index.md"
     indice.write_text(indice_bitacora(indice.read_text("utf-8"), rutas, destino), "utf-8")
     return 0
@@ -237,6 +275,9 @@ def escribir_configuracion(idioma: str) -> None:
     cfg = copy.deepcopy(yaml.safe_load((RAIZ / "mkdocs.yml").read_text("utf-8")))
     cfg["docs_dir"] = str(DESTINO / idioma)
     cfg["site_dir"] = str(HTML / idioma)
+    cfg["theme"]["custom_dir"] = str(
+        RAIZ / "overrides"
+    )  # en build/config/ no vale la ruta relativa
     if idioma != "es":
         t = leer_idioma(idioma)
         cfg["site_description"] = t["descripcion"]

@@ -32,7 +32,7 @@ Nervi analiza pórticos por el método de los elementos finitos y muestra reacci
 
 -   **Verificable**
 
-    Cada tipo de cálculo se compara con una fórmula conocida y cita su fuente. Podés revisar cómo llega a cada número.
+    Cada tipo de cálculo se compara con una fórmula conocida y cita su fuente. Podés revisar cómo llega a cada número y ver los [casos verificados](casos-verificados.md).
 
 -   **Libre y gratuito**
 
