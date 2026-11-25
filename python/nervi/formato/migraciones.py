@@ -38,6 +38,8 @@ MIGRACIONES: dict[str, dict[int, Migracion]] = {
     "diseno": {1: diseno_1_a_2},
     "dinamica": {},
     "proyecto": {},
+    "historial": {},
+    "fisico": {},
 }
 
 

@@ -26,6 +26,7 @@ Documentación: **[jeronimobareiro.github.io/nervi](https://jeronimobareiro.gith
 - Detección de mecanismos (dice qué nudo y qué grado de libertad se mueven sin rigidez) y validación de datos con mensajes claros.
 - **Pórtico espacial** desde Python (`nervi.Modelo3D`, preliminar): barras de 12 GDL con flexión en dos planos, axil y torsión, ejes locales con vector de referencia, bielas de cercha espacial y secciones habituales en `nervi.secciones`. **Diafragma rígido por piso** (`Modelo3D.diafragma`, maestro-esclavo por transformación, con centro de masa y derivas de piso) y **brazos rígidos** en los extremos de las barras (`brazo_i`, `brazo_j`), con esfuerzos en la cara de la unión. Todavía sin interfaz ni `.nrv`.
 - **Dinámica** (preliminar): masas nodales, de las barras (concentradas o consistentes) y desde los casos de carga; análisis modal con periodos, formas y masa participante por dirección; espectro de respuesta con SRSS o CQC (`Modelo3D.modal`). El espectro de la norma lo da quien diseña. En el pórtico plano también desde la interfaz (`nervi.dinamica_plana`).
+- **Modelo físico** del edificio (`nervi.fisico.ModeloFisico`, preliminar): pisos con su nivel, ejes, materiales y secciones, y columnas, vigas, losas macizas y muros como objetos, guardados en el `.nrv`. Todavía no genera el modelo de cálculo ni se edita en la interfaz.
 
 ### Diseño de hormigón armado según ACI 318-19 (experimental)
 

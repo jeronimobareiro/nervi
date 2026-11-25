@@ -45,6 +45,14 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | diafragma rígido (`diafragma`, `Diafragma`) | rigid diaphragm | diafragma rígido | жёсткий диск перекрытия |
 | nudo maestro / esclavo (`maestro`, `esclavos`) | master / slave node | nó mestre / escravo | главный / подчинённый узел |
 | piso | story, floor | pavimento, andar | этаж |
+| modelo físico (`ModeloFisico`, `fisico`) | physical model | modelo físico | физическая модель |
+| modelo analítico, modelo de cálculo | analytical model | modelo analítico | расчётная модель |
+| nivel (`nivel`) | elevation, level | cota, nível | отметка |
+| eje de replanteo (`ejes`) | grid line | eixo (de locação) | разбивочная ось |
+| losa (`losas`, `maciza`) | slab (solid) | laje (maciça) | плита (сплошная) |
+| muro (`muros`) | wall | parede, pilar-parede | стена |
+| contorno (`contorno`) | outline, boundary | contorno | контур |
+| espesor (`espesor`) | thickness | espessura | толщина |
 
 ## Apoyos y vínculos · Supports and releases
 

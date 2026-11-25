@@ -6,7 +6,8 @@ de ``modelo.json`` (módulo ``modelo``, versión 1), el de ``diseno.json`` si el
 proyecto tiene datos de diseño (módulo ``diseno``, versión 2), el de
 ``dinamica.json`` si tiene datos de análisis modal y espectral (módulo ``dinamica``,
 versión 1), el de ``proyecto.json`` si tiene datos para la carátula (módulo
-``proyecto``, versión 1) y los miembros del ZIP que este programa no
+``proyecto``, versión 1), el de ``fisico.json`` si tiene modelo físico (módulo
+``fisico``, versión 1) y los miembros del ZIP que este programa no
 interpreta, que se conservan al volver a guardar. Cada módulo tiene su propia
 versión y sus migraciones (``docs/formato-nrv.md`` §3.1 y §6).
 
@@ -16,7 +17,7 @@ versión y sus migraciones (``docs/formato-nrv.md`` §3.1 y §6).
 'portico_2d'
 """
 
-from . import dinamica, diseno, historial, proyecto
+from . import dinamica, diseno, fisico, historial, proyecto
 from .contenedor import (
     MIMETYPE,
     MODULOS,
@@ -39,6 +40,7 @@ __all__ = [
     "desde_modelo",
     "dinamica",
     "diseno",
+    "fisico",
     "guardar",
     "historial",
     "proyecto",

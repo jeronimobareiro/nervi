@@ -182,7 +182,7 @@ Desde noviembre de 2026 la interfaz es una **vía paralela**: `nervi.gui` (PySid
 
 | Estado | Issue | Tarea | Tamaño | Área |
 |:-:|---|---|---|---|
-| ⬜  [#73](https://github.com/jeronimobareiro/nervi/issues/73) | Modelo físico: pisos, ejes, vigas, columnas, losas y muros | T | interfaz |
+| 🚧  [#73](https://github.com/jeronimobareiro/nervi/issues/73) | Modelo físico: pisos, ejes, vigas, columnas, losas y muros (datos, `.nrv` y API Python hechos; falta la edición en la interfaz) | T | interfaz |
 | ⬜  [#74](https://github.com/jeronimobareiro/nervi/issues/74) | Generar el modelo de cálculo desde el modelo físico | T | motor |
 | ⬜  [#75](https://github.com/jeronimobareiro/nervi/issues/75) | Reconocer ejes, columnas, muros y losas en un DXF de arquitectura | T | planos |
 | ⬜  [#76](https://github.com/jeronimobareiro/nervi/issues/76) | Comparar revisiones del plano de arquitectura y actualizar el modelo | PA | planos |
@@ -203,12 +203,19 @@ Desde noviembre de 2026 la interfaz es una **vía paralela**: `nervi.gui` (PySid
 | ⬜  [#83](https://github.com/jeronimobareiro/nervi/issues/83) | Catálogo de perfiles de acero | BPA | normas |
 | ⬜  [#84](https://github.com/jeronimobareiro/nervi/issues/84) | Verificación de barras de acero según AISC 360-22 | T | normas |
 | ⬜  [#85](https://github.com/jeronimobareiro/nervi/issues/85) | Uniones de acero apernadas y soldadas y placas base | T | normas |
+| ⬜  [#100](https://github.com/jeronimobareiro/nervi/issues/100) | Perfiles conformados en frío según AISI S100 (después de los laminados) | T | normas |
+
+Los perfiles conformados en frío entran en esta fase después de los laminados (decisión del 25/11/2026, #100).
 
 ### Fase 10 · Losas, muros, fundaciones y elementos especiales
+
+Después de las losas macizas entran las nervadas (#101), las pretensadas (#102) y las mixtas con chapa colaborante (steel deck, #92, Fase 11), decisión del 25/11/2026.
 
 | Estado | Issue | Tarea | Tamaño | Área |
 |:-:|---|---|---|---|
 | ⬜  [#86](https://github.com/jeronimobareiro/nervi/issues/86) | Diseño de losas de hormigón armado (primero macizas) | PA | normas |
+| ⬜  [#101](https://github.com/jeronimobareiro/nervi/issues/101) | Losas nervadas de hormigón armado | PA | normas |
+| ⬜  [#102](https://github.com/jeronimobareiro/nervi/issues/102) | Losas pretensadas (postesadas y prefabricadas pretensadas) | T | normas |
 | ⬜  [#87](https://github.com/jeronimobareiro/nervi/issues/87) | Diseño de muros de hormigón armado | PA | normas |
 | ⬜  [#88](https://github.com/jeronimobareiro/nervi/issues/88) | Fundaciones con los datos del estudio de suelos | T | normas |
 | ⬜  [#89](https://github.com/jeronimobareiro/nervi/issues/89) | Escaleras, tanques y muros de contención | PA | normas |
@@ -284,5 +291,3 @@ Las etiquetas de área (`motor`, `normas`, `ifc`, `interfaz`, `planos`, `verific
 - **Norma regional prioritaria** para hormigón y sismo ([#20](https://github.com/jeronimobareiro/nervi/issues/20)). La toma el responsable del proyecto.
 - **Biblioteca de autovalores** para el análisis modal: propia sobre `faer` o un binding con licencia compatible (se decide en [#17](https://github.com/jeronimobareiro/nervi/issues/17)).
 - **Formulación de láminas**: MITC4 o DKT (se decide en [#32](https://github.com/jeronimobareiro/nervi/issues/32)).
-- **Tipos de losa** después de las macizas: nervadas y pretensadas (se abren como issues si hay interés; ver [#86](https://github.com/jeronimobareiro/nervi/issues/86)).
-- **Perfiles conformados en frío** (AISI S100), muy usados en la región: si entran en la Fase 9 o después.

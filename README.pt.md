@@ -37,6 +37,7 @@ Veja o [guia de contribuição](CONTRIBUTING.md#contributing-from-other-countrie
 - Detecção de mecanismos (indica qual nó e qual grau de liberdade se movem sem rigidez) e validação de dados com mensagens claras.
 - **Pórtico espacial** a partir do Python (`nervi.Modelo3D`, preliminar): barras de 12 graus de liberdade com flexão em dois planos, esforço normal e torção, eixos locais definidos por um vetor de referência, barras de treliça espacial e seções usuais em `nervi.secciones`. **Diafragma rígido por pavimento** (`Modelo3D.diafragma`, restrição mestre-escravo por transformação, com centro de massa e deslocamentos relativos entre pavimentos) e **trechos rígidos** nas extremidades das barras (`brazo_i`, `brazo_j`), com esforços na face do nó. Ainda sem interface nem `.nrv`.
 - **Dinâmica** (preliminar): massas nodais, das barras (concentradas ou consistentes) e a partir dos casos de carga; análise modal com períodos, formas e massa participante por direção; espectro de resposta com SRSS ou CQC (`Modelo3D.modal`). O espectro da norma é fornecido por quem projeta. No pórtico plano, também pela interface (`nervi.dinamica_plana`).
+- **Modelo físico** do edifício (`nervi.fisico.ModeloFisico`, preliminar): pavimentos com sua cota, eixos, materiais e seções, e pilares, vigas, lajes maciças e paredes como objetos, salvos no arquivo `.nrv`. Ainda não gera o modelo de cálculo nem se edita na interface.
 
 ### Dimensionamento de concreto armado segundo a ACI 318-19 (experimental)
 

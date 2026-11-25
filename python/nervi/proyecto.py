@@ -518,6 +518,30 @@ class Proyecto:
         self.modificado = True
         self._avisar("archivo")
 
+    # --- Modelo físico ------------------------------------------------------------------
+    @property
+    def fisico(self) -> dict | None:
+        """Datos de ``fisico.json`` (``None`` si el proyecto no tiene modelo físico).
+        Para leerlos o armarlos, ``nervi.fisico.ModeloFisico.desde_json``."""
+        return self.doc.fisico
+
+    def editar_fisico(
+        self, nuevo: dict | None, descripcion: str = "Editar el modelo físico"
+    ) -> None:
+        """Reemplaza el modelo físico (``None`` lo quita). Lanza ``FormatoError`` si no
+        es válido. Se puede deshacer. Por ahora solo lo edita la persona: las
+        propuestas de agentes e importadores son del modelo analítico."""
+        if nuevo is not None:
+            formato.fisico.validar(nuevo)
+        self._registrar("fisico", self.doc.fisico, nuevo, PERSONA, descripcion)
+        self._poner_fisico(nuevo)
+        self._avisar("historial")
+
+    def _poner_fisico(self, nuevo: dict | None) -> None:
+        self.doc.fisico = nuevo
+        self.modificado = True
+        self._avisar("archivo")
+
     # --- Diseño --------------------------------------------------------------------
     @property
     def diseno(self) -> dict:
@@ -624,7 +648,7 @@ class Proyecto:
 
     # --- Deshacer, rehacer y propuestas ------------------------------------------------
     def _registrar(
-        self, parte: str, antes: dict | None, despues: dict, origen: str, descripcion: str
+        self, parte: str, antes: dict | None, despues: dict | None, origen: str, descripcion: str
     ) -> None:
         if not isinstance(origen, str) or not origen.strip():
             raise ValueError("el origen de un cambio tiene que ser un texto no vacío")
@@ -691,6 +715,8 @@ class Proyecto:
             self._poner_modelo(valor)
         elif parte == "diseno":
             self._poner_diseno(valor)
+        elif parte == "fisico":
+            self._poner_fisico(valor)
         else:
             self._poner_dinamica(valor)
 
