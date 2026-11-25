@@ -173,6 +173,19 @@ def test_referencia_del_modulo_historial():
     assert doc.historial["cambios"][-1]["huella_despues"] == huella(doc.modelo)
 
 
+def test_referencia_del_modulo_fisico():
+    # El edificio de 3 pisos de fisico-v1.nrv se lee igual que cuando se guardó.
+    from nervi.fisico import ModeloFisico
+
+    esperado = _esperado(DATOS / "fisico-v1.nrv")["fisico"]
+    doc = formato.abrir(DATOS / "fisico-v1.nrv")
+    assert doc.fisico == esperado
+    mf = ModeloFisico.desde_json(doc.fisico)
+    assert [p["nivel"] for p in mf.pisos_ordenados()] == [0.0, 3.0, 6.0, 9.0]
+    assert len(mf.lista("columnas")) == 18 and len(mf.lista("losas")) == 6
+    assert len(mf.lista("muros")) == 1
+
+
 def test_modulo_desconocido_requerido_no_abre(tmp_path):
     ruta = _con_manifiesto(
         tmp_path, _modulo("portico_3d", 1, ["portico_3d.json"], True), [("portico_3d.json", "{}")]

@@ -19,5 +19,7 @@ Estos archivos garantizan que un proyecto guardado con una versión vieja de Ner
 | `proyecto-v1.esperado.json` | Resultados de cada caso y, en `proyecto`, el contenido de `proyecto.json` que se tiene que leer. |
 | `historial-v1.nrv` | Módulo `historial` versión 1 junto con `modelo` 1: el pórtico de ejemplo de la interfaz con dos propuestas aplicadas (`ia: Claude` cambia la sección de B2; `importador: planilla` agrega viento en N3) y la segunda deshecha. Guardado el 2026-11-24. |
 | `historial-v1.esperado.json` | Resultados de cada caso (motor del 2026-11-24) y, en `historial`, los tres cambios que se tienen que leer. |
+| `fisico-v1.nrv` | Módulo `fisico` versión 1 junto con `modelo` 1: el pórtico de ejemplo de la interfaz y, como modelo físico, el edificio de `examples/edificio_fisico.py` (4 niveles, 5 ejes, H-25, 18 columnas de 40 x 40, 21 vigas de 25 x 50, 6 losas macizas de 12 cm y un muro de 20 cm). Guardado el 2026-11-25. |
+| `fisico-v1.esperado.json` | Resultados de cada caso (motor del 2026-11-25) y, en `fisico`, el contenido de `fisico.json` que se tiene que leer. |
 
 Cuando un módulo sube de versión, se **agrega** su archivo (`modelo-v2.nrv`, `modelo-v2.esperado.json`) y se anota acá. Los anteriores se quedan.

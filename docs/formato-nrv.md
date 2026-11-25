@@ -1,4 +1,4 @@
-# Formato de archivo `.nrv` (contenedor 1, módulos `modelo` 1, `diseno` 2, `dinamica` 1 y `proyecto` 1, borrador)
+# Formato de archivo `.nrv` (contenedor 1, módulos `modelo` 1, `diseno` 2, `dinamica` 1, `proyecto` 1, `historial` 1 y `fisico` 1, borrador)
 
 > **Estado: borrador.** Se congela con la primera versión publicada de la GUI (v0.1.0). Hasta entonces se puede cambiar sin migración; después, todo cambio sigue §6.
 >
@@ -30,6 +30,7 @@ proyecto.nrv
 ├── diseno.json         # módulo "diseno", opcional: datos de diseño (§4b)
 ├── dinamica.json       # módulo "dinamica", opcional: masas, modos y espectros (§4c)
 ├── historial.json      # módulo "historial", opcional: cambios propuestos y aplicados (§4e)
+├── fisico.json         # módulo "fisico", opcional: modelo físico del edificio (§4f)
 ├── resultados/         # módulo "resultados", caché (previsto, §5)
 ├── vista.json          # módulo "vista", estado de la GUI (previsto)
 └── adjuntos/           # módulo "adjuntos": imágenes, memorias (previsto)
@@ -96,6 +97,7 @@ Nombres de módulo: minúsculas, dígitos y `_`, con `.` para separar un prefijo
 | `dinamica` | versión 1 | no | Casos de los que sale la masa, cantidad de modos y espectros de respuesta del pórtico plano (§4c). Solo está si el proyecto tiene datos de dinámica. |
 | `proyecto` | versión 1 | no | Datos que identifican el proyecto y salen en la carátula de la memoria (§4d). Solo está si se cargó alguno. |
 | `historial` | versión 1 | no | Cambios que propuso un agente de IA, un importador o un complemento y la persona aplicó, deshizo o rehízo (§4e). Solo está si hubo alguno. |
+| `fisico` | versión 1 | no | Modelo físico del edificio: pisos, ejes, materiales, secciones, columnas, vigas, losas y muros (§4f). Solo está si el proyecto tiene modelo físico. |
 | `resultados` | previsto (§5) | no | Caché de resultados. |
 | `vista` | previsto | no | Cámara, capas, selección. |
 | `adjuntos` | previsto | no | Imágenes, memorias, planos. |
@@ -276,6 +278,48 @@ Lo escribe `nervi.proyecto` cuando la persona aplica una **propuesta** de cambio
 - Se guardan los últimos 2000 cambios; al agregar uno más se descarta el más viejo. `extensiones` (opcional) es un objeto libre.
 - Se valida con `nervi.formato.historial.validar`; un error dice `historial.json`, la ruta y el motivo.
 
+## 4f. Módulo `fisico` (`fisico.json`), versión 1
+
+El **modelo físico** describe el edificio como lo dibuja quien proyecta: pisos con su nivel, ejes y los elementos (columnas, vigas, losas y muros) con su sección o espesor, material y ubicación (issue #73, Fase 7). Es independiente de `modelo.json`: el modelo analítico de barras se generará desde el físico (#74), y hasta entonces los dos conviven sin referirse uno al otro. Lo escribe `nervi.fisico.ModeloFisico` (API de Python); la edición en la interfaz viene después (#31). Un proyecto sin modelo físico no tiene este módulo.
+
+```json
+{
+  "unidades": {"longitud": "m"},
+  "pisos": [
+    {"id": 1, "nombre": "Planta baja", "nivel": 0.0},
+    {"id": 2, "nombre": "Piso 1", "nivel": 3.0}
+  ],
+  "ejes": [{"id": 1, "nombre": "A", "p1": [0.0, -1.0], "p2": [0.0, 6.0]}],
+  "materiales": [
+    {"id": 1, "nombre": "H-25", "tipo": "hormigon", "fc": 25.0},
+    {"id": 2, "nombre": "F-24", "tipo": "acero", "fy": 240.0, "fu": 370.0}
+  ],
+  "secciones": [
+    {"id": 1, "nombre": "C 40x40", "forma": "rectangular", "b": 400.0, "h": 400.0},
+    {"id": 2, "nombre": "C Ø40", "forma": "circular", "d": 400.0}
+  ],
+  "columnas": [{"id": 1, "nombre": "CA1", "punto": [0.0, 0.0], "desde": 1, "hasta": 2, "seccion": 1, "material": 1}],
+  "vigas": [{"id": 1, "nombre": "V1", "piso": 2, "p1": [0.0, 0.0], "p2": [6.0, 0.0], "seccion": 1, "material": 1}],
+  "losas": [{"id": 1, "nombre": "L101", "piso": 2, "contorno": [[0.0, 0.0], [6.0, 0.0], [6.0, 5.0], [0.0, 5.0]], "espesor": 120.0, "material": 1}],
+  "muros": [{"id": 1, "nombre": "M1", "p1": [0.0, 0.0], "p2": [0.0, 5.0], "desde": 1, "hasta": 2, "espesor": 200.0, "material": 1}]
+}
+```
+
+- **Unidades.** Coordenadas en planta (`p1`, `p2`, `punto`, `contorno`) y niveles en `unidades.longitud` ∈ {`mm`, `cm`, `m`}; dimensiones de secciones (`b`, `h`, `d`) y espesores en **mm**; `fc`, `fy`, `fu` y `E` en **MPa**. No dependen de las unidades de `modelo.json`.
+- **Identificadores.** Cada elemento de cada lista lleva un `id` entero ≥ 1, único dentro de su lista y no necesariamente consecutivo; las referencias (`piso`, `desde`, `hasta`, `seccion`, `material`) usan ese `id`. Los puntos son pares `[x, y]` en planta, con números finitos. Las listas ausentes valen `[]`.
+- `pisos`: `nombre` (único) y `nivel`, la cota de la cara superior de la losa del piso. No puede haber dos pisos en el mismo nivel.
+- `ejes`: `nombre` (único) y dos puntos distintos `p1`, `p2`. Son referencias de dibujo: ningún elemento depende de ellos.
+- `materiales`: `nombre` (único) y `tipo` ∈ {`hormigon`, `acero`}. El hormigón lleva `fc` (obligatoria) y `E` (opcional); el acero, `fy` (obligatoria), `fu ≥ fy` y `E` (opcionales). Todos > 0. Sin `E`, lo dará la norma que se use.
+- `secciones`: `nombre` (único) y `forma` ∈ {`rectangular` (con `b` y `h`), `circular` (con `d`)}. Los perfiles de acero entran con el catálogo (#83) subiendo la versión.
+- `columnas`: `punto` en planta, `desde` y `hasta` (pisos, con el nivel de `hasta` mayor que el de `desde`), `seccion`, `material`, y opcionales `nombre` y `angulo` (giro de la sección en planta, en grados, antihorario desde X; ausente vale 0).
+- `vigas`: `piso` (la cara superior de la viga está en su nivel), `p1` y `p2` distintos, `seccion`, `material` y `nombre` opcional.
+- `losas`: `piso`, `contorno` (polígono simple de al menos 3 puntos, sin repetir el primero al final, que no se corta a sí mismo y encierra área, en cualquier sentido), `espesor`, `material` de hormigón, `nombre` opcional y `tipo` ∈ {`maciza`} (ausente vale `maciza`). Las nervadas, las mixtas con steel deck y las pretensadas (#101, #92, #102) entran subiendo la versión.
+- `muros`: eje del muro `p1`–`p2` (distintos), `desde` y `hasta` como las columnas, `espesor`, `material` de hormigón y `nombre` opcional.
+- Los `nombre` de pisos, ejes, materiales y secciones no se repiten; los de los elementos sí pueden repetirse (la columna `C1` de cada piso). Un `nombre` es un texto no vacío de hasta 100 caracteres.
+- `extensiones` (opcional) es un objeto libre.
+- La versión 1 no valida superposiciones entre elementos (dos vigas en el mismo lugar, una losa que se sale de sus vigas): eso es tarea de la revisión del modelo, no del formato.
+- Se valida con `nervi.formato.fisico.validar`; un error dice `fisico.json`, la ruta y el motivo (por ejemplo `fisico.json: vigas[0].piso: no existe el piso 77`).
+
 ## 5. Resultados (`resultados/`, reservado)
 
 En la versión actual los resultados **no se guardan**: se recalculan al abrir (un pórtico de 10 000 barras se resuelve en menos de un segundo). El directorio queda reservado para una caché futura con esta regla: cada resultado lleva el SHA-256 de `modelo.json` con el que se calculó, y si no coincide se descarta. Será el módulo no requerido `resultados` (§3.1): un lector que no lo entiende lo conserva sin leerlo, y nunca es fuente de verdad.
@@ -358,6 +402,7 @@ Implementado en `python/nervi/formato/`:
 - `desde_modelo(Modelo, combinaciones) -> modelo_json` (los `id` son índice + 1) y `validar(modelo_json)`, escrita a mano según el esquema y §4.1 para no sumar `jsonschema` como dependencia.
 - `MODULOS` en `contenedor.py`: los módulos que conoce esta versión y la versión que escribe de cada uno. `Documento.migrado_desde` dice qué módulos se migraron y `Documento.avisos` qué se conservó sin leer.
 - `migraciones.py`: una cadena por módulo. La única migración publicada es `diseno_1_a_2` (§4b).
+- `fisico.py`: validación del módulo `fisico` (§4f); la API para armarlo está en `nervi.fisico.ModeloFisico`.
 - `tests/test_formato_compatibilidad.py` y `tests/datos/nrv/`: archivos de referencia permanentes (§6.3).
 - Pruebas en `tests/test_formato.py`: ida y vuelta bit a bit, firma `mimetype`, miembros desconocidos conservados, `id` no consecutivos, versión futura, archivo de Nero, ZIP cualquiera, `mimetype` comprimido, rutas con `..`, referencias rotas y demás reglas de §4.1.
 - La GUI (PySide6) solo llama a `nervi.formato`; no escribe JSON por su cuenta.
@@ -373,3 +418,4 @@ Implementado en `python/nervi/formato/`:
 | `diseno` 2 | 2026-11-24 (borrador) | `criterios.diametros_columna`: diámetros permitidos para la armadura de columnas (§4b). Migración `diseno_1_a_2` con los cinco diámetros. Archivo de referencia `tests/datos/nrv/diseno-v2.nrv`. |
 | `proyecto` 1 | 2026-11-24 (borrador) | Módulo opcional con los datos de la carátula de la memoria (§4d). Archivo de referencia `tests/datos/nrv/proyecto-v1.nrv`. |
 | `historial` 1 | 2026-11-24 (borrador) | Módulo opcional de auditoría (§4e): cambios propuestos por un agente de IA, un importador o un complemento, con su origen, resumen y huellas. Archivo de referencia `tests/datos/nrv/historial-v1.nrv`. |
+| `fisico` 1 | 2026-11-25 (borrador) | Módulo opcional con el modelo físico del edificio (§4f): pisos, ejes, materiales, secciones, columnas, vigas, losas macizas y muros. Archivo de referencia `tests/datos/nrv/fisico-v1.nrv`. |

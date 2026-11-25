@@ -14,6 +14,7 @@ from pathlib import Path, PurePosixPath
 
 from . import dinamica as _dinamica
 from . import diseno as _diseno
+from . import fisico as _fisico
 from . import historial as _historial
 from . import migraciones
 from . import modelo as _modelo
@@ -64,6 +65,9 @@ MODULOS: dict[str, Modulo] = {
     "historial": Modulo("historial", 1, (_historial.MIEMBRO,), requerido=False),
     # Datos del proyecto para la carátula de la memoria: solo si el proyecto los tiene.
     "proyecto": Modulo("proyecto", 1, (_proyecto.MIEMBRO,), requerido=False),
+    # Modelo físico del edificio (Fase 7, #73): pisos, ejes, vigas, columnas, losas y
+    # muros. Solo si el proyecto lo tiene; no cambia el modelo analítico.
+    "fisico": Modulo("fisico", 1, (_fisico.MIEMBRO,), requerido=False),
 }
 
 
@@ -93,8 +97,8 @@ class Documento:
     ``diseno.json`` (``None`` si el proyecto todavía no tiene datos de diseño) y
     ``dinamica`` el de ``dinamica.json`` (``None`` sin datos de dinámica),
     ``historial`` el de ``historial.json`` (``None`` si nadie más que la persona
-    cambió el proyecto) y ``proyecto`` el de ``proyecto.json`` (``None`` sin datos
-    del proyecto)."""
+    cambió el proyecto), ``proyecto`` el de ``proyecto.json`` (``None`` sin datos
+    del proyecto) y ``fisico`` el de ``fisico.json`` (``None`` sin modelo físico)."""
 
     modelo: dict
     manifiesto: dict = field(default_factory=dict)
@@ -105,6 +109,7 @@ class Documento:
     dinamica: dict | None = None
     historial: dict | None = None
     proyecto: dict | None = None
+    fisico: dict | None = None
 
     @classmethod
     def nuevo(cls) -> Documento:
@@ -266,6 +271,9 @@ def abrir(ruta: str | os.PathLike) -> Documento:
         proyecto = leidos.get(_proyecto.MIEMBRO)
         if proyecto is not None:
             _proyecto.validar(proyecto)
+        fisico = leidos.get(_fisico.MIEMBRO)
+        if fisico is not None:
+            _fisico.validar(fisico)
         propios = {"mimetype", MANIFIESTO, *leidos}
         otros = {
             i.filename: zf.read(i.filename)
@@ -283,6 +291,7 @@ def abrir(ruta: str | os.PathLike) -> Documento:
         dinamica,
         historial=historial,
         proyecto=proyecto,
+        fisico=fisico,
     )
 
 
@@ -299,6 +308,8 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
         _historial.validar(doc.historial)
     if doc.proyecto is not None:
         _proyecto.validar(doc.proyecto)
+    if doc.fisico is not None:
+        _fisico.validar(doc.fisico)
     ruta = Path(ruta)
     ahora = _ahora()
     manifiesto = {k: v for k, v in doc.manifiesto.items()}
@@ -320,6 +331,7 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
     presentes |= {"dinamica"} if doc.dinamica is not None else set()
     presentes |= {"historial"} if doc.historial is not None else set()
     presentes |= {"proyecto"} if doc.proyecto is not None else set()
+    presentes |= {"fisico"} if doc.fisico is not None else set()
     modulos.update(
         {n: m.entrada() for n, m in MODULOS.items() if n not in modulos and n in presentes}
     )
@@ -344,6 +356,8 @@ def guardar(doc: Documento, ruta: str | os.PathLike, copia_bak: bool = False) ->
         miembros[_historial.MIEMBRO] = _json(doc.historial)
     if doc.proyecto is not None and modulos["proyecto"]["version"] <= MODULOS["proyecto"].version:
         miembros[_proyecto.MIEMBRO] = _json(doc.proyecto)
+    if doc.fisico is not None and modulos["fisico"]["version"] <= MODULOS["fisico"].version:
+        miembros[_fisico.MIEMBRO] = _json(doc.fisico)
 
     tmp = ruta.with_name(ruta.name + ".tmp")
     with open(tmp, "wb") as f:

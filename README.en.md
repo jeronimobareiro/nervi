@@ -37,6 +37,7 @@ See the [contributing guide](CONTRIBUTING.md#contributing-from-other-countries).
 - Mechanism detection (it tells which node and degree of freedom move without stiffness) and input validation with clear messages.
 - **Space frames** from Python (`nervi.Modelo3D`, preliminary): 12-DOF members with biaxial bending, axial force and torsion, local axes set by a reference vector, space-truss bars and common sections in `nervi.secciones`. **Rigid floor diaphragms** (`Modelo3D.diafragma`, master-slave constraint by transformation, with center of mass and story drifts) and **rigid end offsets** (`brazo_i`, `brazo_j`), with member forces at the joint face. No interface or `.nrv` support yet.
 - **Dynamics** (preliminary): nodal masses, member masses (lumped or consistent) and masses from load cases; modal analysis with periods, mode shapes and participating mass per direction; response spectrum analysis with SRSS or CQC (`Modelo3D.modal`). The code spectrum is supplied by the designer. For plane frames, also from the desktop interface (`nervi.dinamica_plana`).
+- **Physical building model** (`nervi.fisico.ModeloFisico`, preliminary): stories with their elevation, grid lines, materials and sections, and columns, beams, solid slabs and walls as objects, saved in the `.nrv` file. It does not yet generate the analysis model and cannot be edited in the interface yet.
 
 ### Reinforced concrete design per ACI 318-19 (experimental)
 
