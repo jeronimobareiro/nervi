@@ -40,6 +40,7 @@ _SENALES = {
     "diseno": "diseno_cambiado",
     "dinamica": "dinamica_cambiada",
     "historial": "historial_cambiado",
+    "fisico": "fisico_cambiado",
 }
 
 
@@ -53,6 +54,7 @@ class Sesion(Proyecto, QObject):
     diseno_cambiado = Signal()
     dinamica_cambiada = Signal()
     historial_cambiado = Signal()
+    fisico_cambiado = Signal()
 
     def __init__(self, doc: formato.Documento | None = None) -> None:
         # Proyecto.__init__ llama a QObject.__init__ por herencia cooperativa.

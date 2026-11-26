@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Diálogo *Archivo › Importar DXF…*: elegir capas y opciones mirando el resultado.
+"""Diálogo *Archivo › Importar DXF*: elegir capas y opciones mirando el resultado.
 
 La lectura y el armado son de :mod:`nervi.importar.dxf` (sin Qt y sin IA). Acá solo
 se eligen las opciones, se ve el modelo que quedaría y, al tocar *Importar*, se

@@ -11,8 +11,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QElapsedTimer, QPoint, QSize, Qt, QTimer, QUrl
-from PySide6.QtGui import QAction, QActionGroup, QColor, QDesktopServices, QIcon, QKeySequence
+from PySide6.QtCore import QByteArray, QElapsedTimer, QPoint, QSize, Qt, QTimer, QUrl
+from PySide6.QtGui import (
+    QAction,
+    QActionGroup,
+    QColor,
+    QDesktopServices,
+    QIcon,
+    QKeySequence,
+    QPainter,
+    QPixmap,
+)
+from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QButtonGroup,
     QComboBox,
@@ -44,6 +54,15 @@ from .canal import CanalVentana
 from .consola import Consola
 from .dinamica import PanelDinamica, fase
 from .diseno import PanelDiseno, color_estado
+from .edificio import (
+    EstadoEdificio,
+    GestorPlantas,
+    PlantaEdificio,
+    PropiedadesEdificio,
+    TablasEdificio,
+    filas_arbol,
+    nombre_elemento,
+)
 from .paleta import Entrada, Paleta
 from .sesion import Seleccion, Sesion, documento_ejemplo
 from .tablas import LISTAS, EditorLista, TablaResultados, vista_tabla
@@ -51,6 +70,30 @@ from .vista2d import DIAGRAMAS, Vista2D
 from .vista3d import Vista3D
 
 RECURSOS = Path(__file__).resolve().parent / "recursos"
+#: Ícono del gestor de plantas del modo Edificio: el edificio con sus losas y el terreno
+#: (24 x 24, trazo de 1,7 px, la familia de la barra lateral). Elegido el 26/11/2026.
+ICONO_PLANTAS = '<path d="M5 20V4h14v16"/><path d="M3 20h18"/><path d="M5 9.3h14M5 14.6h14"/>'
+#: Chevrones para subir y bajar de planta, de la misma familia.
+ICONO_SUBIR = '<path d="M6 15l6-6 6 6"/>'
+ICONO_BAJAR = '<path d="M6 9l6 6 6-6"/>'
+
+
+def icono_trazo(cuerpo: str, color: str, lado: int, escala: float) -> QPixmap:
+    """Ícono de trazo de la familia de la barra lateral (``viewBox`` de 24), de ``lado`` px."""
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" '
+        f'fill="none" stroke="{color}" stroke-width="1.7" stroke-linecap="round" '
+        f'stroke-linejoin="round">{cuerpo}</svg>'
+    )
+    pix = QPixmap(round(lado * escala), round(lado * escala))
+    pix.fill(Qt.transparent)
+    p = QPainter(pix)
+    QSvgRenderer(QByteArray(svg.encode())).render(p)
+    p.end()
+    pix.setDevicePixelRatio(escala)
+    return pix
+
+
 ETAPAS = ("Geometría", "Cargas", "Análisis", "Resultados", "Diseño", "Memoria")
 AVISO_PRELIMINAR = "Versión preliminar · no apta para proyecto"
 
@@ -88,6 +131,9 @@ class Ventana(QMainWindow):
         self.setWindowIcon(icono())
         self.resize(1440, 900)
         estilo.aplicar(tema=ajustes.tema())
+        # Modelo físico del edificio (#73): piso que se ve y elemento elegido.
+        self.edificio = EstadoEdificio(self.sesion)
+        self.modo = "calculo"
         self._acciones()
 
         raiz = QWidget(objectName="raiz")
@@ -103,6 +149,8 @@ class Ventana(QMainWindow):
         self.vista3d: QWidget | None = None
         self.vistas = QStackedWidget()
         self.vistas.addWidget(self.vista)
+        self.planta = PlantaEdificio(self.edificio)
+        self.vistas.addWidget(self.planta)
         self.panel_inferior = self._panel_inferior()
         self.centro = centro = QSplitter(Qt.Vertical)
         centro.addWidget(self.vistas)
@@ -147,7 +195,10 @@ class Ventana(QMainWindow):
         s.seleccion_cambiada.connect(self._marcar_arbol)
         s.resultados_cambiados.connect(self._marcar_arbol)
         self.vista.diagrama_cambiado.connect(self._marcar_diagrama)
+        self.edificio.cambiado.connect(self._actualizar_edificio)
+        self.edificio.mensaje.connect(lambda t: self.statusBar().showMessage(f"✕ {t}", 6000))
         self._actualizar_todo()
+        self._actualizar_edificio()
 
     # --- Acciones y menú ------------------------------------------------------------
     def _accion(self, texto: str, funcion, atajo: str | QKeySequence | None = None) -> QAction:
@@ -161,28 +212,28 @@ class Ventana(QMainWindow):
     def _acciones(self) -> None:
         self.a_nuevo = self._accion("Nuevo proyecto", self.nuevo, QKeySequence.New)
         self.a_ejemplo = self._accion("Abrir ejemplo: pórtico simple", self.abrir_ejemplo)
-        self.a_abrir = self._accion("Abrir…", self.abrir_dialogo, QKeySequence.Open)
-        self.a_importar_dxf = self._accion("Importar DXF…", self.importar_dxf_dialogo)
+        self.a_abrir = self._accion("Abrir", self.abrir_dialogo, QKeySequence.Open)
+        self.a_importar_dxf = self._accion("Importar DXF", self.importar_dxf_dialogo)
         self.a_guardar = self._accion("Guardar", self.guardar, QKeySequence.Save)
-        self.a_guardar_como = self._accion("Guardar como…", self.guardar_como, QKeySequence.SaveAs)
+        self.a_guardar_como = self._accion("Guardar como", self.guardar_como, QKeySequence.SaveAs)
         self.a_deshacer = self._accion("Deshacer", self.deshacer, QKeySequence.Undo)
         self.a_rehacer = self._accion("Rehacer", self.rehacer, QKeySequence.Redo)
         self.a_calcular = self._accion("Calcular", self.calcular, "F5")
         self.a_disenar = self._accion("Diseñar elementos de hormigón armado", self.disenar)
         self.a_dinamica = self._accion("Análisis modal y espectral", self.analizar_dinamica)
         self.a_memoria = self._accion(
-            "Exportar memoria de cálculo (PDF)…", self.exportar_memoria, "Ctrl+P"
+            "Exportar memoria de cálculo (PDF)", self.exportar_memoria, "Ctrl+P"
         )
         self.a_resultados = self._accion(
-            "Exportar resultados a precisión completa (JSON)…", self.exportar_resultados
+            "Exportar resultados a precisión completa (JSON)", self.exportar_resultados
         )
         self.a_conectar_ia = self._accion("Conectar con mi IA", self.conectar_ia)
         self.a_conectar_ia.setCheckable(True)
         self.a_buscar = self._accion("Buscar comando o elemento", self.abrir_paleta, "Ctrl+K")
         self.a_salir = self._accion("Salir", self.close, QKeySequence.Quit)
-        self.a_preferencias = self._accion("Preferencias…", self.abrir_preferencias, "Ctrl+,")
+        self.a_preferencias = self._accion("Preferencias", self.abrir_preferencias, "Ctrl+,")
         self.a_configuracion = self._accion(
-            "Configuración del proyecto…", self.configurar_proyecto, "Ctrl+Shift+,"
+            "Configuración del proyecto", self.configurar_proyecto, "Ctrl+Shift+,"
         )
         self.a_consola = self._accion("Consola Python", self.mostrar_consola)
         self.a_revision = self._accion("Revisión del modelo", self.mostrar_revision)
@@ -204,6 +255,19 @@ class Ventana(QMainWindow):
                 atajo,
             )
             self.a_diagramas[clave].setShortcutContext(Qt.WidgetWithChildrenShortcut)
+        self.a_plantas = self._accion("Plantas", self.gestionar_plantas)
+        self.a_subir = self._accion("Subir una planta", lambda: self.subir_planta(1), "PgUp")
+        self.a_bajar = self._accion("Bajar una planta", lambda: self.subir_planta(-1), "PgDown")
+        self.a_edificio = self._accion(
+            "Ver el edificio (modelo físico)", lambda: self.elegir_modo("edificio")
+        )
+        self.a_calculo = self._accion(
+            "Ver el modelo analítico", lambda: self.elegir_modo("calculo")
+        )
+        # Re Pág y Av Pág solo en el modo Edificio (fuera del menú: en Cálculo están
+        # inactivas para que las tablas usen esas teclas).
+        self.a_subir.setEnabled(False)
+        self.a_bajar.setEnabled(False)
         self.a_vista2d = self._accion("Vista 2D", lambda: self.mostrar_vista("2D"))
         self.a_vista3d = self._accion("Vista 3D", lambda: self.mostrar_vista("3D"))
         self.a_temas = {}
@@ -340,6 +404,8 @@ class Ventana(QMainWindow):
         self.menu_recientes = QMenu("Abrir reciente", self)
         self.menu_recientes.aboutToShow.connect(self._llenar_recientes)
         modelo = QMenu(self)
+        modelo.addAction(self.a_plantas)
+        modelo.addSeparator()
         for lista, (titulo, _cols) in LISTAS.items():
             modelo.addAction(titulo, lambda l=lista: self.mostrar_tabla(l))
         modelo.addSeparator()
@@ -366,12 +432,30 @@ class Ventana(QMainWindow):
             "editar": menu(self.a_deshacer, self.a_rehacer),
             "modelo": modelo,
             "calcular": menu(self.a_calcular, self.a_dinamica, self.a_disenar),
-            "ver": menu(self.a_vista2d, self.a_vista3d, None, *self.a_diagramas.values()),
+            "ver": menu(
+                self.a_edificio,
+                self.a_calculo,
+                None,
+                self.a_vista2d,
+                self.a_vista3d,
+                None,
+                *self.a_diagramas.values(),
+            ),
             "herramientas": menu(self.a_buscar, self.a_consola),
             "ayuda": menu(self.a_codigo, self.a_informar, None, self.a_acerca),
         }
 
     def _iconos_riel(self) -> None:
+        # Ícono del gestor de plantas: tres losas apiladas, con el color del tema.
+        self.b_plantas.setIcon(
+            QIcon(icono_trazo(ICONO_PLANTAS, estilo.TEXTO_2, 20, self.devicePixelRatioF()))
+        )
+        for boton, cuerpo in ((self.b_subir, ICONO_SUBIR), (self.b_bajar, ICONO_BAJAR)):
+            icono = QIcon(icono_trazo(cuerpo, estilo.TEXTO_2, 18, self.devicePixelRatioF()))
+            icono.addPixmap(
+                icono_trazo(cuerpo, estilo.TEXTO_3, 18, self.devicePixelRatioF()), QIcon.Disabled
+            )
+            boton.setIcon(icono)
         rutas = estilo.iconos_menu(estilo.actual)
         for clave, b in self.botones_riel.items():
             icono_b = QIcon()
@@ -407,6 +491,70 @@ class Ventana(QMainWindow):
         barra = QWidget(objectName="contexto")
         capa = QHBoxLayout(barra)
         capa.setContentsMargins(12, 5, 12, 5)
+        capa.setSpacing(10)
+        # Edificio | Cálculo: el modelo físico o el analítico (#73).
+        modos = QWidget(objectName="grupo")
+        m = QHBoxLayout(modos)
+        m.setContentsMargins(2, 2, 2, 2)
+        m.setSpacing(2)
+        self.grupo_modos = QButtonGroup(self)
+        self.botones_modo: dict[str, QPushButton] = {}
+        for clave, nombre, ayuda in (
+            ("edificio", "Edificio", "Modelo físico: pisos, columnas, vigas, losas y muros"),
+            ("calculo", "Cálculo", "Modelo analítico: nudos, barras, cargas y resultados"),
+        ):
+            b = QPushButton(nombre, objectName="segmento", checkable=True)
+            b.setToolTip(ayuda)
+            b.clicked.connect(lambda _=False, c=clave: self.elegir_modo(c))
+            self.grupo_modos.addButton(b)
+            self.botones_modo[clave] = b
+            m.addWidget(b)
+        self.botones_modo["calculo"].setChecked(True)
+        capa.addWidget(modos)
+        capa.addSpacing(8)
+
+        # Controles del modo Edificio: planta que se ve, ▲▼ y el gestor de plantas.
+        self.ctx_edificio = QWidget()
+        e = QHBoxLayout(self.ctx_edificio)
+        e.setContentsMargins(0, 0, 0, 0)
+        e.setSpacing(6)
+        e.addWidget(QLabel("Planta", objectName="tenue"))
+        self.combo_planta = QComboBox()
+        self.combo_planta.setMinimumWidth(190)
+        self.combo_planta.activated.connect(
+            lambda i: self.edificio.ir_a_piso(self.combo_planta.itemData(i))
+        )
+        e.addWidget(self.combo_planta)
+        self.b_plantas = QToolButton()
+        self.b_plantas.setToolTip("Plantas: agregar, editar, quitar y copiar")
+        self.b_plantas.setAccessibleName("Plantas")
+        self.b_plantas.setIconSize(QSize(20, 20))
+        self.b_plantas.clicked.connect(self.gestionar_plantas)
+        e.addWidget(self.b_plantas)
+        # Chevrones en un grupo, como el selector Edificio | Cálculo (26/11/2026).
+        flechas = QWidget(objectName="grupo")
+        f = QHBoxLayout(flechas)
+        f.setContentsMargins(2, 2, 2, 2)
+        f.setSpacing(2)
+        self.b_subir = QToolButton(objectName="segmento")
+        self.b_subir.setToolTip("Subir una planta (Re Pág)")
+        self.b_subir.setAccessibleName("Subir una planta")
+        self.b_subir.clicked.connect(lambda: self.subir_planta(1))
+        self.b_bajar = QToolButton(objectName="segmento")
+        self.b_bajar.setToolTip("Bajar una planta (Av Pág)")
+        self.b_bajar.setAccessibleName("Bajar una planta")
+        self.b_bajar.clicked.connect(lambda: self.subir_planta(-1))
+        for b in (self.b_subir, self.b_bajar):
+            b.setIconSize(QSize(18, 18))
+            f.addWidget(b)
+        e.addWidget(flechas)
+        self.ctx_edificio.hide()
+        capa.addWidget(self.ctx_edificio)
+
+        self.ctx_calculo = QWidget()
+        capa_calculo = capa
+        capa = QHBoxLayout(self.ctx_calculo)
+        capa.setContentsMargins(0, 0, 0, 0)
         capa.setSpacing(10)
         vistas = QWidget(objectName="grupo")
         v = QHBoxLayout(vistas)
@@ -450,7 +598,8 @@ class Ventana(QMainWindow):
         self.b_valores = QPushButton("Valores", checkable=True, checked=True)
         self.b_valores.toggled.connect(self._valores)
         capa.addWidget(self.b_valores)
-        capa.addStretch()
+        capa_calculo.addWidget(self.ctx_calculo)
+        capa_calculo.addStretch()
         return barra
 
     def _explorador(self) -> QWidget:
@@ -461,9 +610,15 @@ class Ventana(QMainWindow):
         titulo = QLabel("Estructura", objectName="titulo_arbol")
         titulo.setContentsMargins(12, 0, 12, 0)
         capa.addWidget(titulo)
+        self.titulo_arbol = titulo
         self.arbol = ArbolModelo()
         self.arbol.elegido.connect(self._item_explorador)
-        capa.addWidget(self.arbol)
+        self.arbol_edificio = ArbolModelo()
+        self.arbol_edificio.elegido.connect(self._item_explorador)
+        self.pila_arbol = QStackedWidget()
+        self.pila_arbol.addWidget(self.arbol)
+        self.pila_arbol.addWidget(self.arbol_edificio)
+        capa.addWidget(self.pila_arbol)
         panel.setMinimumWidth(240)
         return panel
 
@@ -495,7 +650,11 @@ class Ventana(QMainWindow):
         self.capa_prop.addLayout(self.form_dis)
         self.capa_prop.addStretch()
         panel.setMinimumWidth(240)
-        return panel
+        self.prop_edificio = PropiedadesEdificio(self.edificio)
+        self.pila_prop = QStackedWidget()
+        self.pila_prop.addWidget(panel)
+        self.pila_prop.addWidget(self.prop_edificio)
+        return self.pila_prop
 
     def _panel_inferior(self) -> QTabWidget:
         tabs = QTabWidget()
@@ -505,6 +664,10 @@ class Ventana(QMainWindow):
         for lista, (titulo, _cols) in LISTAS.items():
             self.tabs_modelo.addTab(EditorLista(self.sesion, lista), titulo)
         tabs.addTab(self.tabs_modelo, "Modelo")
+        self.tablas_edificio = TablasEdificio(self.edificio)
+        self.tablas_edificio.setDocumentMode(True)
+        tabs.addTab(self.tablas_edificio, "Edificio")
+        tabs.setTabVisible(tabs.indexOf(self.tablas_edificio), False)
 
         self.tabs_res = QTabWidget()
         self.tabs_res.setDocumentMode(True)
@@ -787,7 +950,11 @@ class Ventana(QMainWindow):
         self.botones_vista[nombre].setChecked(True)
 
     def _item_explorador(self, tipo: str, valor) -> None:
-        if tipo in ("barra", "nudo"):
+        if tipo == "edificio":
+            self.edificio.elegir(*valor)
+        elif tipo == "tabla_edificio":
+            self.mostrar_tabla_edificio(valor)
+        elif tipo in ("barra", "nudo"):
             self.sesion.seleccionar(Seleccion(tipo, valor))
         elif tipo == "tabla":
             self.mostrar_tabla(valor)
@@ -809,6 +976,94 @@ class Ventana(QMainWindow):
     def mostrar_tabla(self, lista: str) -> None:
         self.panel_inferior.setCurrentWidget(self.tabs_modelo)
         self.tabs_modelo.setCurrentIndex(list(LISTAS).index(lista))
+
+    # --- Modelo físico del edificio (#73) ------------------------------------------
+    def elegir_modo(self, modo: str) -> None:
+        """Muestra el modelo físico (``"edificio"``) o el analítico (``"calculo"``)."""
+        self.modo = modo
+        edificio = modo == "edificio"
+        self.botones_modo[modo].setChecked(True)
+        self.ctx_edificio.setVisible(edificio)
+        self.ctx_calculo.setVisible(not edificio)
+        self.titulo_arbol.setText("Edificio" if edificio else "Estructura")
+        self.pila_arbol.setCurrentWidget(self.arbol_edificio if edificio else self.arbol)
+        self.pila_prop.setCurrentWidget(
+            self.prop_edificio if edificio else self.pila_prop.widget(0)
+        )
+        tabs = self.panel_inferior
+        i_modelo, i_edificio = tabs.indexOf(self.tabs_modelo), tabs.indexOf(self.tablas_edificio)
+        # La pestaña de tablas del modo nuevo reemplaza a la del otro en el mismo lugar.
+        nueva, vieja = (i_edificio, i_modelo) if edificio else (i_modelo, i_edificio)
+        tabs.setTabVisible(nueva, True)
+        if tabs.currentIndex() == vieja:
+            tabs.setCurrentIndex(nueva)
+        tabs.setTabVisible(vieja, False)
+        if edificio:
+            self.vistas.setCurrentWidget(self.planta)
+        else:
+            vista = "3D" if self.botones_vista["3D"].isChecked() else "2D"
+            self.mostrar_vista(vista)
+        # Re Pág y Av Pág cambian de planta solo en Edificio; en Cálculo son de las tablas.
+        self.a_subir.setEnabled(edificio)
+        self.a_bajar.setEnabled(edificio)
+        self._actualizar_edificio()
+        if not edificio:
+            self._actualizar_resultados()
+
+    def subir_planta(self, pasos: int) -> None:
+        """▲ (``pasos`` = 1) o ▼ (``pasos`` = -1): la planta de arriba o la de abajo."""
+        if self.modo == "edificio":
+            self.edificio.subir(pasos)
+
+    def gestionar_plantas(self) -> GestorPlantas:
+        """Abre el gestor de plantas (no modal: lo aplica *Aceptar*)."""
+        if self.modo != "edificio":
+            self.elegir_modo("edificio")
+        dialogo = GestorPlantas(self.edificio, self)
+        dialogo.setAttribute(Qt.WA_DeleteOnClose)
+        dialogo.show()
+        self._gestor_plantas = dialogo
+        return dialogo
+
+    def mostrar_tabla_edificio(self, lista: str) -> None:
+        self.panel_inferior.setCurrentWidget(self.tablas_edificio)
+        self.tablas_edificio.mostrar(lista)
+
+    def _actualizar_edificio(self) -> None:
+        """Árbol, selector de planta, ▲▼ y barra de estado del modo Edificio."""
+        est = self.edificio
+        mf = est.modelo()
+        if est.eleccion is not None:
+            # La sección del elemento elegido se abre para que se vea marcado.
+            lista = est.eleccion[0]
+            self.arbol_edificio.abiertas.add(lista if lista != "secciones" else "materiales")
+        self.arbol_edificio.mostrar_filas(filas_arbol(mf, est.piso))
+        if est.eleccion is not None:
+            lista, id = est.eleccion
+            clave = lista if lista != "secciones" else "materiales"
+            self.arbol_edificio.marcar(clave, nombre_elemento(lista, mf.elemento(lista, id)))
+        elif est.piso is not None:
+            self.arbol_edificio.marcar("pisos", mf.elemento("pisos", est.piso)["nombre"])
+        else:
+            self.arbol_edificio.marcar(None, None)
+        self.combo_planta.blockSignals(True)
+        self.combo_planta.clear()
+        for p in reversed(mf.pisos_ordenados()):
+            self.combo_planta.addItem(f"{p['nombre']} · {p['nivel']:+.2f} {mf.longitud}", p["id"])
+        if est.piso is not None:
+            self.combo_planta.setCurrentIndex(self.combo_planta.findData(est.piso))
+        self.combo_planta.blockSignals(False)
+        self.b_subir.setEnabled(est.puede(1))
+        self.b_bajar.setEnabled(est.puede(-1))
+        if self.modo == "edificio":
+            n = {k: len(mf.lista(k)) for k in ("pisos", "columnas", "vigas", "losas", "muros")}
+            self.lbl_estado.setText("Modelo físico")
+            self.lbl_estado.setStyleSheet(f"color: {estilo.TEXTO_2};")
+            self.lbl_unidades.setText(f"{mf.longitud} · mm · MPa")
+            self.lbl_tamano.setText(
+                f"{n['pisos']} pisos · {n['columnas']} columnas · {n['vigas']} vigas · "
+                f"{n['losas']} losas · {n['muros']} muros"
+            )
 
     def ir_a_etapa(self, n: int) -> None:
         self.botones_etapa[n].setChecked(True)

@@ -45,6 +45,7 @@ Decidido el 23/11/2026 con muestras en los dos temas.
 
 - **Barra lateral de menús.** Una columna de íconos de 52 px a la izquierda (`riel`, botones `menu_riel` de 40 px con íconos de 20 px). Arriba: Archivo, Editar, Modelo, Calcular, Ver, Herramientas y Asistente de IA; abajo: Ayuda y Preferencias. Cada ícono abre su menú **hacia la derecha** y muestra su nombre al pasar el mouse; mientras el menú está abierto el botón queda marcado con acento suave y el ícono en color de acento. *Preferencias* abre directamente su ventana. El menú del logo se conserva como acceso rápido.
 - **Íconos propios** de 24 × 24 con trazo de 1,7 px (`estilo.ICONOS_MENU`), en el color del texto secundario o del acento. No se copian íconos de otros programas.
+- **Sin tres puntos.** Las entradas de menú y los botones que abren una ventana van solo con su nombre (*Abrir*, *Guardar como*, *Preferencias*, *Plantas*), sin "…" al final. Decidido el 26/11/2026.
 - **Solo acciones que existen.** Un menú no muestra opciones grises de cosas que todavía no hace (complementos, por ejemplo); se agregan cuando llegan. *Editar* tiene Deshacer y Rehacer, que muestran qué deshacen o rehacen y quedan inactivos cuando no hay nada.
 - **Dos ventanas de ajustes**, con la misma forma: apartados a la izquierda (`apartados`), contenido en cajas (`caja_ajustes`) con título de `seccion`, buscador arriba y *Restablecer este apartado*, *Cancelar*, *Aplicar* y *Aceptar* abajo.
   - **Preferencias** (`ajustes.Preferencias`): de la persona, en esta computadora. Apartados General (qué abrir al iniciar) y Apariencia (tema y tamaño de letra).
@@ -58,13 +59,13 @@ Decidido el 24/11/2026 con muestras en los dos temas.
 - **Ícono en la barra lateral** (`ia`, una chispa), debajo de Herramientas. No abre un menú: abre y cierra el **panel del asistente** junto a la barra, antes del árbol del modelo. Una `insignia` del color de acento sobre el ícono dice cuántas propuestas esperan.
 - **Sin chat.** La persona conversa en su propia app de IA; el panel muestra el estado de la conexión (`conexion`, verde cuando está conectada), las **propuestas pendientes** como `tarjeta` con borde y fondo de acento (descripción, origen, resumen de cambios y los botones *Aplicar* `primario`, *Vista previa* y *Descartar* `fantasma`) y las **consultas del agente** (hora, herramienta en `codigo` y ✓ `bien` o ✕ `mal`).
 - *Vista previa* abre el modelo propuesto en una ventana aparte, sin aplicarlo. *Aplicar* se deshace con Ctrl+Z.
-- Abajo, *Conectar con mi IA* (`primario`) o *Desconectar*, *Cómo conectar mi app…* y el aviso de que lo que lee el agente viaja a su proveedor.
+- Abajo, *Conectar con mi IA* (`primario`) o *Desconectar*, *Cómo conectar mi app* y el aviso de que lo que lee el agente viaja a su proveedor.
 
 ## Importar DXF
 
 Decidido el 24/11/2026 con muestras en los dos temas.
 
-- *Archivo › Importar DXF…* abre un diálogo con la misma cabecera y el mismo pie que Preferencias (`barra`, `pie_ajustes`): título y nombre del archivo arriba; *Cancelar* e *Importar* (`primario`) abajo.
+- *Archivo › Importar DXF* abre un diálogo con la misma cabecera y el mismo pie que Preferencias (`barra`, `pie_ajustes`): título y nombre del archivo arriba; *Cancelar* e *Importar* (`primario`) abajo.
 - A la izquierda, en cajas (`caja_ajustes`) con su título de `seccion`: **Capas** (una casilla por capa con su cantidad de líneas), **Dibujo** (unidad y tolerancia) y **Opciones** (llevar al origen, que solo se ofrece con el modelo vacío, y empotrar los nudos más bajos), y una nota tenue sobre los ejes del dibujo y Ctrl+Z.
 - A la derecha, el modelo que quedaría en una vista 2D, recalculado con cada cambio, sin leyenda de resultados. Si el modelo ya tenía barras, las nuevas van en color de acento. Arriba, cuánto se agrega; abajo, los avisos del importador en palabras. Si las opciones no alcanzan (sin unidad, sin capas), el motivo reemplaza al resumen e *Importar* queda inactivo.
 
@@ -77,6 +78,19 @@ Decidido el 24/11/2026 con muestras en los dos temas (entrada [2026-11-24-07](bi
 - **Filas** colgadas de una guía vertical de 1 px: código (`B1`, `N1`, `D`) y detalle en texto secundario (`Columna 30×30`, `Empotrado`, `Permanente`). Con el panel de 300 px o más, a la derecha va un dato tenue (nudos de la barra, coordenadas del nudo, barras que usan la sección); más angosto se oculta en todas las filas a la vez y queda en la ayuda emergente.
 - **Dos resaltados:** la barra o el nudo elegido lleva fondo de acento suave con esquinas de 4 px y texto de acento; el caso o la combinación que muestran los diagramas lleva texto de acento y un punto de acento a la derecha.
 - Los nombres de los casos salen de su símbolo (ACI 318-19 §5.3: D Permanente, L Sobrecarga, W Viento, E Sismo…); la sección de cada barra es la rectangular equivalente de la etapa Diseño, en centímetros.
+
+## Modelo físico
+
+Decidido el 25 y el 26/11/2026 con muestras en los dos temas (entrada [2026-11-26-01](bitacora/2026-11-26-01-modelo-fisico-interfaz.md)).
+
+![Modo Edificio con la viga V103 del Piso 1 elegida](img/modelo-fisico.png)
+
+- **Edificio | Cálculo:** segmento al principio de la barra contextual (`segmento` en un `grupo`). *Cálculo* es el modelo analítico de siempre; *Edificio* (`gui.edificio`) cambia la vista, el árbol, las propiedades y la pestaña de tablas por las del modelo físico. En *Edificio*, la barra muestra *Planta* con un desplegable de pisos (de arriba hacia abajo, con su nivel), chevrones para subir y bajar en un `grupo` con botones `segmento`, como el selector de modo (`ICONO_SUBIR` e `ICONO_BAJAR`; Re Pág y Av Pág, solo en este modo; se apagan en el piso más alto y en el más bajo) con el botón del gestor de plantas antes de las flechas: ícono del edificio con sus losas y el terreno (`ventana.ICONO_PLANTAS`, 24 × 24 con trazo de 1,7 px como la barra lateral; en el menú Modelo es *Plantas*); se ocultan 2D/3D, Diagrama, Combinación y Valores.
+- **Planta** (`PlantaEdificio`): fondo de cuadrícula como la vista 2D; ejes en trazo y punto con su burbuja; losas con relleno tenue, nombre y *Maciza · e = 12 cm · área*; vigas como franjas de su ancho, con nombre y sección; muros como franjas de su espesor con relleno a media transparencia; columnas rellenas con el color de texto, rectangulares o circulares y giradas. Lo elegido va en color de acento. Abajo a la izquierda, una etiqueta con el piso, su nivel y cuántos elementos tiene. Un clic elige el elemento; en el vacío, el piso.
+- **Árbol** (mismo `ArbolModelo`, título *Edificio*): Pisos (con su nivel), Ejes, Columnas, Vigas, Losas y Muros del piso que se ve, y Materiales y secciones. Clic en un piso lo muestra; en un elemento, lo elige; en el título de una sección, abre su tabla.
+- **Propiedades** (`PropiedadesEdificio`): campos editables (`QLineEdit` alineado a la derecha para números, desplegable para piso, sección, material y tipo) y datos calculados (largo, área, altura). Un valor inválido no cambia nada y deja el motivo en `aviso`. Sin elección, los datos del piso: nivel, entrepiso y cantidades.
+- **Tablas** (`TablasEdificio`, pestaña *Edificio* del panel inferior en lugar de *Modelo*): una por lista, con *Agregar* y *Eliminar* y, a la derecha, el piso y la cantidad. Columnas, vigas, losas y muros muestran solo los del piso que se ve. Cada cambio pasa por la validación completa del modelo físico y se deshace con Ctrl+Z.
+- **Gestor de plantas** (`GestorPlantas`): diálogo con la cabecera y el pie de Preferencias. A la izquierda, la tabla de plantas de arriba hacia abajo (nivel, entrepiso, elementos) con *Agregar arriba*, *Agregar abajo* y *Quitar planta* (`peligro`, pide confirmación si hay elementos). A la derecha, dos cajas (`caja_ajustes`): *Planta elegida* (nombre, nivel, altura de entrepiso y *Mover las plantas de arriba*) y *Copiar elementos* (origen, qué listas y a qué plantas). Trabaja sobre una copia: *Aceptar* lo aplica todo como un solo paso de deshacer y *Cancelar* lo descarta.
 
 ## Cómo agregar algo
 

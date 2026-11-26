@@ -42,11 +42,10 @@ def armar() -> ModeloFisico:
             for m, y in zip("12", YS, strict=True):
                 mf.agregar_columna((x, y), abajo, arriba, col, h25, nombre=f"C{n}{m}")
         k = pisos.index(arriba)
-        for y in YS:
-            for x1, x2 in pairwise(XS):
-                mf.agregar_viga(arriba, (x1, y), (x2, y), vig, h25, nombre=f"V{k}")
-        for x in XS:
-            mf.agregar_viga(arriba, (x, YS[0]), (x, YS[1]), vig, h25, nombre=f"V{k}")
+        tramos = [((x1, y), (x2, y)) for y in YS for x1, x2 in pairwise(XS)]
+        tramos += [((x, YS[0]), (x, YS[1])) for x in XS]
+        for j, (a, b) in enumerate(tramos, start=1):
+            mf.agregar_viga(arriba, a, b, vig, h25, nombre=f"V{k}0{j}")
         for j, (x1, x2) in enumerate(pairwise(XS), start=1):
             contorno = [(x1, YS[0]), (x2, YS[0]), (x2, YS[1]), (x1, YS[1])]
             mf.agregar_losa(arriba, contorno, 120.0, h25, nombre=f"L{k}0{j}")

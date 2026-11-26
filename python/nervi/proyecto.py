@@ -212,7 +212,16 @@ class Proyecto:
     #: Eventos que puede avisar un proyecto, en el orden de :meth:`_reiniciar`.
     #: ``"historial"`` avisa que cambió lo que se puede deshacer o rehacer, o las
     #: propuestas pendientes.
-    EVENTOS = ("archivo", "modelo", "resultados", "seleccion", "diseno", "dinamica", "historial")
+    EVENTOS = (
+        "archivo",
+        "modelo",
+        "resultados",
+        "seleccion",
+        "diseno",
+        "dinamica",
+        "historial",
+        "fisico",
+    )
 
     def __init__(self, doc: formato.Documento | None = None, **kwargs) -> None:
         # Cooperativo: ``Sesion`` hereda de ``Proyecto`` y de ``QObject``.
@@ -305,6 +314,7 @@ class Proyecto:
         self._avisar("diseno")
         self._avisar("dinamica")
         self._avisar("historial")
+        self._avisar("fisico")
 
     # --- Edición -----------------------------------------------------------------
     @property
@@ -541,6 +551,7 @@ class Proyecto:
         self.doc.fisico = nuevo
         self.modificado = True
         self._avisar("archivo")
+        self._avisar("fisico")
 
     # --- Diseño --------------------------------------------------------------------
     @property

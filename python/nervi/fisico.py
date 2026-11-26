@@ -300,3 +300,110 @@ class ModeloFisico:
                     )
         self._datos[lista] = [e for e in self._datos[lista] if e["id"] != id]
         self._ctx = _formato.contexto(self._datos)
+
+    # --- Cambios de varios elementos a la vez ------------------------------------------
+    def _probar(self, datos: dict) -> None:
+        """Valida ``datos`` completos y, si son válidos, los toma; si no, no cambia nada."""
+        ctx = _formato.contexto(datos)
+        self._datos, self._ctx = datos, ctx
+
+    def editar(self, lista: str, id: int, /, **cambios) -> None:
+        """Cambia claves de un elemento (``None`` quita una clave opcional). Se valida
+        todo el modelo: si el cambio deja algo inválido, el modelo no cambia."""
+        if id not in self._ctx.ids.get(lista, {}):
+            raise KeyError(f"no existe {id} en {lista}")
+        if "id" in cambios:
+            raise ValueError("el id de un elemento no se cambia")
+        datos = copy.deepcopy(self._datos)
+        el = next(e for e in datos[lista] if e["id"] == id)
+        for clave, valor in cambios.items():
+            if valor is None:
+                el.pop(clave, None)
+            else:
+                el[clave] = _punto(valor) if clave in ("p1", "p2", "punto") else valor
+        self._probar(datos)
+
+    def elementos_en_piso(self, piso: int) -> int:
+        """Cantidad de elementos que se dibujan en la planta del piso: vigas y losas del
+        piso, y columnas y muros que llegan a él desde abajo."""
+        return sum(len(v) for v in self.en_piso(piso).values())
+
+    def _usan_piso(self, piso: int) -> list[tuple[str, dict]]:
+        return [
+            (lista, el)
+            for lista, claves in (
+                ("columnas", ("desde", "hasta")),
+                ("vigas", ("piso",)),
+                ("losas", ("piso",)),
+                ("muros", ("desde", "hasta")),
+            )
+            for el in self._datos[lista]
+            if any(el[c] == piso for c in claves)
+        ]
+
+    def quitar_piso(self, piso: int) -> int:
+        """Quita un piso y todo lo que lo usa (vigas y losas del piso, columnas y muros
+        que nacen o terminan en él). Devuelve cuántos elementos se quitaron."""
+        if piso not in self._ctx.ids["pisos"]:
+            raise KeyError(f"no existe el piso {piso}")
+        usan = {(lista, el["id"]) for lista, el in self._usan_piso(piso)}
+        datos = copy.deepcopy(self._datos)
+        for lista in ("columnas", "vigas", "losas", "muros"):
+            datos[lista] = [e for e in datos[lista] if (lista, e["id"]) not in usan]
+        datos["pisos"] = [p for p in datos["pisos"] if p["id"] != piso]
+        self._probar(datos)
+        return len(usan)
+
+    def cambiar_nivel(self, piso: int, nivel: float, mover_arriba: bool = False) -> None:
+        """Pone el piso en ``nivel``. Con ``mover_arriba``, los pisos que estaban más
+        arriba se corren lo mismo, así las alturas de entrepiso de arriba no cambian."""
+        viejo = self.nivel(piso)
+        delta = float(nivel) - viejo
+        datos = copy.deepcopy(self._datos)
+        for p in datos["pisos"]:
+            if p["id"] == piso or (mover_arriba and p["nivel"] > viejo):
+                p["nivel"] = p["nivel"] + delta
+        self._probar(datos)
+
+    def piso_de_abajo(self, piso: int) -> int | None:
+        """El piso inmediatamente más bajo (``None`` si es el más bajo)."""
+        orden = [p["id"] for p in self.pisos_ordenados()]
+        k = orden.index(piso)
+        return orden[k - 1] if k else None
+
+    def copiar_piso(
+        self,
+        origen: int,
+        destinos: Iterable[int],
+        listas: Iterable[str] = ("columnas", "vigas", "losas", "muros"),
+    ) -> int:
+        """Copia los elementos de la planta ``origen`` a cada piso de ``destinos``.
+
+        Vigas y losas van al piso de destino; columnas y muros que llegan al origen
+        desde abajo van del piso de abajo del destino al destino. Lo que ya había en
+        el destino se conserva. Devuelve cuántos elementos se agregaron."""
+        listas = tuple(listas)
+        for lista in listas:
+            if lista not in ("columnas", "vigas", "losas", "muros"):
+                raise ValueError(f"no se copia la lista {lista!r}")
+        en_origen = self.en_piso(origen)
+        datos = copy.deepcopy(self._datos)
+        agregados = 0
+        for destino in destinos:
+            if destino == origen:
+                continue
+            abajo = self.piso_de_abajo(destino)
+            for lista in listas:
+                for el in en_origen[lista]:
+                    nuevo = copy.deepcopy(el)
+                    if lista in ("vigas", "losas"):
+                        nuevo["piso"] = destino
+                    elif abajo is None:
+                        continue  # el piso más bajo no tiene de dónde nacer
+                    else:
+                        nuevo["desde"], nuevo["hasta"] = abajo, destino
+                    nuevo["id"] = max((e["id"] for e in datos[lista]), default=0) + 1
+                    datos[lista].append(nuevo)
+                    agregados += 1
+        self._probar(datos)
+        return agregados

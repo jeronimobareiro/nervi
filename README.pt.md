@@ -37,7 +37,7 @@ Veja o [guia de contribuição](CONTRIBUTING.md#contributing-from-other-countrie
 - Detecção de mecanismos (indica qual nó e qual grau de liberdade se movem sem rigidez) e validação de dados com mensagens claras.
 - **Pórtico espacial** a partir do Python (`nervi.Modelo3D`, preliminar): barras de 12 graus de liberdade com flexão em dois planos, esforço normal e torção, eixos locais definidos por um vetor de referência, barras de treliça espacial e seções usuais em `nervi.secciones`. **Diafragma rígido por pavimento** (`Modelo3D.diafragma`, restrição mestre-escravo por transformação, com centro de massa e deslocamentos relativos entre pavimentos) e **trechos rígidos** nas extremidades das barras (`brazo_i`, `brazo_j`), com esforços na face do nó. Ainda sem interface nem `.nrv`.
 - **Dinâmica** (preliminar): massas nodais, das barras (concentradas ou consistentes) e a partir dos casos de carga; análise modal com períodos, formas e massa participante por direção; espectro de resposta com SRSS ou CQC (`Modelo3D.modal`). O espectro da norma é fornecido por quem projeta. No pórtico plano, também pela interface (`nervi.dinamica_plana`).
-- **Modelo físico** do edifício (`nervi.fisico.ModeloFisico`, preliminar): pavimentos com sua cota, eixos, materiais e seções, e pilares, vigas, lajes maciças e paredes como objetos, salvos no arquivo `.nrv`. Ainda não gera o modelo de cálculo nem se edita na interface.
+- **Modelo físico** do edifício (`nervi.fisico.ModeloFisico`, preliminar): pavimentos com sua cota, eixos, materiais e seções, e pilares, vigas, lajes maciças e paredes como objetos, salvos no arquivo `.nrv`. Na interface, o modo *Edificio* (edifício) mostra a planta de cada pavimento (▲▼ para subir e descer), a árvore, tabelas e propriedades editáveis e um gerenciador de pavimentos. Ainda não gera o modelo de cálculo nem desenha com o mouse.
 
 ### Dimensionamento de concreto armado segundo a ACI 318-19 (experimental)
 
@@ -53,7 +53,7 @@ Ainda não foi revisado por um engenheiro estrutural: não use em projetos reais
 - **Projetos** no formato [`.nrv`](docs/formato-nrv.md), com módulos versionados (modelo, dimensionamento, dinâmica) e migrações para que projetos antigos sempre abram.
 - **Memória de cálculo em PDF**, em espanhol e com modelo editável: capa, normas de referência, dados do modelo, cargas, combinações, resultados, diagramas, envoltórias e, quando houver, os capítulos de dimensionamento e de análise dinâmica (`nervi.memoria`, ou Ctrl+P na interface).
 - **Resultados com precisão completa** em JSON, sem o arredondamento da memória: deslocamentos, reações, esforços de extremidade e diagramas de cada caso e combinação, e o dimensionamento e a dinâmica quando atualizados, com a impressão digital do modelo a que correspondem ([`formato-resultados.md`](docs/formato-resultados.md)).
-- **Importar DXF**: as linhas de um desenho do AutoCAD ou de outro programa, por camada, viram nós e barras, com pré-visualização antes de aplicar (*Archivo › Importar DXF…*). Não precisa de IA.
+- **Importar DXF**: as linhas de um desenho do AutoCAD ou de outro programa, por camada, viram nós e barras, com pré-visualização antes de aplicar (*Archivo › Importar DXF*). Não precisa de IA.
 - **Conexão com agentes de IA** por MCP (`nervi-mcp`): o agente que você já usa (Claude, Gemini ou outro cliente MCP) consulta o projeto aberto ou um arquivo e explica os resultados, com cada número tirado do motor; não altera nada, só propõe mudanças que você aplica ou descarta ([`agentes-ia.md`](docs/agentes-ia.md), em espanhol).
 
 ### Desempenho
