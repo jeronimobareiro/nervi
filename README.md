@@ -26,7 +26,7 @@ Documentación: **[jeronimobareiro.github.io/nervi](https://jeronimobareiro.gith
 - Detección de mecanismos (dice qué nudo y qué grado de libertad se mueven sin rigidez) y validación de datos con mensajes claros.
 - **Pórtico espacial** desde Python (`nervi.Modelo3D`, preliminar): barras de 12 GDL con flexión en dos planos, axil y torsión, ejes locales con vector de referencia, bielas de cercha espacial y secciones habituales en `nervi.secciones`. **Diafragma rígido por piso** (`Modelo3D.diafragma`, maestro-esclavo por transformación, con centro de masa y derivas de piso) y **brazos rígidos** en los extremos de las barras (`brazo_i`, `brazo_j`), con esfuerzos en la cara de la unión. Todavía sin interfaz ni `.nrv`.
 - **Dinámica** (preliminar): masas nodales, de las barras (concentradas o consistentes) y desde los casos de carga; análisis modal con periodos, formas y masa participante por dirección; espectro de respuesta con SRSS o CQC (`Modelo3D.modal`). El espectro de la norma lo da quien diseña. En el pórtico plano también desde la interfaz (`nervi.dinamica_plana`).
-- **Modelo físico** del edificio (`nervi.fisico.ModeloFisico`, preliminar): pisos con su nivel, ejes, materiales y secciones, y columnas, vigas, losas macizas y muros como objetos, guardados en el `.nrv`. Todavía no genera el modelo de cálculo ni se edita en la interfaz.
+- **Modelo físico** del edificio (`nervi.fisico.ModeloFisico`, preliminar): pisos con su nivel, ejes, materiales y secciones, y columnas, vigas, losas macizas y muros como objetos, guardados en el `.nrv`. En la interfaz, el modo *Edificio* muestra la planta de cada piso (con ▲▼ para subir y bajar), el árbol, tablas y propiedades editables y un gestor de plantas. Todavía no genera el modelo de cálculo ni se dibuja con el mouse.
 
 ### Diseño de hormigón armado según ACI 318-19 (experimental)
 
@@ -42,7 +42,7 @@ Todavía no lo revisó un ingeniero estructural: no usar para proyecto.
 - **Proyectos** en formato [`.nrv`](docs/formato-nrv.md), con módulos versionados (modelo, diseño, dinámica) y migraciones para que los proyectos viejos se sigan abriendo.
 - **Memoria de cálculo en PDF**, en español y con plantilla editable: carátula, normativa de referencia, datos del modelo, cargas, combinaciones, resultados, diagramas, envolventes y, si corresponde, los capítulos de diseño y de análisis dinámico (`nervi.memoria`, o Ctrl+P en la interfaz).
 - **Resultados a precisión completa** en JSON, sin el redondeo de la memoria: desplazamientos, reacciones, fuerzas de extremo y diagramas de cada caso y combinación, y el diseño y la dinámica si están al día, con la huella del modelo al que corresponden ([`formato-resultados.md`](docs/formato-resultados.md)).
-- **Importar DXF**: las líneas de un dibujo de AutoCAD u otro programa, por capa, se vuelven nudos y barras, con vista previa antes de aplicar (*Archivo › Importar DXF…*). No necesita IA.
+- **Importar DXF**: las líneas de un dibujo de AutoCAD u otro programa, por capa, se vuelven nudos y barras, con vista previa antes de aplicar (*Archivo › Importar DXF*). No necesita IA.
 - **Conexión con agentes de IA** por MCP (`nervi-mcp`): el agente que ya usás (Claude, Gemini u otro cliente MCP) consulta el proyecto abierto o un archivo y explica los resultados, con cada número sacado del motor; no cambia nada, solo propone cambios que vos aplicás o descartás ([`agentes-ia.md`](docs/agentes-ia.md)).
 
 ### Rendimiento

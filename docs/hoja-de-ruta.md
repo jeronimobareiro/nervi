@@ -182,7 +182,7 @@ Desde noviembre de 2026 la interfaz es una **vía paralela**: `nervi.gui` (PySid
 
 | Estado | Issue | Tarea | Tamaño | Área |
 |:-:|---|---|---|---|
-| 🚧  [#73](https://github.com/jeronimobareiro/nervi/issues/73) | Modelo físico: pisos, ejes, vigas, columnas, losas y muros (datos, `.nrv` y API Python hechos; falta la edición en la interfaz) | T | interfaz |
+| 🚧  [#73](https://github.com/jeronimobareiro/nervi/issues/73) | Modelo físico: pisos, ejes, vigas, columnas, losas y muros (datos, `.nrv`, API Python y edición con tablas y gestor de plantas hechos; falta dibujar con el mouse) | T | interfaz |
 | ⬜  [#74](https://github.com/jeronimobareiro/nervi/issues/74) | Generar el modelo de cálculo desde el modelo físico | T | motor |
 | ⬜  [#75](https://github.com/jeronimobareiro/nervi/issues/75) | Reconocer ejes, columnas, muros y losas en un DXF de arquitectura | T | planos |
 | ⬜  [#76](https://github.com/jeronimobareiro/nervi/issues/76) | Comparar revisiones del plano de arquitectura y actualizar el modelo | PA | planos |
@@ -248,7 +248,7 @@ Abierta el 24/11/2026, en paralelo a las fases y sin frenarlas. Objetivo: que la
 3. ✅ Deshacer, rehacer y propuestas de cambio con su origen (hecha: `Proyecto.proponer`, `aplicar`, `deshacer`, Ctrl+Z y Ctrl+Y en la interfaz, y módulo `historial` del `.nrv` para auditar los cambios que no hizo la persona).
 4. ✅ Servidor MCP `nervi-mcp`, primero de solo lectura (hecha: `nervi.ia`, 10 herramientas de consulta, [`agentes-ia.md`](agentes-ia.md)).
 5. ✅ Canal local con la ventana abierta, botón "Conectar con mi IA" y panel del asistente (hecha: canal local, selección, propuestas y panel del asistente sin chat en la barra lateral). La persona conversa en su propia app de IA, que no necesita clave de API.
-6. ✅ Importar DXF con vista previa (hecha: `nervi.importar.dxf`, sin IA ni bibliotecas externas, y *Archivo › Importar DXF…* con capas, unidad, tolerancia y vista previa; el agente también puede proponerlo con `proponer_dxf`).
+6. ✅ Importar DXF con vista previa (hecha: `nervi.importar.dxf`, sin IA ni bibliotecas externas, y *Archivo › Importar DXF* con capas, unidad, tolerancia y vista previa; el agente también puede proponerlo con `proponer_dxf`).
 7. ⬜ Complementos con *entry points*, permisos y camino a oficial, con su regla de licencia en `GOVERNANCE.md`.
 8. ⬜ Chat dentro de Nervi, sobre las mismas herramientas, con la clave de API de la persona guardada en el llavero del sistema: primero Ollama (modelos locales, sin que los datos salgan de la computadora) y Claude, después los proveedores compatibles con la API de OpenAI.
 

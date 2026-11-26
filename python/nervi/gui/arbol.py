@@ -44,6 +44,16 @@ ICONOS_ARBOL = {
     'M5.8 13.2v-1.6M10.2 13.2v-1.6"/>',
     "cargas": '<path d="M8 1.8v7.6"/><path d="M5 6.6l3 3 3-3"/><path d="M2.5 13h11"/>',
     "combinaciones": '<path d="M12.2 3H4l4.4 5L4 13h8.2"/>',
+    # Modelo físico del edificio (#73).
+    "pisos": '<path d="M2 5.5h12M2 10.5h12"/><path d="M3.5 5.5v5M12.5 5.5v5"/>',
+    "ejes": '<circle cx="8" cy="3.6" r="2"/><path d="M8 5.6v8.8" stroke-dasharray="2 1.6"/>',
+    "columnas": '<rect x="5" y="2.5" width="6" height="11" rx="0.6"/>',
+    "vigas": '<rect x="1.8" y="5.8" width="12.4" height="4.4" rx="0.6"/>',
+    "losas": '<path d="M2.2 5.5l3-2.5h8.6l-3 2.5z"/>'
+    '<path d="M2.2 5.5v2.2h8.6V5.5M10.8 7.7l3-2.5V3"/>',
+    "muros": '<rect x="2" y="3" width="12" height="10" rx="0.6"/><path d="M2 8h12M6 3v5M10 8v5"/>',
+    "materiales": '<path d="M8 2.2l5.2 3v5.6L8 13.8l-5.2-3V5.2z"/>'
+    '<path d="M8 8v5.8M8 8l5.2-2.8M8 8L2.8 5.2"/>',
 }
 
 _CHEVRON = {
@@ -75,6 +85,9 @@ TABLAS = {
     "combinaciones": "combinaciones",
 }
 
+#: Secciones del árbol del modelo físico; el título abre la tabla de la misma lista.
+TABLAS_EDIFICIO = ("pisos", "ejes", "columnas", "vigas", "losas", "muros", "materiales")
+
 #: Secciones abiertas al empezar (como en la muestra aprobada).
 ABIERTAS = frozenset({"barras", "cargas", "combinaciones"})
 
@@ -94,6 +107,8 @@ class Fila:
     dato: str = ""  # texto tenue a la derecha: "N1 → N2", "2 barras"
     grupo: bool = False
     cantidad: int | None = None
+    #: En el modelo físico, el ``id`` del elemento (o del piso) de la fila.
+    ref: int | None = None
 
 
 def _svg(cuerpo: str, color: str, ancho: float = 1.4) -> bytes:
@@ -330,12 +345,16 @@ class ArbolModelo(QTreeWidget):
     # -- contenido --------------------------------------------------------------
 
     def mostrar(self, modelo: dict, elementos: list | None = None) -> None:
-        """Arma el árbol de nuevo, sin perder qué secciones están abiertas."""
+        """Arma el árbol del modelo analítico, sin perder qué secciones están abiertas."""
+        self.mostrar_filas(filas(modelo, elementos))
+
+    def mostrar_filas(self, lista_filas: list[Fila]) -> None:
+        """Arma el árbol con estas filas, sin perder qué secciones están abiertas."""
         self.blockSignals(True)
         self.clear()
         self._items.clear()
         actual: QTreeWidgetItem | None = None
-        for fila in filas(modelo, elementos):
+        for fila in lista_filas:
             if fila.grupo:
                 actual = QTreeWidgetItem(self, [fila.codigo])
                 actual.setFlags(Qt.ItemIsEnabled)
@@ -398,6 +417,11 @@ class ArbolModelo(QTreeWidget):
             self._x_clic = 0
             if item.isExpanded() and not en_chevron and fila.clave in TABLAS:
                 self.elegido.emit("tabla", TABLAS[fila.clave])
+            elif item.isExpanded() and not en_chevron and fila.clave in TABLAS_EDIFICIO:
+                self.elegido.emit("tabla_edificio", fila.clave)
+            return
+        if fila.ref is not None:
+            self.elegido.emit("edificio", (fila.clave, fila.ref))
             return
         if fila.clave == "barras":
             self.elegido.emit("barra", int(fila.codigo[1:]))

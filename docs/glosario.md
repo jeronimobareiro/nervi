@@ -48,6 +48,8 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | modelo físico (`ModeloFisico`, `fisico`) | physical model | modelo físico | физическая модель |
 | modelo analítico, modelo de cálculo | analytical model | modelo analítico | расчётная модель |
 | nivel (`nivel`) | elevation, level | cota, nível | отметка |
+| planta (`PlantaEdificio`, gestor de plantas) | floor plan; story (in the floor manager) | planta; pavimento | план этажа; этаж |
+| altura de entrepiso, entrepiso | story height, floor-to-floor height | pé-direito estrutural, altura entre pisos | высота этажа |
 | eje de replanteo (`ejes`) | grid line | eixo (de locação) | разбивочная ось |
 | losa (`losas`, `maciza`) | slab (solid) | laje (maciça) | плита (сплошная) |
 | muro (`muros`) | wall | parede, pilar-parede | стена |

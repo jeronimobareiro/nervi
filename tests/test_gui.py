@@ -175,10 +175,10 @@ def test_paleta_de_comandos(ventana):
     entradas = ventana.entradas_paleta()
     assert [e.texto for e in filtrar(entradas, "calcul")] == [
         "Calcular",
-        "Exportar memoria de cálculo (PDF)…",
+        "Exportar memoria de cálculo (PDF)",
     ]
     assert [e.texto for e in filtrar(entradas, "memoria pdf")] == [
-        "Exportar memoria de cálculo (PDF)…"
+        "Exportar memoria de cálculo (PDF)"
     ]
     assert any(e.texto.startswith("B2") for e in filtrar(entradas, "b2"))
     assert filtrar(entradas, "geometria")  # sin tilde también encuentra
@@ -635,7 +635,7 @@ def test_barra_lateral_abre_cada_menu(ventana, qtbot):
     ventana.sesion.editar(m, descripcion="Mover N2")
     assert editar[0].isEnabled() and "Mover N2" in editar[0].text()
     textos = [a.text() for a in ventana.menus_riel["archivo"].actions()]
-    assert "Configuración del proyecto…" in textos and "Abrir reciente" in textos
+    assert "Configuración del proyecto" in textos and "Abrir reciente" in textos
 
 
 def test_preferencias_cambian_tema_y_letra(ventana):

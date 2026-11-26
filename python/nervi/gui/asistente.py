@@ -126,7 +126,7 @@ class PanelAsistente(QWidget):
         pie = QHBoxLayout()
         self.b_desconectar = QPushButton("Desconectar")
         self.b_desconectar.clicked.connect(lambda: self._conectar(False))
-        ayuda = QPushButton("Cómo conectar mi app…", objectName="fantasma")
+        ayuda = QPushButton("Cómo conectar mi app", objectName="fantasma")
         ayuda.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(URL_AYUDA)))
         pie.addWidget(self.b_desconectar)
         pie.addWidget(ayuda)

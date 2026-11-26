@@ -37,7 +37,7 @@ See the [contributing guide](CONTRIBUTING.md#contributing-from-other-countries).
 - Mechanism detection (it tells which node and degree of freedom move without stiffness) and input validation with clear messages.
 - **Space frames** from Python (`nervi.Modelo3D`, preliminary): 12-DOF members with biaxial bending, axial force and torsion, local axes set by a reference vector, space-truss bars and common sections in `nervi.secciones`. **Rigid floor diaphragms** (`Modelo3D.diafragma`, master-slave constraint by transformation, with center of mass and story drifts) and **rigid end offsets** (`brazo_i`, `brazo_j`), with member forces at the joint face. No interface or `.nrv` support yet.
 - **Dynamics** (preliminary): nodal masses, member masses (lumped or consistent) and masses from load cases; modal analysis with periods, mode shapes and participating mass per direction; response spectrum analysis with SRSS or CQC (`Modelo3D.modal`). The code spectrum is supplied by the designer. For plane frames, also from the desktop interface (`nervi.dinamica_plana`).
-- **Physical building model** (`nervi.fisico.ModeloFisico`, preliminary): stories with their elevation, grid lines, materials and sections, and columns, beams, solid slabs and walls as objects, saved in the `.nrv` file. It does not yet generate the analysis model and cannot be edited in the interface yet.
+- **Physical building model** (`nervi.fisico.ModeloFisico`, preliminary): stories with their elevation, grid lines, materials and sections, and columns, beams, solid slabs and walls as objects, saved in the `.nrv` file. In the interface, *Edificio* (building) mode shows the plan of each story (▲▼ to move up and down), the tree, editable tables and properties, and a floor manager. It does not yet generate the analysis model or draw with the mouse.
 
 ### Reinforced concrete design per ACI 318-19 (experimental)
 
@@ -53,7 +53,7 @@ It has not yet been reviewed by a structural engineer: do not use it for real pr
 - **Projects** in the [`.nrv`](docs/formato-nrv.md) format, with versioned modules (model, design, dynamics) and migrations so that old projects always open.
 - **Calculation report in PDF**, in Spanish with an editable template: cover page, reference codes, model data, loads, combinations, results, diagrams, envelopes and, when applicable, the design and dynamic analysis chapters (`nervi.memoria`, or Ctrl+P in the interface).
 - **Full-precision results** in JSON, without the rounding of the report: displacements, reactions, end forces and diagrams of every load case and combination, plus design and dynamics when up to date, with the fingerprint of the model they belong to ([`formato-resultados.md`](docs/formato-resultados.md)).
-- **DXF import**: the lines of a drawing from AutoCAD or another program, by layer, become nodes and members, with a preview before applying (*Archivo › Importar DXF…*). No AI needed.
+- **DXF import**: the lines of a drawing from AutoCAD or another program, by layer, become nodes and members, with a preview before applying (*Archivo › Importar DXF*). No AI needed.
 - **AI agent connection** over MCP (`nervi-mcp`): the agent you already use (Claude, Gemini or another MCP client) queries the open project or a file and explains the results, with every number taken from the engine; it changes nothing, it only proposes changes that you apply or discard ([`agentes-ia.md`](docs/agentes-ia.md), in Spanish).
 
 ### Performance
