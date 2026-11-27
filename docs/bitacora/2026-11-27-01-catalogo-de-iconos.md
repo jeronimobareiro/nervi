@@ -11,9 +11,9 @@ Un catálogo de todos los íconos que va a necesitar la interfaz, también para 
 
 ## Qué se hizo
 
-- `python/nervi/gui/iconos.py` (nuevo): `CATALOGO` con 120 íconos en 11 grupos (menús; archivo y edición; vista y navegación; modelo de cálculo; modelo físico; cargas; análisis y resultados; diseño de hormigón; diseño de acero y mixtas; documentos e intercambio; estados). Cada `Icono` tiene clave, nombre, grupo, cuerpo SVG, uso (fase o issue que lo necesita) y si ya está en uso. Funciones `svg()`, `pixmap()` (con caché) y `qicon()` (reposo `texto_2`, marcado `acento`, deshabilitado `deshabilitado`).
+- `python/nervi/gui/iconos.py` (nuevo): `CATALOGO` con 123 íconos en 11 grupos (menús; archivo y edición; vista y navegación; modelo de cálculo; modelo físico; cargas; análisis y resultados; diseño de hormigón; diseño de acero y mixtas; documentos e intercambio; estados). Cada `Icono` tiene clave, nombre, grupo, cuerpo SVG, uso (fase o issue que lo necesita) y si ya está en uso. Funciones `svg()`, `pixmap()` (con caché) y `qicon()` (reposo `texto_2`, marcado `acento`, deshabilitado `deshabilitado`).
 - Los 25 íconos que ya usaba la aplicación pasan al catálogo sin cambiar su dibujo: `estilo.ICONOS_MENU` y `estilo.svg_menu`, `arbol.ICONOS_ARBOL` y `ventana.ICONO_PLANTAS`, `ICONO_SUBIR` e `ICONO_BAJAR` ahora leen del catálogo, con los mismos nombres para no romper a quien los usa. Los del árbol conservan su grilla de 16 (campo `rejilla`) para dar exactamente los mismos píxeles.
-- Los 95 restantes quedan reservados para las fases: apoyos y liberaciones (#13, #14, #31), fundaciones, escaleras, tanques y contención (#88, #89), viento, sismo y uso (#79 a #81), dinámica y P-Δ (#17 a #19), hormigón y servicio (#22 a #24, #90, #93, #101, #102), acero, uniones y mixtas (#83 a #85, #91, #92, #100), DXF, IFC, láminas, planillas, cómputos y versiones (#25 a #29, #75, #76, #95 a #98).
+- Los 98 restantes quedan reservados para las fases (entre ellos la familia de cargas, que separa las cargas en barras de las cargas en losas): apoyos y liberaciones (#13, #14, #31), fundaciones, escaleras, tanques y contención (#88, #89), viento, sismo y uso (#79 a #81), dinámica y P-Δ (#17 a #19), hormigón y servicio (#22 a #24, #90, #93, #101, #102), acero, uniones y mixtas (#83 a #85, #91, #92, #100), DXF, IFC, láminas, planillas, cómputos y versiones (#25 a #29, #75, #76, #95 a #98).
 - `scripts/lamina_iconos.py` (nuevo): dibuja la lámina del catálogo en los dos temas (`docs/img/iconos-claro.png` y `iconos-oscuro.png`).
 - `docs/iconos.md` (nuevo): guía de uso, reglas de la familia, cómo agregar un ícono y la lista completa.
 
@@ -26,7 +26,7 @@ Un catálogo de todos los íconos que va a necesitar la interfaz, también para 
 
 - Una sola grilla de 24 para los íconos nuevos, con el trazo de la barra lateral (1,7). A 16 px el trazo pasa a 2,1 unidades para medir 1,4 px como el árbol. Se descartó redibujar el árbol en la grilla de 24: escalado, cambiaba el suavizado de algunos píxeles.
 - El catálogo no importa `estilo` (solo para tipos), así `estilo` puede leer de él sin ciclos.
-- El ícono de *Cargas* del modo Edificio lo elige el aporte de cargas por planta; entra al catálogo como `cargas_planta` cuando se apruebe (`cargas` ya es el del árbol).
+- El ícono de *Cargas* del modo Edificio lo elige el aporte de cargas por planta; es `cargas_planta` (losa con sus líneas de quiebre), elegido el 27/11/2026 junto con la familia de cargas: lo que va sobre una barra se dibuja sobre una línea (puntual, repartida, trapezoidal, momento) y lo que va sobre una losa, sobre un rectángulo (planta, carga lineal en losa). Los dibujos son los aprobados en el aporte de cargas por planta (PR #105). `cargas` sigue siendo el del árbol.
 - La muestra de los íconos nuevos se mostró en los dos temas antes de implementarlos.
 
 ## Documentación actualizada
@@ -38,7 +38,7 @@ Un catálogo de todos los íconos que va a necesitar la interfaz, también para 
 
 ## Pendiente y problemas conocidos
 
-- Sumar `cargas_planta` cuando se apruebe el ícono de Cargas del modo Edificio.
+- Pasar `cargas_planta` a en uso cuando entre el botón Cargas del modo Edificio (PR #105): lo hace el PR que entre segundo.
 - Los íconos reservados son una propuesta: cada aporte puede ajustar el dibujo del suyo con una muestra antes de ponerlo en uso.
 
 ## Para quien siga

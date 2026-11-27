@@ -577,11 +577,18 @@ _LISTA = (
         16,
     ),
     _I(
+        "carga_puntual",
+        "Carga puntual",
+        "Cargas",
+        '<path d="M3 20h18"/><path d="M12 3v13"/><path d="M8 12l4 4 4-4"/>',
+        "Cargas puntuales en barras y nudos (#31)",
+    ),
+    _I(
         "carga_repartida",
         "Carga repartida",
         "Cargas",
-        '<path d="M3 4.5h18"/><path d="M5 4.5v10M12 4.5v10M19 4.5v10"/>'
-        '<path d="M3 12.5l2 2 2-2M10 12.5l2 2 2-2M17 12.5l2 2 2-2"/><path d="M3 19.5h18"/>',
+        '<path d="M3 20h18"/><path d="M4 5h16"/><path d="M7 5v10M12 5v10M17 5v10"/>'
+        '<path d="M5 13l2 2 2-2M10 13l2 2 2-2M15 13l2 2 2-2"/>',
         "Cargas en barras (#31)",
     ),
     _I(
@@ -593,11 +600,24 @@ _LISTA = (
         "Cargas trapezoidales en barras (#2, #31)",
     ),
     _I(
-        "momento",
-        "Momento",
+        "cargas_planta",
+        "Cargas de la planta",
         "Cargas",
-        '<path d="M18.4 8A7.5 7.5 0 1 0 19.5 12.5"/><path d="M19 3.8l-.6 4.2-4.2-.7"/>'
-        '<circle cx="12" cy="12" r="1.5"/>',
+        '<path d="M3 5h18v14H3z"/><path d="M3 5l6 7-6 7M21 5l-6 7 6 7M9 12h6"/>',
+        "Modo Edificio: cargas de superficie de losas y su reparto (#78)",
+    ),
+    _I(
+        "carga_lineal_losa",
+        "Carga lineal en losa",
+        "Cargas",
+        '<path d="M3 5h18v14H3z"/><path d="M6 11h12M6 13h12"/>',
+        "Tabiques y cargas lineales sobre losas (#78, #79)",
+    ),
+    _I(
+        "momento",
+        "Momento concentrado",
+        "Cargas",
+        '<path d="M3 18h18"/><path d="M6 14a6 6 0 0 1 12 0"/><path d="M14.5 12.5l3.5 1.5 1.5-3.5"/>',
         "Momentos puntuales (#3, #31)",
     ),
     _I(

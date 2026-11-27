@@ -51,6 +51,14 @@ Son las de la barra lateral, aprobadas el 19/11/2026 junto con la [línea de dis
 
 4. `tests/test_iconos.py` controla que las claves no se repitan, que los cuerpos tengan solo formas sin color ni relleno, que los íconos en uso dibujen igual que antes y que esta página liste todo el catálogo.
 
+## Familia de cargas
+
+Para no confundir las cargas de la planta con las de las barras, la familia sigue una regla de dibujo (aprobada el 27/11/2026 junto con el botón *Cargas* del modo Edificio):
+
+- **Cargas en barras y nudos** (modo Cálculo): flechas sobre una **línea sola**, la barra: `carga_puntual`, `carga_repartida`, `carga_trapezoidal`, `momento` y `temperatura`.
+- **Cargas en losas** (modo Edificio): sobre una **losa en planta**, un rectángulo, nunca sobre una línea sola: `cargas_planta` (losa con sus líneas de quiebre: cargas de superficie y su reparto, el botón *Cargas*) y `carga_lineal_losa` (tabique sobre la losa).
+- **Genéricas:** `cargas` es la sección del árbol del modelo; `combinaciones` y `envolvente`, las combinaciones.
+
 ## Lista completa
 
 ### Menús
@@ -149,8 +157,11 @@ Son las de la barra lateral, aprobadas el 19/11/2026 junto con la [línea de dis
 | Clave | Nombre | Estado | Uso |
 |---|---|---|---|
 | `cargas` | Cargas | en uso | Árbol del modelo; carga puntual |
+| `carga_puntual` | Carga puntual | reservado | Cargas puntuales en barras y nudos (#31) |
 | `carga_repartida` | Carga repartida | reservado | Cargas en barras (#31) |
 | `carga_trapezoidal` | Carga trapezoidal | reservado | Cargas trapezoidales en barras (#2, #31) |
+| `cargas_planta` | Cargas de la planta | reservado | Modo Edificio: cargas de superficie de losas y su reparto (#78) |
+| `carga_lineal_losa` | Carga lineal en losa | reservado | Tabiques y cargas lineales sobre losas (#78, #79) |
 | `momento` | Momento | reservado | Momentos puntuales (#3, #31) |
 | `temperatura` | Temperatura | reservado | Cargas térmicas (#4) |
 | `uso` | Cargas por uso | reservado | Cargas por uso del local (#79) |
@@ -227,4 +238,3 @@ Son las de la barra lateral, aprobadas el 19/11/2026 junto con la [línea de dis
 | `info` | Información | reservado | Notas y ayudas |
 | `preliminar` | Preliminar | reservado | Módulos experimentales sin revisión |
 | `bloqueado` | Bloqueado | reservado | Elementos fijados, versiones cerradas (#97) |
-
