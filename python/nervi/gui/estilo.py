@@ -26,6 +26,8 @@ from pathlib import Path
 from PySide6.QtCore import QEvent, QObject
 from PySide6.QtWidgets import QAbstractSpinBox, QApplication, QComboBox, QStyledItemDelegate
 
+from . import iconos as _iconos
+
 
 @dataclass(frozen=True)
 class Tema:
@@ -173,35 +175,27 @@ def svg(forma: str, color: str) -> str:
     )
 
 
-#: Íconos de la barra lateral de menús: trazos propios de 24 por 24 px con línea de 1,7 px,
-#: el mismo estilo fino de las flechas de los controles.
+#: Íconos de la barra lateral de menús (24 por 24 px con línea de 1,7 px). Salen del
+#: catálogo :mod:`nervi.gui.iconos`, la fuente única de los íconos de la interfaz.
 ICONOS_MENU = {
-    "archivo": '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>'
-    '<path d="M14 3v5h5"/>',
-    # Editar: flecha de deshacer.
-    "editar": '<path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',
-    "modelo": '<path d="M5 20V6h14v14"/><path d="M3 20h4M17 20h4"/><path d="M5 13h14"/>',
-    "calcular": '<path d="M7 4l13 8-13 8z"/>',
-    "ver": '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
-    "herramientas": '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 '
-    '5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',
-    "ayuda": '<circle cx="12" cy="12" r="9"/><path d="M9.5 9.2a2.6 2.6 0 1 1 3.6 2.4c-.7.3-1.1.9-1.1 1.6"/>'
-    '<path d="M12 17h.01"/>',
-    "preferencias": '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/>'
-    '<circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
-    # Asistente de IA: una chispa grande y una chica.
-    "ia": '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/>'
-    '<path d="M18.5 15l.7 1.8 1.8.7-1.8.7-.7 1.8-.7-1.8-1.8-.7 1.8-.7z"/>',
+    clave: _iconos.CATALOGO[clave].cuerpo
+    for clave in (
+        "archivo",
+        "editar",
+        "modelo",
+        "calcular",
+        "ver",
+        "herramientas",
+        "ayuda",
+        "preferencias",
+        "ia",
+    )
 }
 
 
 def svg_menu(nombre: str, color: str) -> str:
     """Ícono de 24 por 24 px de la barra lateral de menús, en el color pedido."""
-    return (
-        '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" '
-        f'fill="none" stroke="{color}" stroke-width="1.7" stroke-linecap="round" '
-        f'stroke-linejoin="round">{ICONOS_MENU[nombre]}</svg>'
-    )
+    return _iconos.svg(nombre, color, 24)
 
 
 def con_tamano(tema: Tema, tamano: float) -> Tema:

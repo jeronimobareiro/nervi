@@ -46,7 +46,7 @@ from PySide6.QtWidgets import (
 
 from .. import MecanismoError, formato
 from ..design import proyecto
-from . import ajustes, estilo, vista3d
+from . import ajustes, estilo, iconos, vista3d
 from .ajustes import ConfiguracionProyecto, Preferencias
 from .arbol import ArbolModelo
 from .asistente import PanelAsistente
@@ -71,11 +71,11 @@ from .vista3d import Vista3D
 
 RECURSOS = Path(__file__).resolve().parent / "recursos"
 #: Ícono del gestor de plantas del modo Edificio: el edificio con sus losas y el terreno
-#: (24 x 24, trazo de 1,7 px, la familia de la barra lateral). Elegido el 26/11/2026.
-ICONO_PLANTAS = '<path d="M5 20V4h14v16"/><path d="M3 20h18"/><path d="M5 9.3h14M5 14.6h14"/>'
-#: Chevrones para subir y bajar de planta, de la misma familia.
-ICONO_SUBIR = '<path d="M6 15l6-6 6 6"/>'
-ICONO_BAJAR = '<path d="M6 9l6 6 6-6"/>'
+#: (elegido el 26/11/2026), y chevrones para subir y bajar de planta. Salen del catálogo
+#: :mod:`nervi.gui.iconos`.
+ICONO_PLANTAS = iconos.CATALOGO["plantas"].cuerpo
+ICONO_SUBIR = iconos.CATALOGO["subir"].cuerpo
+ICONO_BAJAR = iconos.CATALOGO["bajar"].cuerpo
 
 
 def icono_trazo(cuerpo: str, color: str, lado: int, escala: float) -> QPixmap:
