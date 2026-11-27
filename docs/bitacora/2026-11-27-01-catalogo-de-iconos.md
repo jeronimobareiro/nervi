@@ -44,4 +44,4 @@ Un catálogo de todos los íconos que va a necesitar la interfaz, también para 
 ## Para quien siga
 
 - Leé `docs/iconos.md`. Para un botón nuevo: `iconos.qicon("clave", estilo.actual, 20, boton.devicePixelRatioF())`, y pasá el ícono a `en_uso=True` en el mismo PR.
-- **Avisos:** los commits necesitan la firma DCO de la persona que pidió el trabajo (`git rebase --signoff origin/main`).
+- **Firma DCO:** Jerónimo Bareiro autorizó por escrito en el hilo del proyecto, el 2026-11-27 a las 12:11 UTC ("Firmalo por mi"), que el agente firme en su nombre los commits de este aporte. Se firmaron como `Jerónimo Bareiro <345933350+bareirojero@users.noreply.github.com>`, su correo `noreply` de GitHub, porque no indicó otro.
