@@ -30,30 +30,28 @@ from PySide6.QtWidgets import (
     QTreeWidgetItem,
 )
 
-from . import estilo
+from . import estilo, iconos
 
-#: Íconos de las secciones: trazos propios de 16 por 16 px con línea de 1,4 px.
+#: Íconos de las secciones (16 por 16 px con línea de 1,4 px). Salen del catálogo
+#: :mod:`nervi.gui.iconos`, la fuente única de los íconos de la interfaz.
 ICONOS_ARBOL = {
-    "nudos": '<circle cx="8" cy="8" r="2.6"/>'
-    '<path d="M8 1.8v2.4M8 11.8v2.4M1.8 8h2.4M11.8 8h2.4"/>',
-    "barras": '<path d="M4.6 11.4l6.8-6.8"/><circle cx="3.4" cy="12.6" r="1.7"/>'
-    '<circle cx="12.6" cy="3.4" r="1.7"/>',
-    "apoyos": '<path d="M8 3.2l4.2 6.3H3.8z"/><path d="M2.5 12.3h11"/>'
-    '<path d="M4 14.6l1.5-2.3M7.2 14.6l1.5-2.3M10.4 14.6l1.5-2.3"/>',
-    "secciones": '<path d="M3.5 2.8h9M3.5 13.2h9M8 2.8v10.4"/><path d="M5.8 2.8v1.6M10.2 2.8v1.6'
-    'M5.8 13.2v-1.6M10.2 13.2v-1.6"/>',
-    "cargas": '<path d="M8 1.8v7.6"/><path d="M5 6.6l3 3 3-3"/><path d="M2.5 13h11"/>',
-    "combinaciones": '<path d="M12.2 3H4l4.4 5L4 13h8.2"/>',
-    # Modelo físico del edificio (#73).
-    "pisos": '<path d="M2 5.5h12M2 10.5h12"/><path d="M3.5 5.5v5M12.5 5.5v5"/>',
-    "ejes": '<circle cx="8" cy="3.6" r="2"/><path d="M8 5.6v8.8" stroke-dasharray="2 1.6"/>',
-    "columnas": '<rect x="5" y="2.5" width="6" height="11" rx="0.6"/>',
-    "vigas": '<rect x="1.8" y="5.8" width="12.4" height="4.4" rx="0.6"/>',
-    "losas": '<path d="M2.2 5.5l3-2.5h8.6l-3 2.5z"/>'
-    '<path d="M2.2 5.5v2.2h8.6V5.5M10.8 7.7l3-2.5V3"/>',
-    "muros": '<rect x="2" y="3" width="12" height="10" rx="0.6"/><path d="M2 8h12M6 3v5M10 8v5"/>',
-    "materiales": '<path d="M8 2.2l5.2 3v5.6L8 13.8l-5.2-3V5.2z"/>'
-    '<path d="M8 8v5.8M8 8l5.2-2.8M8 8L2.8 5.2"/>',
+    clave: iconos.CATALOGO[clave].cuerpo
+    for clave in (
+        "nudos",
+        "barras",
+        "apoyos",
+        "secciones",
+        "cargas",
+        "combinaciones",
+        # Modelo físico del edificio (#73).
+        "pisos",
+        "ejes",
+        "columnas",
+        "vigas",
+        "losas",
+        "muros",
+        "materiales",
+    )
 }
 
 _CHEVRON = {
@@ -249,7 +247,7 @@ class _Delegado(QStyledItemDelegate):
         if hover:
             p.fillRect(r.adjusted(0, 1, 0, 0), QColor(estilo.HOVER))
         y = r.top() + (r.height() - 16) // 2
-        p.drawPixmap(r.left() + 10, y, _icono(ICONOS_ARBOL[fila.clave], estilo.TEXTO_2, escala))
+        p.drawPixmap(r.left() + 10, y, iconos.pixmap(fila.clave, estilo.TEXTO_2, 16, escala))
         f = QFont(base)
         f.setWeight(QFont.DemiBold)
         p.setFont(f)

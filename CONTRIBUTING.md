@@ -37,7 +37,7 @@ cargo test -p nervi-core
    - Rust: `// SPDX-License-Identifier: GPL-3.0-or-later`
    - Python: `# SPDX-License-Identifier: GPL-3.0-or-later`
 7. **Rendimiento primero.** Todo cálculo que recorra barras, nudos, combinaciones, estaciones o puntos (análisis, diseño, envolventes, diagramas de interacción, búsqueda de armaduras) va en Rust (`nervi-core`) y se expone a Python por `nervi-py` con la misma API. Python queda para la interfaz, la memoria PDF, el formato `.nrv`, los ejemplos y los prototipos. Un prototipo en Python pasa a Rust antes de llegar a la interfaz o en cuanto se mide que pesa en un modelo grande. Toda migración u optimización se mide antes y después con el banco de tiempos (`python scripts/medir_diseno.py --guardar antes.json` en `main` y `--comparar antes.json` con tu cambio), informa los tiempos en el PR y pasa las mismas pruebas de verificación. **Exactitud intocable:** ninguna migración ni optimización baja tolerancias, iteraciones de convergencia ni exactitud. Tiene que dar exactamente los mismos resultados: la misma armadura y el mismo estado en cada elemento y los mismos números salvo el redondeo de la aritmética de doble precisión (`--comparar` con su tolerancia por defecto, 1e-12 relativa).
-8. **Interfaz con un único sistema de diseño.** Todo control nuevo de `nervi.gui` toma su estilo de [`estilo.py`](python/nervi/gui/estilo.py), sin colores sueltos ni aspecto nativo antiguo, y sigue la [línea de diseño de la interfaz](docs/diseno-interfaz.md): tema claro por defecto y tema oscuro de la marca. Para un cambio de diseño, mostrá antes una muestra visual (captura o maqueta) en el issue o el PR y acordala.
+8. **Interfaz con un único sistema de diseño.** Todo control nuevo de `nervi.gui` toma su estilo de [`estilo.py`](python/nervi/gui/estilo.py), sin colores sueltos ni aspecto nativo antiguo, y sigue la [línea de diseño de la interfaz](docs/diseno-interfaz.md): tema claro por defecto y tema oscuro de la marca. Los íconos salen del [catálogo de íconos](docs/iconos.md) (`nervi/gui/iconos.py`), que ya reserva los de las fases futuras; si falta uno, se suma ahí. Para un cambio de diseño, mostrá antes una muestra visual (captura o maqueta) en el issue o el PR y acordala.
 9. **Documentación al día.** Ver la sección siguiente.
 
 Antes de enviar, corré y dejá en verde:
@@ -81,7 +81,7 @@ Cada aporte actualiza **en el mismo PR** los archivos informativos que cambian c
 | cambia cómo se trabaja (reglas, controles, herramientas) | este archivo, [`AGENTS.md`](AGENTS.md) y la plantilla de PR |
 | toca convenciones, contratos o el formato `.nrv` | [`docs/convenciones.md`](docs/convenciones.md), [`docs/contrato-datos.md`](docs/contrato-datos.md) o [`docs/formato-nrv.md`](docs/formato-nrv.md) |
 | agrega un término al código | [`docs/glosario.md`](docs/glosario.md) |
-| cambia la interfaz | [`docs/diseno-interfaz.md`](docs/diseno-interfaz.md) si cambia la línea de diseño, y las capturas o pasos de [Primeros pasos](sitio/primeros-pasos.md) |
+| cambia la interfaz | [`docs/diseno-interfaz.md`](docs/diseno-interfaz.md) si cambia la línea de diseño, [`docs/iconos.md`](docs/iconos.md) si usa o agrega un ícono, y las capturas o pasos de [Primeros pasos](sitio/primeros-pasos.md) |
 
 La entrada de la bitácora tiene una sección **Documentación actualizada** donde se listan esos archivos (o se dice por qué no hizo falta tocar ninguno); el CI controla que esté. Si no traducís bien a otro idioma, actualizá el texto en español y pedí ayuda en el PR para las traducciones.
 
