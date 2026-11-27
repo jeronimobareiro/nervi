@@ -617,7 +617,8 @@ _LISTA = (
         "momento",
         "Momento concentrado",
         "Cargas",
-        '<path d="M3 18h18"/><path d="M6 14a6 6 0 0 1 12 0"/><path d="M14.5 12.5l3.5 1.5 1.5-3.5"/>',
+        '<path d="M3 18h18"/><path d="M6 14a6 6 0 0 1 12 0"/>'
+        '<path d="M14.5 12.5l3.5 1.5 1.5-3.5"/>',
         "Momentos puntuales (#3, #31)",
     ),
     _I(

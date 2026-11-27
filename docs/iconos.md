@@ -162,7 +162,7 @@ Para no confundir las cargas de la planta con las de las barras, la familia sigu
 | `carga_trapezoidal` | Carga trapezoidal | reservado | Cargas trapezoidales en barras (#2, #31) |
 | `cargas_planta` | Cargas de la planta | reservado | Modo Edificio: cargas de superficie de losas y su reparto (#78) |
 | `carga_lineal_losa` | Carga lineal en losa | reservado | Tabiques y cargas lineales sobre losas (#78, #79) |
-| `momento` | Momento | reservado | Momentos puntuales (#3, #31) |
+| `momento` | Momento concentrado | reservado | Momentos puntuales (#3, #31) |
 | `temperatura` | Temperatura | reservado | Cargas térmicas (#4) |
 | `uso` | Cargas por uso | reservado | Cargas por uso del local (#79) |
 | `viento` | Viento | reservado | Viento según norma (#80) |
