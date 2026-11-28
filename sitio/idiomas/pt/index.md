@@ -55,7 +55,7 @@ O Nervi analisa pórticos pelo método dos elementos finitos e mostra reações,
 - **Projeto de concreto armado segundo a ACI 318-19**, experimental: vigas (flexão, cisalhamento, flechas e detalhamento das armaduras) e pilares (flexão composta biaxial e esbeltez), cada verificação com seu artigo.
 - **Modelo físico do edifício**, em versão preliminar: pavimentos, eixos, pilares, vigas, lajes maciças e paredes desenhados com o mouse em cada planta, com atração a extremos, eixos e grade, ou preenchidos em tabelas, com um gerenciador para adicionar, mover e copiar pavimentos. As cargas de cada pavimento são distribuídas das lajes às vigas por áreas de influência. Ainda não gera o modelo de cálculo.
 - **Memorial de cálculo em PDF** com geometria, cargas, diagramas, projeto e análise dinâmica.
-- **Interface de desktop** em uma única janela, com painel da estrutura, tabelas para montar o modelo, tema claro e noturno, e uso a partir do Python para quem programa.
+- **Interface de desktop** em uma única janela, com painel da estrutura, tabelas ou desenho com o mouse para montar o modelo (nós, barras, apoios e cargas), tema claro e noturno, e uso a partir do Python para quem programa.
 - **Assistente de IA do seu jeito**: você conecta a IA que já usa (pelo padrão MCP) para consultar o modelo e os resultados. Ela só propõe mudanças que você aplica ou descarta, e cada número é calculado pelo motor do Nervi, nunca pela IA.
 - **Projetos** salvos em arquivos `.nrv` e dezenas de casos de verificação contra soluções conhecidas.
 

@@ -46,6 +46,25 @@ class Vista:
     cy: float
 
 
+@dataclass(frozen=True)
+class Transformacion:
+    """Paso de coordenadas del modelo a la pantalla y al revés (y hacia arriba)."""
+
+    escala: float
+    ox: float
+    oy: float
+
+    @classmethod
+    def de(cls, v: Vista, centro: QPointF) -> Transformacion:
+        return cls(v.escala, centro.x() - v.cx * v.escala, centro.y() + v.cy * v.escala)
+
+    def a_pantalla(self, x: float, y: float) -> QPointF:
+        return QPointF(self.ox + x * self.escala, self.oy - y * self.escala)
+
+    def a_modelo(self, p: QPointF) -> tuple[float, float]:
+        return ((p.x() - self.ox) / self.escala, (self.oy - p.y()) / self.escala)
+
+
 class Camara:
     """Zoom y paneo de una vista plana. Sin tocar, sigue al encuadre automático."""
 
@@ -232,6 +251,11 @@ class Navegable:
     def vista_actual(self) -> Vista | None:
         ajuste = self.ajuste()
         return None if ajuste is None else self.camara.resolver(ajuste)
+
+    def transformacion(self) -> Transformacion | None:
+        """La transformación de la vista actual, o ``None`` si no hay nada que ver."""
+        v = self.vista_actual()
+        return None if v is None else Transformacion.de(v, self.centro_lienzo())
 
     def zoom(self, factor: float, cursor: QPointF | None = None) -> None:
         ajuste = self.ajuste()

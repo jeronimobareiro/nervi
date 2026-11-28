@@ -239,7 +239,8 @@ _LISTA = (
         "Seleccionar",
         "Vista y navegación",
         '<path d="M5.5 3.5l13 7-5.8 1.6-2.2 5.9z"/><path d="M12.8 12.2l5.2 6.3"/>',
-        "Edición gráfica (#31)",
+        "Barras Dibujar de la planta y de la vista 2D",
+        True,
     ),
     _I(
         "desplazar",
@@ -584,7 +585,8 @@ _LISTA = (
         "Carga puntual",
         "Cargas",
         '<path d="M3 20h18"/><path d="M12 3v13"/><path d="M8 12l4 4 4-4"/>',
-        "Cargas puntuales en barras y nudos (#31)",
+        "Barra Dibujar de la vista 2D: carga puntual en nudos y barras",
+        True,
     ),
     _I(
         "carga_repartida",
@@ -592,7 +594,8 @@ _LISTA = (
         "Cargas",
         '<path d="M3 20h18"/><path d="M4 5h16"/><path d="M7 5v10M12 5v10M17 5v10"/>'
         '<path d="M5 13l2 2 2-2M10 13l2 2 2-2M15 13l2 2 2-2"/>',
-        "Cargas en barras (#31)",
+        "Barra Dibujar de la vista 2D: carga repartida en barras",
+        True,
     ),
     _I(
         "carga_trapezoidal",

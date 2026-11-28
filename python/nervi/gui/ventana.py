@@ -53,6 +53,7 @@ from .asistente import PanelAsistente
 from .canal import CanalVentana
 from .consola import Consola
 from .dibujo import ENGANCHES, HERRAMIENTAS, PASO_GRILLA_M, PanelHerramienta
+from .dibujo_calculo import ENGANCHES_CALCULO, HERRAMIENTAS_CALCULO, PanelCalculo
 from .dinamica import PanelDinamica, fase
 from .diseno import PanelDiseno, color_estado
 from .edificio import (
@@ -136,9 +137,10 @@ class Ventana(QMainWindow):
         estilo.aplicar(tema=ajustes.tema())
         # Modelo físico del edificio (#73): piso que se ve y elemento elegido.
         self.edificio = EstadoEdificio(self.sesion)
-        # La planta se crea antes que las barras: la barra contextual lleva sus
-        # herramientas de dibujo.
+        # La planta y la vista 2D se crean antes que las barras: la barra contextual
+        # lleva sus herramientas de dibujo.
         self.planta = PlantaEdificio(self.edificio)
+        self.vista = Vista2D(self.sesion)
         self.modo = "calculo"
         self._acciones()
 
@@ -149,7 +151,6 @@ class Ventana(QMainWindow):
         capa.addWidget(self._barra_superior())
         capa.addWidget(self._barra_contextual())
 
-        self.vista = Vista2D(self.sesion)
         # El visor 3D se crea la primera vez que se lo pide: VTK tarda en arrancar
         # y es una dependencia opcional (nervi[visor3d]).
         self.vista3d: QWidget | None = None
@@ -202,6 +203,7 @@ class Ventana(QMainWindow):
         self.vista.diagrama_cambiado.connect(self._marcar_diagrama)
         self.edificio.cambiado.connect(self._actualizar_edificio)
         self.edificio.mensaje.connect(lambda t: self.statusBar().showMessage(f"✕ {t}", 6000))
+        self.vista.dibujo.mensaje.connect(lambda t: self.statusBar().showMessage(f"✕ {t}", 6000))
         self._actualizar_todo()
         self._actualizar_edificio()
 
@@ -262,7 +264,7 @@ class Ventana(QMainWindow):
             self.a_diagramas[clave].setShortcutContext(Qt.WidgetWithChildrenShortcut)
         self.a_orto = self._accion(
             "Orto: dibujar en horizontal y vertical",
-            lambda: self.botones_enganche["orto"].toggle(),
+            self.alternar_orto,
             "F8",
         )
         self.a_plantas = self._accion("Plantas", self.gestionar_plantas)
@@ -640,13 +642,19 @@ class Ventana(QMainWindow):
         self.b_valores = QPushButton("Valores", checkable=True, checked=True)
         self.b_valores.toggled.connect(self._valores)
         capa.addWidget(self.b_valores)
+        capa.addSpacing(8)
+        capa.addWidget(
+            self._barra_dibujo(self.vista.dibujo, HERRAMIENTAS_CALCULO, ENGANCHES_CALCULO)
+        )
         capa_calculo.addWidget(self.ctx_calculo)
         capa_calculo.addStretch()
         return barra
 
-    def _barra_dibujo(self) -> QWidget:
-        """Herramientas de dibujo de la planta y enganches (``nervi.gui.dibujo``)."""
-        dibujo = self.planta.dibujo
+    def _barra_dibujo(self, dibujo=None, herramientas=HERRAMIENTAS, enganches=ENGANCHES):
+        """Herramientas de dibujo y enganches de un lienzo (``nervi.gui.dibujo``). Sin
+        ``dibujo``, los de la planta del edificio."""
+        calculo = dibujo is not None
+        dibujo = dibujo or self.planta.dibujo
         barra = QWidget()
         capa = QHBoxLayout(barra)
         capa.setContentsMargins(0, 0, 0, 0)
@@ -656,9 +664,9 @@ class Ventana(QMainWindow):
         g = QHBoxLayout(grupo)
         g.setContentsMargins(2, 2, 2, 2)
         g.setSpacing(2)
-        self.grupo_herramientas = QButtonGroup(self)
-        self.botones_herramienta: dict[str, QToolButton] = {}
-        for clave, (icono_clave, nombre) in HERRAMIENTAS.items():
+        botones_h: dict[str, QToolButton] = {}
+        grupo_h = QButtonGroup(self)
+        for clave, (icono_clave, nombre) in herramientas.items():
             b = QToolButton(objectName="segmento", checkable=True)
             b.setText("" if clave == "seleccionar" else nombre)
             b.setToolTip(nombre)
@@ -668,9 +676,13 @@ class Ventana(QMainWindow):
                 Qt.ToolButtonIconOnly if clave == "seleccionar" else Qt.ToolButtonTextBesideIcon
             )
             b.setProperty("icono", icono_clave)
-            b.clicked.connect(lambda _=False, c=clave: self.elegir_herramienta(c))
-            self.grupo_herramientas.addButton(b)
-            self.botones_herramienta[clave] = b
+            b.clicked.connect(
+                lambda _=False, c=clave, d=dibujo: self.elegir_herramienta(
+                    c, d is not self.planta.dibujo
+                )
+            )
+            grupo_h.addButton(b)
+            botones_h[clave] = b
             g.addWidget(b)
         capa.addWidget(grupo)
         capa.addSpacing(6)
@@ -679,43 +691,74 @@ class Ventana(QMainWindow):
         ge = QHBoxLayout(grupo_e)
         ge.setContentsMargins(2, 2, 2, 2)
         ge.setSpacing(2)
-        self.botones_enganche: dict[str, QPushButton] = {}
-        for clave, nombre in ENGANCHES.items():
+        botones_e: dict[str, QPushButton] = {}
+        for clave, nombre in enganches.items():
             texto = f"{nombre} {PASO_GRILLA_M:.2f}" if clave == "grilla" else nombre
             b = QPushButton(texto, objectName="segmento", checkable=True)
             b.setChecked(dibujo.opciones.enganches[clave])
-            b.toggled.connect(lambda v, c=clave: self.planta.dibujo.poner_enganche(c, v))
-            self.botones_enganche[clave] = b
+            b.toggled.connect(lambda v, c=clave, d=dibujo: d.poner_enganche(c, v))
+            botones_e[clave] = b
             ge.addWidget(b)
         capa.addWidget(grupo_e)
+        if calculo:
+            self.botones_herramienta_calculo, self.botones_enganche_calculo = botones_h, botones_e
+        else:
+            self.botones_herramienta, self.botones_enganche = botones_h, botones_e
         dibujo.cambiado.connect(self._actualizar_dibujo)
-        self._actualizar_dibujo()
         return barra
 
-    def elegir_herramienta(self, clave: str) -> None:
-        """Elige una herramienta de dibujo de la planta (pasa al modo Edificio)."""
-        if self.modo != "edificio":
-            self.elegir_modo("edificio")
-        self.planta.dibujo.elegir(clave)
-        self.planta.setFocus()
+    def _dibujos(self):
+        """(dibujo, botones de herramientas, botones de enganche) de cada lienzo."""
+        salida = [(self.planta.dibujo, self.botones_herramienta, self.botones_enganche)]
+        if hasattr(self, "botones_herramienta_calculo"):
+            salida.append(
+                (self.vista.dibujo, self.botones_herramienta_calculo, self.botones_enganche_calculo)
+            )
+        return salida
+
+    def elegir_herramienta(self, clave: str, calculo: bool = False) -> None:
+        """Elige una herramienta de dibujo de la planta del edificio o, con ``calculo``,
+        de la vista 2D (pasa al modo y a la vista que corresponde)."""
+        modo = "calculo" if calculo else "edificio"
+        if self.modo != modo:
+            self.elegir_modo(modo)
+        if calculo:
+            self.mostrar_vista("2D")
+            self.vista.dibujo.elegir(clave)
+            self.vista.setFocus()
+        else:
+            self.planta.dibujo.elegir(clave)
+            self.planta.setFocus()
+
+    def alternar_orto(self) -> None:
+        """F8: Orto del lienzo del modo que se ve."""
+        botones = self.botones_enganche_calculo if self.modo == "calculo" else self.botones_enganche
+        botones["orto"].toggle()
 
     def _actualizar_dibujo(self) -> None:
-        dibujo = self.planta.dibujo
-        self.botones_herramienta[dibujo.herramienta].setChecked(True)
-        for clave, b in self.botones_enganche.items():
-            b.blockSignals(True)
-            b.setChecked(dibujo.opciones.enganches[clave])
-            b.blockSignals(False)
+        for dibujo, botones_h, botones_e in self._dibujos():
+            botones_h[dibujo.herramienta].setChecked(True)
+            for clave, b in botones_e.items():
+                b.blockSignals(True)
+                b.setChecked(dibujo.opciones.enganches[clave])
+                b.blockSignals(False)
+        if not hasattr(self, "pila_prop"):
+            return
         if self.modo == "edificio":
             self.pila_prop.setCurrentWidget(
-                self.panel_herramienta if dibujo.activo else self.prop_edificio
+                self.panel_herramienta if self.planta.dibujo.activo else self.prop_edificio
+            )
+        else:
+            self.pila_prop.setCurrentWidget(
+                self.panel_calculo if self.vista.dibujo.activo else self.pila_prop.widget(0)
             )
 
     def _iconos_dibujo(self) -> None:
-        for b in self.botones_herramienta.values():
-            b.setIcon(
-                iconos.qicon(b.property("icono"), estilo.actual, 18, self.devicePixelRatioF())
-            )
+        for _dibujo, botones_h, _ in self._dibujos():
+            for b in botones_h.values():
+                b.setIcon(
+                    iconos.qicon(b.property("icono"), estilo.actual, 18, self.devicePixelRatioF())
+                )
 
     def _explorador(self) -> QWidget:
         panel = QWidget(objectName="panel")
@@ -771,6 +814,9 @@ class Ventana(QMainWindow):
         self.pila_prop.addWidget(self.prop_edificio)
         self.panel_herramienta = PanelHerramienta(self.planta.dibujo)
         self.pila_prop.addWidget(self.panel_herramienta)
+        self.panel_calculo = PanelCalculo(self.vista.dibujo)
+        self.pila_prop.addWidget(self.panel_calculo)
+        self._actualizar_dibujo()
         return self.pila_prop
 
     def _panel_inferior(self) -> QTabWidget:
@@ -1055,6 +1101,9 @@ class Ventana(QMainWindow):
     def mostrar_vista(self, nombre: str) -> None:
         """Muestra la vista ``"2D"`` o ``"3D"`` en el centro de la ventana."""
         if nombre == "3D":
+            # Se dibuja en la vista 2D: al pasar a 3D se vuelve a Seleccionar.
+            if self.vista.dibujo.activo:
+                self.vista.dibujo.elegir("seleccionar")
             if self.vista3d is None:
                 self.vista3d = vista3d.crear(self.sesion)
                 if isinstance(self.vista3d, Vista3D):
@@ -1104,11 +1153,7 @@ class Ventana(QMainWindow):
         self.ctx_calculo.setVisible(not edificio)
         self.titulo_arbol.setText("Edificio" if edificio else "Estructura")
         self.pila_arbol.setCurrentWidget(self.arbol_edificio if edificio else self.arbol)
-        self.pila_prop.setCurrentWidget(
-            (self.panel_herramienta if self.planta.dibujo.activo else self.prop_edificio)
-            if edificio
-            else self.pila_prop.widget(0)
-        )
+        self._actualizar_dibujo()
         tabs = self.panel_inferior
         i_modelo, i_edificio = tabs.indexOf(self.tabs_modelo), tabs.indexOf(self.tablas_edificio)
         # La pestaña de tablas del modo nuevo reemplaza a la del otro en el mismo lugar.

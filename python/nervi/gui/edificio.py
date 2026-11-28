@@ -55,7 +55,14 @@ from ..formato.errores import FormatoError
 from ..reparto import CASOS, RepartoCargas
 from . import arbol, estilo
 from .dibujo import DibujoEdificio
-from .navegacion import METROS, Navegable, Vista, dibujar_coordenadas, dibujar_grilla
+from .navegacion import (
+    METROS,
+    Navegable,
+    Transformacion,
+    Vista,
+    dibujar_coordenadas,
+    dibujar_grilla,
+)
 from .sesion import Sesion
 
 #: Casos de carga que se pueden ver en la planta, con su nombre.
@@ -304,17 +311,7 @@ def filas_arbol(mf: ModeloFisico, piso: int | None) -> list[arbol.Fila]:
 # --- Planta -----------------------------------------------------------------------------
 
 
-@dataclass
-class _Transformacion:
-    escala: float
-    ox: float
-    oy: float
-
-    def a_pantalla(self, x: float, y: float) -> QPointF:
-        return QPointF(self.ox + x * self.escala, self.oy - y * self.escala)
-
-    def a_modelo(self, p: QPointF) -> tuple[float, float]:
-        return ((p.x() - self.ox) / self.escala, (self.oy - p.y()) / self.escala)
+_Transformacion = Transformacion
 
 
 def _metros(mm: float, longitud: str) -> float:
@@ -391,13 +388,6 @@ class PlantaEdificio(Navegable, QWidget):
         if not math.isfinite(escala):
             escala = 40.0
         return Vista(escala, (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2)
-
-    def transformacion(self) -> _Transformacion | None:
-        v = self.vista_actual()
-        if v is None:
-            return None
-        c = self.centro_lienzo()
-        return _Transformacion(v.escala, c.x() - v.cx * v.escala, c.y() + v.cy * v.escala)
 
     # -- dibujo ---------------------------------------------------------------------
     def paintEvent(self, _evento) -> None:

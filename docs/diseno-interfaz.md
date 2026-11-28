@@ -116,6 +116,17 @@ Muestra del 28/11/2026 (entrada [2026-11-28-05](bitacora/2026-11-28-05-dibujar-e
 - **Panel de la herramienta** (`PanelHerramienta`, en lugar de Propiedades): título *Nueva viga* (o columna, losa, muro, eje), *Sección* y *Material* con *Automática* primero (la más usada del modelo o una por defecto), *Espesor* en losas y muros, *Encadenar tramos* y *Partir en cada columna*, y una ayuda breve en `TEXTO_2`.
 - Clic derecho cancela el tramo; Backspace saca el último punto; cada elemento creado es un Ctrl+Z.
 
+### Dibujar en la vista 2D
+
+Muestra del 28/11/2026 (entrada [2026-11-28-06](bitacora/2026-11-28-06-dibujar-calculo.md)), con la misma línea que la planta.
+
+![Herramienta Puntual sobre el pórtico de ejemplo: cargas del caso D y enganche al medio de B2](img/dibujar-calculo.png)
+
+- **Barras *Dibujar* y *Enganche*** en *Cálculo*, después de *Valores* (`gui.dibujo_calculo.HERRAMIENTAS_CALCULO` y `ENGANCHES_CALCULO`): Seleccionar, Nudo, Barra, Apoyo, Puntual y Repartida con los íconos del catálogo; Grilla, Nudos, Medio, Cruces y Orto F8. Los enganches se recuerdan aparte de los de la planta (`dibujo_calculo/<clave>`). Elegir una herramienta pasa a la vista 2D; pasar a 3D vuelve a Seleccionar.
+- **Vista mientras se dibuja:** el mismo trazo, guía, marca y pastillas que la planta (`gui.dibujo.Dibujo`). Con Puntual y Repartida, las cargas del caso elegido en acento: flechas largas de 2 px para las concentradas, una fila de flechas cortas de 1,2 px con su línea para las repartidas y un arco con punta para los momentos, a tamaño fijo en pantalla.
+- **Panel de la herramienta** (`PanelCalculo`, en lugar de Propiedades): título (*Nueva barra*, *Apoyo*, *Carga puntual*…), y solo las filas de la herramienta: E, A e I con sus unidades; Tipo de apoyo; Caso (desplegable editable: un nombre nuevo crea el caso), Fx, Fy y Mz o qx y qy, y Ejes (Globales o Locales de la barra). Ayuda breve en `TEXTO_2`.
+- El modelo vacío se ve a 40 px por metro, para empezar a dibujar; al primer clic la vista se queda donde está (no sigue al encuadre automático) hasta que se pulsa F.
+
 ## Cómo agregar algo
 
 1. Usá los nombres de objeto existentes (`primario`, `fantasma`, `peligro`, `segmento`, `seccion`, `tenue`, `aviso`…) antes de crear uno nuevo.

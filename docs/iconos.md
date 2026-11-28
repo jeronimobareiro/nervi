@@ -100,7 +100,7 @@ Para no confundir las cargas de la planta con las de las barras, la familia sigu
 
 | Clave | Nombre | Estado | Uso |
 |---|---|---|---|
-| `seleccionar` | Seleccionar | reservado | Edición gráfica (#31) |
+| `seleccionar` | Seleccionar | en uso | Barras Dibujar de la planta y de la vista 2D |
 | `desplazar` | Desplazar | reservado | Visor 3D y planta (#30) |
 | `orbitar` | Orbitar | reservado | Visor 3D (#30) |
 | `acercar` | Acercar | en uso | Planta del edificio y vista 2D (zoom); visor 3D (#30) |
@@ -157,8 +157,8 @@ Para no confundir las cargas de la planta con las de las barras, la familia sigu
 | Clave | Nombre | Estado | Uso |
 |---|---|---|---|
 | `cargas` | Cargas | en uso | Árbol del modelo; carga puntual |
-| `carga_puntual` | Carga puntual | reservado | Cargas puntuales en barras y nudos (#31) |
-| `carga_repartida` | Carga repartida | reservado | Cargas en barras (#31) |
+| `carga_puntual` | Carga puntual | en uso | Barra Dibujar de la vista 2D: carga puntual en nudos y barras |
+| `carga_repartida` | Carga repartida | en uso | Barra Dibujar de la vista 2D: carga repartida en barras |
 | `carga_trapezoidal` | Carga trapezoidal | reservado | Cargas trapezoidales en barras (#2, #31) |
 | `cargas_planta` | Cargas de la planta | en uso | Modo Edificio: botón Cargas |
 | `carga_lineal_losa` | Carga lineal en losa | reservado | Tabiques y cargas lineales sobre losas (#78, #79) |

@@ -16,7 +16,8 @@ from PySide6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPainterPath, QP
 from PySide6.QtWidgets import QWidget
 
 from . import estilo
-from .navegacion import Navegable, Vista, dibujar_coordenadas, dibujar_grilla
+from .dibujo_calculo import DibujoCalculo
+from .navegacion import METROS, Navegable, Vista, dibujar_coordenadas, dibujar_grilla
 from .sesion import Seleccion, Sesion
 
 DIAGRAMAS = {"M": "Momento", "V": "Cortante", "N": "Axil", "D": "Deformada"}
@@ -30,7 +31,8 @@ def _fmt(v: float) -> str:
 class Vista2D(Navegable, QWidget):
     """Lienzo del pórtico. Clic selecciona; al pasar el cursor sobre una barra
     muestra los esfuerzos en ese punto. Se navega con la rueda, el botón del medio y
-    ``F`` (ver :mod:`nervi.gui.navegacion`)."""
+    ``F`` (ver :mod:`nervi.gui.navegacion`) y se dibuja con las herramientas de
+    :attr:`dibujo` (:mod:`nervi.gui.dibujo_calculo`)."""
 
     diagrama_cambiado = Signal(str)
 
@@ -47,6 +49,7 @@ class Vista2D(Navegable, QWidget):
         self.setMinimumSize(320, 240)
         self.iniciar_navegacion()
         self.setAutoFillBackground(False)
+        self.dibujo = DibujoCalculo(self, sesion)
         for senal in (
             sesion.modelo_cambiado,
             sesion.resultados_cambiados,
@@ -76,7 +79,9 @@ class Vista2D(Navegable, QWidget):
         """Encuadre automático del pórtico."""
         caja = self._caja()
         if caja is None:
-            return None
+            # Modelo vacío: 40 px por metro alrededor de (5, 3) m, para empezar a dibujar.
+            m = METROS.get(self.sesion.modelo["unidades"]["longitud"], 1.0)
+            return Vista(40.0 * m, 5.0 / m, 3.0 / m)
         x0, x1, y0, y1 = caja
         ancho, alto = max(x1 - x0, 1e-9), max(y1 - y0, 1e-9)
         tam = max(ancho, alto)
@@ -89,8 +94,8 @@ class Vista2D(Navegable, QWidget):
         v = self.vista_actual()
         if v is None:
             return None
-        x0, x1, y0, y1 = self._caja()
-        tam = max(x1 - x0, y1 - y0, 1e-9)
+        caja = self._caja()
+        tam = 1.0 if caja is None else max(caja[1] - caja[0], caja[3] - caja[2], 1e-9)
         escala, cx, cy = v.escala, v.cx, v.cy
         ox, oy = self.width() / 2, self.height() / 2
 
@@ -120,11 +125,15 @@ class Vista2D(Navegable, QWidget):
         self._grilla(p)
         t = self._transformacion()
         if t is None:
+            return
+        if not self.sesion.modelo["nudos"] and not self.dibujo.activo:
             p.setPen(QColor(estilo.TEXTO_3))
             p.drawText(
-                self.rect(), Qt.AlignCenter, "Agregá nudos y barras en la tabla de Geometría"
+                self.rect(),
+                Qt.AlignCenter,
+                "Dibujá nudos, barras, apoyos y cargas con las herramientas de Dibujar,\n"
+                "o cargalos en la tabla de Geometría",
             )
-            return
         res = self.sesion.resultado()
         if res is not None:
             self._diagrama(p, res, t)
@@ -132,6 +141,7 @@ class Vista2D(Navegable, QWidget):
         if res is not None:
             self._lectura(p, res)
         self._leyenda(p, res)
+        self.dibujo.pintar(p, self.transformacion())
         v = self.vista_actual()
         dibujar_coordenadas(
             p, self, v, self.centro_lienzo(), self.cursor_lienzo, self._unidades()["l"]
@@ -367,19 +377,32 @@ class Vista2D(Navegable, QWidget):
         return None
 
     def mouseMoveEvent(self, evento: QMouseEvent) -> None:
-        self.navegacion_mover(evento)
+        if not self.navegacion_mover(evento):
+            self.dibujo.mover(evento.position())
         self._cursor = evento.position()
         self.update()
 
     def leaveEvent(self, evento) -> None:
         self._cursor = None
+        self.dibujo.salir()
         super().leaveEvent(evento)
 
     def mouseReleaseEvent(self, evento: QMouseEvent) -> None:
-        self.navegacion_soltar(evento)
+        if not self.navegacion_soltar(evento) and evento.button() == Qt.LeftButton:
+            self.dibujo.soltar(evento.position())
 
     def mousePressEvent(self, evento: QMouseEvent) -> None:
-        if self.navegacion_presionar(evento) or evento.button() != Qt.LeftButton:
+        if self.navegacion_presionar(evento):
+            return
+        if evento.button() == Qt.RightButton and self.dibujo.activo:
+            # Clic derecho: termina el trazo (como Esc).
+            self.dibujo.cancelar()
+            return
+        if evento.button() != Qt.LeftButton:
+            return
+        self.setFocus()
+        if self.dibujo.activo:
+            self.dibujo.presionar(evento.position())
             return
         q = evento.position()
         nudo = self._nudo_cercano(q)
@@ -388,3 +411,12 @@ class Vista2D(Navegable, QWidget):
             return
         barra = self._barra_cercana(q)
         self.sesion.seleccionar(Seleccion("barra", barra[0]) if barra else None)
+
+    def keyPressEvent(self, evento) -> None:
+        if self.dibujo.tecla(evento):
+            evento.accept()
+            return
+        if evento.key() == Qt.Key_Delete and self.dibujo.borrar(self.sesion.seleccion):
+            evento.accept()
+            return
+        super().keyPressEvent(evento)

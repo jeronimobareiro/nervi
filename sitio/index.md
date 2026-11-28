@@ -55,7 +55,7 @@ Nervi analiza pórticos por el método de los elementos finitos y muestra reacci
 - **Diseño de hormigón armado según ACI 318-19**, experimental: vigas (flexión, cortante, flechas y detalle de armaduras) y columnas (flexocompresión biaxial y esbeltez), cada verificación con su artículo.
 - **Modelo físico del edificio**, en versión preliminar: pisos, ejes, columnas, vigas, losas macizas y muros que se dibujan con el mouse en cada planta, con enganche a extremos, ejes y grilla, o se cargan en tablas, con un gestor para agregar, mover y copiar plantas. Las cargas de cada planta se reparten de las losas a las vigas por áreas tributarias. Todavía no genera el modelo de cálculo.
 - **Memoria de cálculo en PDF** con geometría, cargas, diagramas, diseño y análisis dinámico.
-- **Interfaz de escritorio** en una sola ventana, con panel de estructura, tablas para cargar el modelo, tema claro y nocturno, y uso desde Python para quien programa.
+- **Interfaz de escritorio** en una sola ventana, con panel de estructura, tablas o dibujo con el mouse para cargar el modelo (nudos, barras, apoyos y cargas), tema claro y nocturno, y uso desde Python para quien programa.
 - **Asistente de IA a tu manera**: conectás la IA que ya usás (por el estándar MCP) para consultar el modelo y los resultados. Solo propone cambios que vos aplicás o descartás, y cada número lo calcula el motor de Nervi, nunca la IA.
 - **Proyectos** guardados en archivos `.nrv` y decenas de casos de verificación contra soluciones conocidas.
 

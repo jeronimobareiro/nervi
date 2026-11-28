@@ -99,19 +99,22 @@ class OpcionesDibujo:
     encadenar: bool = True
     partir_en_columnas: bool = True
 
+    #: Grupo de las preferencias donde se guardan los enganches.
+    grupo: str = "dibujo"
+
     @classmethod
-    def leer(cls) -> OpcionesDibujo:
+    def leer(cls, grupo: str = "dibujo", claves=ENGANCHES) -> OpcionesDibujo:
         cfg = ajustes.configuracion()
         enganches = {}
-        for clave in ENGANCHES:
-            v = cfg.value(f"dibujo/{clave}", clave != "orto")
+        for clave in claves:
+            v = cfg.value(f"{grupo}/{clave}", clave != "orto")
             enganches[clave] = v if isinstance(v, bool) else str(v).lower() == "true"
-        return cls(enganches, {"vigas": None, "columnas": None})
+        return cls(enganches, {"vigas": None, "columnas": None}, grupo=grupo)
 
     def guardar(self) -> None:
         cfg = ajustes.configuracion()
         for clave, v in self.enganches.items():
-            cfg.setValue(f"dibujo/{clave}", v)
+            cfg.setValue(f"{self.grupo}/{clave}", v)
 
 
 class EntradaNumerica(QFrame):
@@ -193,19 +196,26 @@ def _mas_usado(valores, por_omision=None):
     return c.most_common(1)[0][0] if c else por_omision
 
 
-class DibujoEdificio(QObject):
-    """Herramientas de dibujo de la planta del edificio. La planta le pasa el mouse,
-    el teclado y el pintor; esta clase decide qué crear."""
+class Dibujo(QObject):
+    """Lo común de las herramientas de dibujo de un lienzo (la planta del edificio o
+    la vista 2D del cálculo): enganche en cada movimiento, trazo en curso, Orto,
+    entrada numérica y marca del enganche. La subclase dice qué herramientas hay, de
+    dónde sale la geometría enganchable y qué se crea en cada punto (:meth:`fijar`)."""
 
     #: Cambió la herramienta o las opciones (la barra y el panel se actualizan).
     cambiado = Signal()
 
-    def __init__(self, planta, estado) -> None:
-        super().__init__(planta)
-        self.planta = planta
-        self.estado = estado
+    #: Herramientas (clave -> ícono, nombre); la primera es Seleccionar.
+    HERRAMIENTAS: dict[str, tuple[str, str]] = HERRAMIENTAS
+    #: Herramientas que encadenan puntos (dibujan un trazo con cota).
+    #: Herramienta cuyo trazo se cierra (se dibuja la línea al primer punto).
+    CERRADO: str | None = None
+
+    def __init__(self, lienzo, opciones: OpcionesDibujo) -> None:
+        super().__init__(lienzo)
+        self.lienzo = lienzo
         self.herramienta = "seleccionar"
-        self.opciones = OpcionesDibujo.leer()
+        self.opciones = opciones
         #: Puntos fijados del trazo en curso (modelo).
         self.puntos: list[Punto] = []
         #: Enganche bajo el cursor y su posición en pantalla.
@@ -213,12 +223,28 @@ class DibujoEdificio(QObject):
         self.cursor: QPointF | None = None
         self._recientes: list[int] = []
         self._geometria: GeometriaPlanta | None = None
-        self._ventana: QPointF | None = None  # inicio de la ventana de columnas
-        self._pano: list[Punto] | None = None  # paño bajo el cursor (herramienta Losa)
-        self.entrada = EntradaNumerica(planta)
+        self.entrada = EntradaNumerica(lienzo)
         self.entrada.aceptada.connect(self._numerico)
-        self.entrada.cancelada.connect(planta.update)
-        estado.cambiado.connect(self._invalidar)
+        self.entrada.cancelada.connect(lienzo.update)
+
+    # -- a implementar ------------------------------------------------------------
+    def _armar_geometria(self) -> GeometriaPlanta:  # pragma: no cover
+        raise NotImplementedError
+
+    def _unidad(self) -> str:  # pragma: no cover
+        raise NotImplementedError
+
+    def _nombre_origen(self, lista: str, id: int) -> str:  # pragma: no cover
+        raise NotImplementedError
+
+    def fijar(self, p: Punto) -> None:  # pragma: no cover
+        raise NotImplementedError
+
+    def _al_elegir(self, herramienta: str) -> None:
+        """La subclase limpia la selección u otro estado al elegir una herramienta."""
+
+    def _pintar_debajo(self, p: QPainter, t) -> None:
+        """Vista previa propia de la herramienta, debajo del trazo."""
 
     # -- estado -------------------------------------------------------------------
     @property
@@ -226,47 +252,39 @@ class DibujoEdificio(QObject):
         return self.herramienta != "seleccionar"
 
     def elegir(self, herramienta: str) -> None:
-        if herramienta not in HERRAMIENTAS:
-            raise ValueError(f"herramienta {herramienta!r}; válidas {tuple(HERRAMIENTAS)}")
+        if herramienta not in self.HERRAMIENTAS:
+            raise ValueError(f"herramienta {herramienta!r}; válidas {tuple(self.HERRAMIENTAS)}")
         self.herramienta = herramienta
         self.cancelar()
-        if herramienta != "seleccionar":
-            self.estado.elegir(None)
-        self.planta.setCursor(Qt.ArrowCursor if herramienta == "seleccionar" else Qt.CrossCursor)
+        self._al_elegir(herramienta)
+        self.lienzo.setCursor(Qt.ArrowCursor if herramienta == "seleccionar" else Qt.CrossCursor)
         self.cambiado.emit()
-        self.planta.update()
+        self.lienzo.update()
 
     def poner_enganche(self, clave: str, valor: bool) -> None:
         self.opciones.enganches[clave] = valor
         self.opciones.guardar()
         self._geometria = None
         self.cambiado.emit()
-        self.planta.update()
+        self.lienzo.update()
 
     def cancelar(self) -> None:
         self.puntos.clear()
-        self._ventana = None
         self.entrada.terminar() if self.entrada.isVisible() else None
-        self.planta.update()
+        self.lienzo.update()
 
     def _invalidar(self) -> None:
         self._geometria = None
         self._recientes.clear()
-        self._pano = None
 
     def geometria(self) -> GeometriaPlanta:
         if self._geometria is None:
-            self._geometria = geometria_planta(
-                self.estado.modelo(), self.estado.piso, ejes=self.opciones.enganches["ejes"]
-            )
+            self._geometria = self._armar_geometria()
         return self._geometria
-
-    def _unidad(self) -> str:
-        return self.estado.modelo().longitud
 
     # -- enganche -------------------------------------------------------------------
     def enganchar(self, pos: QPointF) -> Enganche | None:
-        t = self.planta.transformacion()
+        t = self.lienzo.transformacion()
         if t is None:
             return None
         x, y = t.a_modelo(pos)
@@ -295,47 +313,46 @@ class DibujoEdificio(QObject):
             del self._recientes[4:]
         return e
 
-    # -- eventos que pasa la planta ---------------------------------------------------
+    # -- eventos que pasa el lienzo ---------------------------------------------------
     def mover(self, pos: QPointF) -> None:
         if not self.activo:
             return
         self.cursor = pos
         self.enganche = self.enganchar(pos)
-        self._pano = None
-        if self.herramienta == "losas" and not self.puntos and self.enganche is not None:
-            self._pano = self._pano_en(self.enganche.punto)
+        self._al_mover()
         if self.puntos and self.enganche is not None:
             largo, angulo = self._largo_angulo(self.puntos[-1], self.enganche.punto)
             self.entrada.mostrar(largo, angulo, self._unidad())
         self._ubicar_entrada()
-        self.planta.update()
+        self.lienzo.update()
+
+    def _al_mover(self) -> None:
+        """La subclase actualiza su vista previa con :attr:`enganche`."""
 
     def salir(self) -> None:
         self.cursor = None
         self.enganche = None
-        self._pano = None
-        self.planta.update()
+        self.lienzo.update()
 
     def presionar(self, pos: QPointF) -> None:
+        self.fijar_camara()
         self.mover(pos)
-        if self.herramienta == "columnas":
-            self._ventana = pos
-            return
         if self.enganche is not None:
             self.fijar(self.enganche.punto)
 
+    def fijar_camara(self) -> None:
+        """Deja la vista donde está: sin esto, el encuadre automático seguiría al modelo
+        que crece y el punto siguiente se movería bajo el cursor."""
+        camara = self.lienzo.camara
+        if not camara.activa:
+            camara.vista = self.lienzo.vista_actual()
+
     def soltar(self, pos: QPointF) -> None:
-        if self.herramienta != "columnas" or self._ventana is None:
-            return
-        inicio, self._ventana = self._ventana, None
-        if math.hypot(pos.x() - inicio.x(), pos.y() - inicio.y()) >= ARRASTRE_PX:
-            t = self.planta.transformacion()
-            if t is not None:
-                self.columnas_en_ventana(t.a_modelo(inicio), t.a_modelo(pos))
-            return
-        e = self.enganchar(pos)
-        if e is not None:
-            self.fijar(e.punto)
+        """La subclase usa el soltar para las ventanas."""
+
+    def _enter(self) -> None:
+        """Enter termina el trazo; la subclase puede cerrar algo antes."""
+        self.cancelar()
 
     def tecla(self, evento) -> bool:
         """Teclas de las herramientas. Devuelve ``True`` si se usó la tecla."""
@@ -349,13 +366,11 @@ class DibujoEdificio(QObject):
                 self.elegir("seleccionar")
             return True
         if k in (Qt.Key_Return, Qt.Key_Enter):
-            if self.herramienta == "losas" and len(self.puntos) >= 3:
-                self._crear_losa(list(self.puntos))
-            self.cancelar()
+            self._enter()
             return True
         if k == Qt.Key_Backspace and self.puntos:
             self.puntos.pop()
-            self.planta.update()
+            self.lienzo.update()
             return True
         if k == Qt.Key_F8:
             self.poner_enganche("orto", not self.opciones.enganches["orto"])
@@ -371,8 +386,8 @@ class DibujoEdificio(QObject):
         if self.cursor is None:
             return
         self.entrada.adjustSize()
-        x = min(self.cursor.x() + 18, self.planta.width() - self.entrada.width() - 8)
-        y = min(self.cursor.y() + 24, self.planta.height() - self.entrada.height() - 44)
+        x = min(self.cursor.x() + 18, self.lienzo.width() - self.entrada.width() - 8)
+        y = min(self.cursor.y() + 24, self.lienzo.height() - self.entrada.height() - 44)
         self.entrada.move(int(max(8, x)), int(max(8, y)))
 
     # -- geometría -------------------------------------------------------------------
@@ -395,6 +410,171 @@ class DibujoEdificio(QObject):
         if abs(angulo % 90.0) < 1e-12 or abs(angulo % 90.0 - 90.0) < 1e-12:
             c, s = round(c), round(s)
         self.fijar((a[0] + largo * c, a[1] + largo * s))
+
+    # -- dibujo -----------------------------------------------------------------------
+    def pintar(self, p: QPainter, t) -> None:
+        if not self.activo or t is None:
+            return
+        acento = QColor(estilo.ACENTO)
+        p.save()
+        p.setFont(QFont(self.lienzo.font().family(), 8))
+        self._pintar_debajo(p, t)
+        e = self.enganche
+        if self.puntos:
+            p.setPen(QPen(acento, 1.6, Qt.DashLine))
+            p.setBrush(Qt.NoBrush)
+            pts = [t.a_pantalla(*q) for q in self.puntos]
+            for q0, q1 in pairwise(pts):
+                p.drawLine(q0, q1)
+            if e is not None:
+                fin = t.a_pantalla(*e.punto)
+                p.drawLine(pts[-1], fin)
+                if self.herramienta == self.CERRADO and len(pts) >= 2:
+                    p.setPen(QPen(acento, 1, Qt.DotLine))
+                    p.drawLine(fin, pts[0])
+                self._cota(p, pts[-1], fin)
+        if e is not None and e.guia is not None:
+            a, b = t.a_pantalla(*e.guia[0]), t.a_pantalla(*e.guia[1])
+            p.setPen(QPen(acento, 1, Qt.DotLine))
+            p.drawLine(a, b)
+        if e is not None:
+            self._marca(p, t.a_pantalla(*e.punto), e)
+        p.restore()
+
+    def _marca(self, p: QPainter, q: QPointF, e: Enganche) -> None:
+        acento = QColor(estilo.ACENTO)
+        p.setPen(QPen(acento, 1.4))
+        p.setBrush(Qt.NoBrush)
+        # Cruz del cursor.
+        p.drawLine(q + QPointF(-14, 0), q + QPointF(14, 0))
+        p.drawLine(q + QPointF(0, -14), q + QPointF(0, 14))
+        p.setPen(QPen(acento, 2))
+        r = 6.0
+        if e.tipo in ("punto", "extremo"):
+            p.drawRect(QRectF(q.x() - r, q.y() - r, 2 * r, 2 * r))
+        elif e.tipo == "medio":
+            p.drawPolygon(
+                QPolygonF([q + QPointF(0, -r - 1), q + QPointF(r + 1, r), q + QPointF(-r - 1, r)])
+            )
+        elif e.tipo in ("cruce", "cruce_guias"):
+            p.drawLine(q + QPointF(-r, -r), q + QPointF(r, r))
+            p.drawLine(q + QPointF(-r, r), q + QPointF(r, -r))
+        elif e.tipo == "perpendicular":
+            p.drawLine(q + QPointF(-r, r), q + QPointF(r, r))
+            p.drawLine(q + QPointF(0, r), q + QPointF(0, -r))
+        elif e.tipo == "cerca":
+            p.drawPolygon(
+                QPolygonF(
+                    [q + QPointF(0, -r), q + QPointF(r, 0), q + QPointF(0, r), q + QPointF(-r, 0)]
+                )
+            )
+        elif e.tipo in ("grilla", "polar", "prolongacion"):
+            p.drawRect(QRectF(q.x() - 3.5, q.y() - 3.5, 7, 7))
+        nombre = TIPOS.get(e.tipo, "")
+        origen = self.geometria().origen(e)
+        if origen is not None:
+            nombre += " · " + self._nombre_origen(*origen)
+        if nombre:
+            _etiqueta(p, q + QPointF(12, -28), nombre)
+
+    def _cota(self, p: QPainter, a: QPointF, b: QPointF) -> None:
+        largo, angulo = self._largo_angulo(
+            self.puntos[-1], self.enganche.punto if self.enganche else self.puntos[-1]
+        )
+        if largo <= 0:
+            return
+        _etiqueta(
+            p, (a + b) / 2 + QPointF(10, 10), f"{_num(largo)} {self._unidad()} · {angulo:.0f}°"
+        )
+
+
+class DibujoEdificio(Dibujo):
+    """Herramientas de dibujo de la planta del edificio. La planta le pasa el mouse,
+    el teclado y el pintor; esta clase decide qué crear."""
+
+    HERRAMIENTAS = HERRAMIENTAS
+    CERRADO = "losas"
+
+    def __init__(self, planta, estado) -> None:
+        super().__init__(planta, OpcionesDibujo.leer())
+        self.planta = planta
+        self.estado = estado
+        self._ventana: QPointF | None = None  # inicio de la ventana de columnas
+        self._pano: list[Punto] | None = None  # paño bajo el cursor (herramienta Losa)
+        estado.cambiado.connect(self._invalidar)
+
+    def _al_elegir(self, herramienta: str) -> None:
+        if herramienta != "seleccionar":
+            self.estado.elegir(None)
+
+    def cancelar(self) -> None:
+        self._ventana = None
+        super().cancelar()
+
+    def _invalidar(self) -> None:
+        super()._invalidar()
+        self._pano = None
+
+    def _armar_geometria(self) -> GeometriaPlanta:
+        return geometria_planta(
+            self.estado.modelo(), self.estado.piso, ejes=self.opciones.enganches["ejes"]
+        )
+
+    def _unidad(self) -> str:
+        return self.estado.modelo().longitud
+
+    def _nombre_origen(self, lista: str, id: int) -> str:
+        return _nombre(self.estado.modelo(), lista, id)
+
+    def _al_mover(self) -> None:
+        self._pano = None
+        if self.herramienta == "losas" and not self.puntos and self.enganche is not None:
+            self._pano = self._pano_en(self.enganche.punto)
+
+    def salir(self) -> None:
+        self._pano = None
+        super().salir()
+
+    def presionar(self, pos: QPointF) -> None:
+        if self.herramienta == "columnas":
+            self.fijar_camara()
+            self.mover(pos)
+            self._ventana = pos
+            return
+        super().presionar(pos)
+
+    def soltar(self, pos: QPointF) -> None:
+        if self.herramienta != "columnas" or self._ventana is None:
+            return
+        inicio, self._ventana = self._ventana, None
+        if math.hypot(pos.x() - inicio.x(), pos.y() - inicio.y()) >= ARRASTRE_PX:
+            t = self.planta.transformacion()
+            if t is not None:
+                self.columnas_en_ventana(t.a_modelo(inicio), t.a_modelo(pos))
+            return
+        e = self.enganchar(pos)
+        if e is not None:
+            self.fijar(e.punto)
+
+    def _enter(self) -> None:
+        if self.herramienta == "losas" and len(self.puntos) >= 3:
+            self._crear_losa(list(self.puntos))
+        self.cancelar()
+
+    def _pintar_debajo(self, p: QPainter, t) -> None:
+        acento = QColor(estilo.ACENTO)
+        if self._pano is not None:
+            relleno = QColor(estilo.ACENTO)
+            relleno.setAlphaF(0.12)
+            p.setPen(QPen(acento, 1.5, Qt.DashLine))
+            p.setBrush(relleno)
+            p.drawPolygon(QPolygonF([t.a_pantalla(*q) for q in self._pano]))
+        if self._ventana is not None and self.cursor is not None:
+            p.setPen(QPen(acento, 1, Qt.DashLine))
+            relleno = QColor(estilo.ACENTO)
+            relleno.setAlphaF(0.08)
+            p.setBrush(relleno)
+            p.drawRect(QRectF(self._ventana, self.cursor).normalized())
 
     def _apoyos(self, mf: ModeloFisico) -> list[tuple[Punto, Punto]]:
         en = mf.en_piso(self.estado.piso)
@@ -564,93 +744,6 @@ class DibujoEdificio(QObject):
             mf.agregar_losa(piso, contorno, self.opciones.espesor_losa, self._material(mf))
 
         return self.estado.aplicar(cambio, "Dibujar losa")
-
-    # -- dibujo -----------------------------------------------------------------------
-    def pintar(self, p: QPainter, t) -> None:
-        if not self.activo or t is None:
-            return
-        acento = QColor(estilo.ACENTO)
-        p.save()
-        p.setFont(QFont(self.planta.font().family(), 8))
-        if self._pano is not None:
-            relleno = QColor(estilo.ACENTO)
-            relleno.setAlphaF(0.12)
-            p.setPen(QPen(acento, 1.5, Qt.DashLine))
-            p.setBrush(relleno)
-            p.drawPolygon(QPolygonF([t.a_pantalla(*q) for q in self._pano]))
-        e = self.enganche
-        if self.puntos:
-            p.setPen(QPen(acento, 1.6, Qt.DashLine))
-            p.setBrush(Qt.NoBrush)
-            pts = [t.a_pantalla(*q) for q in self.puntos]
-            for q0, q1 in pairwise(pts):
-                p.drawLine(q0, q1)
-            if e is not None:
-                fin = t.a_pantalla(*e.punto)
-                p.drawLine(pts[-1], fin)
-                if self.herramienta == "losas" and len(pts) >= 2:
-                    p.setPen(QPen(acento, 1, Qt.DotLine))
-                    p.drawLine(fin, pts[0])
-                self._cota(p, pts[-1], fin)
-        if self._ventana is not None and self.cursor is not None:
-            p.setPen(QPen(acento, 1, Qt.DashLine))
-            relleno = QColor(estilo.ACENTO)
-            relleno.setAlphaF(0.08)
-            p.setBrush(relleno)
-            p.drawRect(QRectF(self._ventana, self.cursor).normalized())
-        if e is not None and e.guia is not None:
-            a, b = t.a_pantalla(*e.guia[0]), t.a_pantalla(*e.guia[1])
-            p.setPen(QPen(acento, 1, Qt.DotLine))
-            p.drawLine(a, b)
-        if e is not None:
-            self._marca(p, t.a_pantalla(*e.punto), e)
-        p.restore()
-
-    def _marca(self, p: QPainter, q: QPointF, e: Enganche) -> None:
-        acento = QColor(estilo.ACENTO)
-        p.setPen(QPen(acento, 1.4))
-        p.setBrush(Qt.NoBrush)
-        # Cruz del cursor.
-        p.drawLine(q + QPointF(-14, 0), q + QPointF(14, 0))
-        p.drawLine(q + QPointF(0, -14), q + QPointF(0, 14))
-        p.setPen(QPen(acento, 2))
-        r = 6.0
-        if e.tipo in ("punto", "extremo"):
-            p.drawRect(QRectF(q.x() - r, q.y() - r, 2 * r, 2 * r))
-        elif e.tipo == "medio":
-            p.drawPolygon(
-                QPolygonF([q + QPointF(0, -r - 1), q + QPointF(r + 1, r), q + QPointF(-r - 1, r)])
-            )
-        elif e.tipo in ("cruce", "cruce_guias"):
-            p.drawLine(q + QPointF(-r, -r), q + QPointF(r, r))
-            p.drawLine(q + QPointF(-r, r), q + QPointF(r, -r))
-        elif e.tipo == "perpendicular":
-            p.drawLine(q + QPointF(-r, r), q + QPointF(r, r))
-            p.drawLine(q + QPointF(0, r), q + QPointF(0, -r))
-        elif e.tipo == "cerca":
-            p.drawPolygon(
-                QPolygonF(
-                    [q + QPointF(0, -r), q + QPointF(r, 0), q + QPointF(0, r), q + QPointF(-r, 0)]
-                )
-            )
-        elif e.tipo in ("grilla", "polar", "prolongacion"):
-            p.drawRect(QRectF(q.x() - 3.5, q.y() - 3.5, 7, 7))
-        nombre = TIPOS.get(e.tipo, "")
-        origen = self.geometria().origen(e)
-        if origen is not None:
-            nombre += " · " + _nombre(self.estado.modelo(), *origen)
-        if nombre:
-            _etiqueta(p, q + QPointF(12, -28), nombre)
-
-    def _cota(self, p: QPainter, a: QPointF, b: QPointF) -> None:
-        largo, angulo = self._largo_angulo(
-            self.puntos[-1], self.enganche.punto if self.enganche else self.puntos[-1]
-        )
-        if largo <= 0:
-            return
-        _etiqueta(
-            p, (a + b) / 2 + QPointF(10, 10), f"{_num(largo)} {self._unidad()} · {angulo:.0f}°"
-        )
 
 
 def _etiqueta(p: QPainter, izq: QPointF, texto: str) -> None:
