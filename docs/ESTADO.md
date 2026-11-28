@@ -1,6 +1,6 @@
 # Estado actual del proyecto
 
-_Última actualización: 2026-11-27 · entrada [2026-11-27-02](bitacora/2026-11-27-02-cargas-por-planta.md)_
+_Última actualización: 2026-11-28 · entrada [2026-11-28-01](bitacora/2026-11-28-01-icono-instalador-windows.md)_
 
 Este archivo es la foto de hoy. Se **reescribe** en cada aporte; la historia está en [`bitacora/`](bitacora/).
 
