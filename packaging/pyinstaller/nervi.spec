@@ -13,7 +13,9 @@ import os
 from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 AQUI = os.path.dirname(os.path.abspath(SPEC))  # noqa: F821 (lo define PyInstaller)
-ICONO = os.environ.get("NERVI_ICONO") or None
+# Ruta absoluta: PyInstaller resuelve las rutas relativas contra la carpeta de la
+# receta, no contra la carpeta desde donde se lo llama.
+ICONO = os.path.abspath(os.environ["NERVI_ICONO"]) if os.environ.get("NERVI_ICONO") else None
 
 datos = collect_data_files("nervi")
 if importlib.util.find_spec("pyvista") is not None:
