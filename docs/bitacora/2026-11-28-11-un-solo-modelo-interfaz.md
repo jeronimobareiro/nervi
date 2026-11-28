@@ -47,7 +47,7 @@ Que *Edificio* y *Cálculo* dejen de parecer dos sesiones de dos estructuras dis
 - *Frente* y *Lateral* de un pórtico del edificio; diagramas del segundo plano local (`My`, `Vz`) en 3D.
 - Las propiedades del elemento elegido todavía no muestran sus resultados (están en *Por elemento*).
 - Las columnas circulares se dibujan en 3D como un prisma de lado `d`.
-- Firma DCO: Jerónimo autorizó por escrito ("firmalo por mi") que el agente firme en su nombre el trabajo de este hilo (unificar Edificio y Cálculo); se firma con su correo `noreply` de GitHub.
+- Firma DCO: los commits de este PR van sin `Signed-off-by`. La autorización escrita de Jerónimo ("firmalo por mi") fue para el PR del motor (#111); para este hace falta que la confirme o que firme él con `git rebase --signoff origin/main` (AGENTS.md §3.5).
 
 ## Para quien siga
 
