@@ -241,6 +241,11 @@ class Proyecto:
         self.diseno_al_dia = False
         self.resultados_dinamica: ResultadosDinamica | None = None
         self.dinamica_al_dia = False
+        #: Edificio (#74): el último análisis del modelo de cálculo generado.
+        self.resultados_edificio = None
+        self.edificio_al_dia = False
+        self._calculo_edificio = None
+        self._combinadas: dict = {}
         self._deshacer: list[Cambio] = []
         self._rehacer: list[Cambio] = []
         # Última copia guardada de cada parte: si la parte no cambió desde entonces,
@@ -302,6 +307,10 @@ class Proyecto:
         self.diseno_al_dia = False
         self.resultados_dinamica = None
         self.dinamica_al_dia = False
+        self.resultados_edificio = None
+        self.edificio_al_dia = False
+        self._calculo_edificio = None
+        self._combinadas.clear()
         self._deshacer.clear()
         self._rehacer.clear()
         self._ultimo.clear()
@@ -354,7 +363,10 @@ class Proyecto:
 
     # --- Revisión y cálculo ------------------------------------------------------
     def revisar(self) -> list[Aviso]:
-        """Revisión del modelo (lo que muestra el panel "Revisión del modelo")."""
+        """Revisión del modelo (lo que muestra el panel "Revisión del modelo"). En un
+        edificio, la del modelo de cálculo que se genera desde él."""
+        if self.es_edificio:
+            return self._revisar_edificio()
         avisos: list[Aviso] = []
         m = self.modelo
         try:
@@ -392,7 +404,12 @@ class Proyecto:
         return avisos
 
     def nombres_resultado(self) -> list[str]:
-        """Casos y combinaciones disponibles para mostrar."""
+        """Casos y combinaciones disponibles para mostrar (en un edificio, los del
+        modelo de cálculo generado)."""
+        if self.es_edificio:
+            from .idealizacion import CASOS, COMBINACIONES
+
+            return [*COMBINACIONES, *CASOS]
         m = self.modelo
         nombres = [c["nombre"] for c in m.get("combinaciones", [])]
         nombres += [c["nombre"] for c in m["casos"]]
@@ -401,7 +418,12 @@ class Proyecto:
         return nombres
 
     def calcular(self) -> None:
-        """Resuelve el modelo. Lanza ``FormatoError``, ``ValueError`` o ``MecanismoError``."""
+        """Resuelve el modelo. Lanza ``FormatoError``, ``ValueError`` o ``MecanismoError``.
+        En un edificio resuelve el modelo de cálculo generado desde él
+        (:meth:`calcular_edificio`)."""
+        if self.es_edificio:
+            self.calcular_edificio()
+            return
         try:
             modelo, indices = formato.construir_modelo(self.modelo)
             resultados = modelo.resolver()
@@ -550,8 +572,94 @@ class Proyecto:
     def _poner_fisico(self, nuevo: dict | None) -> None:
         self.doc.fisico = nuevo
         self.modificado = True
+        self._calculo_edificio = None
+        self._combinadas.clear()
+        self.edificio_al_dia = False
+        self.revisar()
         self._avisar("archivo")
         self._avisar("fisico")
+        self._avisar("resultados")
+
+    # --- Edificio: modelo de cálculo generado (#74) -----------------------------------
+    @property
+    def es_edificio(self) -> bool:
+        """El proyecto tiene modelo físico: manda el edificio y el modelo de cálculo
+        se genera desde él (``docs/diseno-interfaz.md`` §Un solo modelo). Sin modelo
+        físico, el proyecto es un pórtico plano armado a mano."""
+        return self.doc.fisico is not None
+
+    def modelo_calculo(self):
+        """El modelo de cálculo generado desde el edificio
+        (:class:`nervi.idealizacion.ModeloCalculo`), guardado hasta que el edificio
+        cambie. Lanza ``ValueError`` si el proyecto no tiene edificio."""
+        if not self.es_edificio:
+            raise ValueError("el proyecto no tiene modelo físico")
+        if self._calculo_edificio is None:
+            from .fisico import ModeloFisico
+
+            self._calculo_edificio = ModeloFisico.desde_json(self.doc.fisico).modelo_calculo()
+        return self._calculo_edificio
+
+    def _revisar_edificio(self) -> list[Aviso]:
+        avisos: list[Aviso] = []
+        try:
+            mc = self.modelo_calculo()
+        except (ValueError, KeyError) as e:
+            avisos.append(Aviso("error", f"No se pudo generar el modelo de cálculo: {e}"))
+            self.avisos = avisos
+            return avisos
+        if mc.n_barras == 0:
+            avisos.append(Aviso("info", "El edificio todavía no tiene columnas, vigas ni muros."))
+        else:
+            avisos.append(
+                Aviso(
+                    "ok",
+                    f"Modelo de cálculo generado del edificio: {len(mc.nudos)} nudos, "
+                    f"{mc.n_barras} barras y {len(mc.maestros)} diafragmas.",
+                )
+            )
+            if not mc.apoyos:
+                avisos.append(
+                    Aviso("error", "No hay apoyos: ninguna columna ni muro llega a la base.")
+                )
+        from .fisico import ModeloFisico
+
+        mf = None
+        for a in mc.avisos:
+            mf = mf or ModeloFisico.desde_json(self.doc.fisico)
+            avisos.append(Aviso("info", a.texto(mf)))
+        self.avisos = avisos
+        return avisos
+
+    def calcular_edificio(self) -> None:
+        """Genera el modelo de cálculo del edificio y lo resuelve con sus casos ``D`` y
+        ``L``; las combinaciones son las de :data:`nervi.idealizacion.COMBINACIONES`.
+        Lanza ``ValueError`` o ``MecanismoError``."""
+        mc = self.modelo_calculo()
+        self.resultados_edificio = mc.modelo.resolver()
+        self._combinadas.clear()
+        self.edificio_al_dia = True
+        nombres = self.nombres_resultado()
+        if self.combinacion not in nombres:
+            self.combinacion = nombres[0]
+        self.revisar()
+        self.avisos.append(Aviso("ok", "Estructura estable: el sistema de ecuaciones se resolvió."))
+        self._avisar("resultados")
+
+    def resultado_edificio(self):
+        """Resultado del edificio (``ResultadoCaso3D``) en el caso o la combinación
+        activa, si está al día."""
+        from .idealizacion import COMBINACIONES
+
+        res = self.resultados_edificio
+        if not self.edificio_al_dia or res is None or not self.combinacion:
+            return None
+        nombre = self.combinacion
+        if nombre in COMBINACIONES:
+            if nombre not in self._combinadas:
+                self._combinadas[nombre] = res.combinar(nombre, COMBINACIONES[nombre])
+            return self._combinadas[nombre]
+        return res[nombre] if nombre in res.casos else None
 
     # --- Diseño --------------------------------------------------------------------
     @property

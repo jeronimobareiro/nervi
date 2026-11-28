@@ -279,3 +279,50 @@ def test_resumir_cambios():
         "Quita B3",
     ]
     assert resumir_cambios(antes, antes) == []
+
+
+def _edificio():
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "examples"))
+    from edificio_fisico import armar
+
+    return armar()
+
+
+def test_con_edificio_manda_el_edificio():
+    """Con modelo físico, calcular resuelve el modelo de cálculo generado (#74): casos
+    D y L y las combinaciones de ACI 318-19 §5.3.1; cambiar el edificio lo invalida."""
+    from nervi.idealizacion import COMBINACIONES
+
+    p = Proyecto()
+    assert not p.es_edificio
+    mf = _edificio()
+    p.editar_fisico(mf.a_json())
+    assert p.es_edificio
+    assert p.nombres_resultado() == ["1.4D", "1.2D+1.6L", "D", "L"]
+    assert p.avisos[0].nivel == "ok" and "barras" in p.avisos[0].texto
+    assert any("sobre el muro" in a.texto for a in p.avisos)
+    eventos = []
+    p.suscribir(eventos.append)
+    p.calcular()
+    assert p.edificio_al_dia and "resultados" in eventos
+    assert p.combinacion == "1.4D"
+    directo = mf.modelo_calculo().modelo.resolver()
+    np.testing.assert_allclose(
+        p.resultado_edificio().desplazamientos,
+        directo.combinar("1.4D", COMBINACIONES["1.4D"]).desplazamientos,
+        rtol=1e-12,
+        atol=1e-15,
+    )
+    p.elegir_combinacion("L")
+    np.testing.assert_array_equal(p.resultado_edificio().reacciones, directo["L"].reacciones)
+    mc = p.modelo_calculo()
+    assert p.modelo_calculo() is mc  # guardado hasta que cambie el edificio
+    p.editar_fisico(mf.a_json())
+    assert not p.edificio_al_dia and p.resultado_edificio() is None
+    assert p.modelo_calculo() is not mc
+    # Deshacer hasta sin edificio vuelve al pórtico plano.
+    p.deshacer()
+    p.deshacer()
+    assert not p.es_edificio

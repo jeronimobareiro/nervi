@@ -72,6 +72,7 @@ from .edificio import (
 )
 from .paleta import Entrada, Paleta
 from .paneles import crear_panel
+from .resultados_edificio import PanelModeloCalculo, PanelResultadosEdificio
 from .sesion import Seleccion, Sesion, documento_ejemplo
 from .tablas import LISTAS, EditorLista, TablaResultados, vista_tabla
 from .vista2d import DIAGRAMAS, Vista2D
@@ -104,6 +105,8 @@ def icono_trazo(cuerpo: str, color: str, lado: int, escala: float) -> QPixmap:
 
 
 ETAPAS = ("Geometría", "Cargas", "Análisis", "Resultados", "Diseño", "Memoria")
+#: Tablas del pórtico plano que van en la etapa Cargas (las demás, en Geometría).
+LISTAS_CARGAS = ("casos", "cargas_nodales", "cargas_barra", "combinaciones")
 AVISO_PRELIMINAR = "Versión preliminar · no apta para proyecto"
 
 
@@ -193,12 +196,16 @@ class Ventana(QMainWindow):
             "estructura": crear_panel(self, "estructura", "Estructura", self._explorador()),
             "propiedades": crear_panel(self, "propiedades", "Propiedades", self._propiedades()),
             "inferior": crear_panel(self, "inferior", "Tablas y resultados", self.panel_inferior),
+            "consola": crear_panel(self, "consola", "Consola Python", self.consola),
         }
         d = self.paneles
         self.addDockWidget(Qt.LeftDockWidgetArea, d["estructura"])
         self.addDockWidget(Qt.RightDockWidgetArea, d["propiedades"])
         self.addDockWidget(Qt.BottomDockWidgetArea, d["inferior"])
         self.addDockWidget(Qt.LeftDockWidgetArea, d["asistente"])
+        self.addDockWidget(Qt.BottomDockWidgetArea, d["consola"])
+        self.tabifyDockWidget(d["inferior"], d["consola"])
+        d["consola"].hide()
         self.splitDockWidget(d["asistente"], d["estructura"], Qt.Horizontal)
         d["asistente"].hide()
         self.resizeDocks([d["estructura"], d["propiedades"]], [240, 290], Qt.Horizontal)
@@ -227,6 +234,8 @@ class Ventana(QMainWindow):
         s.resultados_cambiados.connect(self._marcar_arbol)
         self.vista.diagrama_cambiado.connect(self._marcar_diagrama)
         self.edificio.cambiado.connect(self._actualizar_edificio)
+        self.edificio.cambiado.connect(self._resaltar_en_3d)
+        s.fisico_cambiado.connect(self._resaltar_en_3d)
         self.edificio.mensaje.connect(lambda t: self.statusBar().showMessage(f"✕ {t}", 6000))
         self.vista.dibujo.mensaje.connect(lambda t: self.statusBar().showMessage(f"✕ {t}", 6000))
         # Barra de título propia (nervi.gui.marco): la fila superior hace de barra de
@@ -237,7 +246,7 @@ class Ventana(QMainWindow):
                 self, self.findChild(QWidget, "barra"), self.botones_ventana, barra_superior
             )
         self._actualizar_todo()
-        self._actualizar_edificio()
+        self._modo_del_proyecto()
         paneles.recuperar(self)
 
     def _barra_fija(self, clave: str, widget: QWidget, area) -> QToolBar:
@@ -294,7 +303,7 @@ class Ventana(QMainWindow):
     def _llenar_paneles(self) -> None:
         menu = self.menu_paneles
         menu.clear()
-        for clave in ("estructura", "propiedades", "inferior", "asistente"):
+        for clave in ("estructura", "propiedades", "inferior", "consola", "asistente"):
             menu.addAction(self.paneles[clave].toggleViewAction())
         menu.addAction(self.barra_dibujo.toggleViewAction())
         menu.addSeparator()
@@ -354,7 +363,10 @@ class Ventana(QMainWindow):
         return a
 
     def _acciones(self) -> None:
-        self.a_nuevo = self._accion("Nuevo proyecto", self.nuevo, QKeySequence.New)
+        self.a_nuevo = self._accion("Nuevo edificio", self.nuevo, QKeySequence.New)
+        self.a_nuevo_portico = self._accion(
+            "Nuevo pórtico plano", lambda: self.nuevo(edificio=False)
+        )
         self.a_ejemplo = self._accion("Abrir ejemplo: pórtico simple", self.abrir_ejemplo)
         self.a_abrir = self._accion("Abrir", self.abrir_dialogo, QKeySequence.Open)
         self.a_importar_dxf = self._accion("Importar DXF", self.importar_dxf_dialogo)
@@ -413,16 +425,11 @@ class Ventana(QMainWindow):
         self.a_plantas = self._accion("Plantas", self.gestionar_plantas)
         self.a_subir = self._accion("Subir una planta", lambda: self.subir_planta(1), "PgUp")
         self.a_bajar = self._accion("Bajar una planta", lambda: self.subir_planta(-1), "PgDown")
-        self.a_edificio = self._accion(
-            "Ver el edificio (modelo físico)", lambda: self.elegir_modo("edificio")
-        )
-        self.a_calculo = self._accion(
-            "Ver el modelo analítico", lambda: self.elegir_modo("calculo")
-        )
         # Re Pág y Av Pág solo en el modo Edificio (fuera del menú: en Cálculo están
         # inactivas para que las tablas usen esas teclas).
         self.a_subir.setEnabled(False)
         self.a_bajar.setEnabled(False)
+        self.a_planta = self._accion("Vista en planta", lambda: self.mostrar_vista("planta"))
         self.a_vista2d = self._accion("Vista de frente", lambda: self.mostrar_vista("frente"))
         self.a_vista3d = self._accion("Vista 3D", lambda: self.mostrar_vista("3d"))
         self.a_temas = {}
@@ -444,6 +451,7 @@ class Ventana(QMainWindow):
         menu = QMenu(self)
         for a in (
             self.a_nuevo,
+            self.a_nuevo_portico,
             self.a_abrir,
             self.a_ejemplo,
             self.a_importar_dxf,
@@ -581,6 +589,7 @@ class Ventana(QMainWindow):
         return {
             "archivo": menu(
                 self.a_nuevo,
+                self.a_nuevo_portico,
                 self.a_abrir,
                 self.menu_recientes,
                 self.a_ejemplo,
@@ -600,9 +609,7 @@ class Ventana(QMainWindow):
             "modelo": modelo,
             "calcular": menu(self.a_calcular, self.a_dinamica, self.a_disenar),
             "ver": menu(
-                self.a_edificio,
-                self.a_calculo,
-                None,
+                self.a_planta,
                 self.a_vista2d,
                 self.a_vista3d,
                 None,
@@ -667,8 +674,8 @@ class Ventana(QMainWindow):
             self.menu_recientes.addAction("Todavía no hay proyectos recientes").setEnabled(False)
 
     def _selector_vista(self) -> QWidget:
-        """Vista: Frente | 3D (y Paralela | Perspectiva en 3D). No depende del modo
-        Edificio | Cálculo: es el primer control del visor."""
+        """Vista: Planta | 3D en un edificio, Frente | 3D en un pórtico plano (y
+        Paralela | Perspectiva en 3D). Es el primer control del visor."""
         self.selector_vista = QWidget()
         capa = QHBoxLayout(self.selector_vista)
         capa.setContentsMargins(0, 0, 0, 0)
@@ -683,6 +690,7 @@ class Ventana(QMainWindow):
         self.grupo_vistas = QButtonGroup(self)
         self.botones_vista: dict[str, QToolButton] = {}
         for nombre, texto, icono, ayuda in (
+            ("planta", "Planta", "vista_planta", "Planta del edificio: se dibuja piso por piso"),
             ("frente", "Frente", "vista_alzado", "Vista de frente: se dibuja y se engancha"),
             ("3d", "3D", "vista_3d", "Vista 3D: arrastrar con el botón derecho gira"),
         ):
@@ -721,27 +729,8 @@ class Ventana(QMainWindow):
         capa = QHBoxLayout(barra)
         capa.setContentsMargins(12, 5, 12, 5)
         capa.setSpacing(10)
-        # Edificio | Cálculo: el modelo físico o el analítico (#73).
-        modos = QWidget(objectName="grupo")
-        m = QHBoxLayout(modos)
-        m.setContentsMargins(2, 2, 2, 2)
-        m.setSpacing(2)
-        self.grupo_modos = QButtonGroup(self)
-        self.botones_modo: dict[str, QPushButton] = {}
-        for clave, nombre, ayuda in (
-            ("edificio", "Edificio", "Modelo físico: pisos, columnas, vigas, losas y muros"),
-            ("calculo", "Cálculo", "Modelo analítico: nudos, barras, cargas y resultados"),
-        ):
-            b = QPushButton(nombre, objectName="segmento", checkable=True)
-            b.setToolTip(ayuda)
-            b.clicked.connect(lambda _=False, c=clave: self.elegir_modo(c))
-            self.grupo_modos.addButton(b)
-            self.botones_modo[clave] = b
-            m.addWidget(b)
-        self.botones_modo["calculo"].setChecked(True)
-        capa.addWidget(modos)
-        capa.addSpacing(8)
-
+        # Sin selector Edificio | Cálculo: el proyecto dice qué es (edificio o pórtico
+        # plano) y el modelo de cálculo del edificio se genera solo (#74).
         capa.addWidget(self._selector_vista())
         # Controles del modo Edificio: planta que se ve, ▲▼ y el gestor de plantas.
         self.ctx_edificio = QWidget()
@@ -761,7 +750,7 @@ class Ventana(QMainWindow):
         self.b_plantas.setIconSize(QSize(20, 20))
         self.b_plantas.clicked.connect(self.gestionar_plantas)
         e.addWidget(self.b_plantas)
-        # Chevrones en un grupo, como el selector Edificio | Cálculo (26/11/2026).
+        # Chevrones en un grupo, como los demás segmentos de la barra (26/11/2026).
         flechas = QWidget(objectName="grupo")
         f = QHBoxLayout(flechas)
         f.setContentsMargins(2, 2, 2, 2)
@@ -1010,18 +999,41 @@ class Ventana(QMainWindow):
         return self.pila_prop
 
     def _panel_inferior(self) -> QTabWidget:
+        """Panel inferior sin pestañas de primer nivel: la etapa elegida arriba
+        (Geometría › Cargas › Análisis › Resultados › Diseño) dice qué se ve, y solo
+        quedan las pestañas de esa etapa (``docs/diseno-interfaz.md`` §Etapas)."""
         tabs = QTabWidget()
         tabs.setDocumentMode(True)
+        tabs.tabBar().hide()
+        # Geometría y Cargas del pórtico plano: las tablas de modelo.json.
         self.tabs_modelo = QTabWidget()
         self.tabs_modelo.setDocumentMode(True)
         for lista, (titulo, _cols) in LISTAS.items():
             self.tabs_modelo.addTab(EditorLista(self.sesion, lista), titulo)
         tabs.addTab(self.tabs_modelo, "Modelo")
+        # Geometría y Cargas del edificio: las tablas del modelo físico.
         self.tablas_edificio = TablasEdificio(self.edificio)
         self.tablas_edificio.setDocumentMode(True)
         tabs.addTab(self.tablas_edificio, "Edificio")
-        tabs.setTabVisible(tabs.indexOf(self.tablas_edificio), False)
 
+        # Análisis: Revisión · Modelo de cálculo (edificio) · Dinámica (pórtico).
+        self.tabs_analisis = QTabWidget()
+        self.tabs_analisis.setDocumentMode(True)
+        self.revision = QListWidget()
+        self.tabs_analisis.addTab(self.revision, "Revisión")
+        self.panel_modelo_calculo = PanelModeloCalculo(self.sesion)
+        self.tabs_analisis.addTab(self.panel_modelo_calculo, "Modelo de cálculo")
+        self.panel_dinamica = PanelDinamica(self.sesion)
+        self.panel_dinamica.resultado_elegido.connect(self.ver_resultado_dinamica)
+        self.panel_dinamica.animar.connect(self.animar_modo)
+        self.tabs_analisis.addTab(self.panel_dinamica, "Dinámica")
+        tabs.addTab(self.tabs_analisis, "Análisis")
+        self._reloj = QTimer(self)
+        self._reloj.setInterval(40)
+        self._reloj.timeout.connect(self._cuadro_animacion)
+        self._tiempo = QElapsedTimer()
+
+        # Resultados del pórtico plano y del edificio.
         self.tabs_res = QTabWidget()
         self.tabs_res.setDocumentMode(True)
         for tipo, titulo in (
@@ -1031,24 +1043,24 @@ class Ventana(QMainWindow):
         ):
             self.tabs_res.addTab(vista_tabla(TablaResultados(self.sesion, tipo)), titulo)
         tabs.addTab(self.tabs_res, "Resultados")
+        self.res_edificio = PanelResultadosEdificio(self.sesion)
+        self.res_edificio.elemento_elegido.connect(lambda l, i: self.edificio.elegir(l, i))
+        tabs.addTab(self.res_edificio, "Resultados del edificio")
 
         self.panel_diseno = PanelDiseno(self.sesion)
         self.panel_diseno.disenado.connect(lambda: self.ir_a_etapa(4))
         tabs.addTab(self.panel_diseno, "Diseño")
+        self.diseno_edificio = QLabel(
+            "El diseño de las vigas y columnas del edificio llega en una próxima versión. "
+            "Mientras tanto, el diseño según ACI 318-19 trabaja sobre los pórticos planos.",
+            objectName="tenue",
+        )
+        self.diseno_edificio.setWordWrap(True)
+        self.diseno_edificio.setAlignment(Qt.AlignCenter)
+        tabs.addTab(self.diseno_edificio, "Diseño del edificio")
 
-        self.panel_dinamica = PanelDinamica(self.sesion)
-        self.panel_dinamica.resultado_elegido.connect(self.ver_resultado_dinamica)
-        self.panel_dinamica.animar.connect(self.animar_modo)
-        tabs.addTab(self.panel_dinamica, "Dinámica")
-        self._reloj = QTimer(self)
-        self._reloj.setInterval(40)
-        self._reloj.timeout.connect(self._cuadro_animacion)
-        self._tiempo = QElapsedTimer()
-
-        self.revision = QListWidget()
-        tabs.addTab(self.revision, "Revisión del modelo")
+        # La consola no es de ninguna etapa: es un panel propio, desde Herramientas.
         self.consola = Consola(self.sesion)
-        tabs.addTab(self.consola, "Consola")
         return tabs
 
     def _barra_estado(self) -> None:
@@ -1084,6 +1096,9 @@ class Ventana(QMainWindow):
         self.setWindowTitle(f"{'• ' if s.modificado else ''}{s.titulo} — Nervi")
 
     def _actualizar_etapas(self) -> None:
+        if self.modo == "edificio":
+            self._actualizar_etapas_edificio()
+            return
         m = self.sesion.modelo
         listos = (
             bool(m["nudos"] and m["barras"] and m.get("apoyos")),
@@ -1098,6 +1113,17 @@ class Ventana(QMainWindow):
         self.lbl_unidades.setText(f"{u['fuerza']} · {u['longitud']}")
         n, b = len(m["nudos"]), len(m["barras"])
         self.lbl_tamano.setText(f"{n} nudos · {b} barras · {3 * n} GDL")
+
+    def _actualizar_etapas_edificio(self) -> None:
+        """✓ en las etapas del edificio: Geometría con elementos, Cargas con losas
+        cargadas, Análisis y Resultados con el cálculo al día."""
+        s = self.sesion
+        mf = self.edificio.modelo()
+        # Las losas siempre cargan su peso propio.
+        cargas = bool(mf.lista("losas"))
+        listos = (len(mf) > 0, cargas, s.edificio_al_dia, s.edificio_al_dia, False)
+        for b, listo, nombre in zip(self.botones_etapa, listos, ETAPAS, strict=False):
+            b.setText(f"✓ {nombre}" if listo else nombre)
 
     def _actualizar_explorador(self) -> None:
         m = self.sesion.modelo
@@ -1130,22 +1156,22 @@ class Ventana(QMainWindow):
         if s.combinacion in nombres:
             self.combo.setCurrentText(s.combinacion)
         self.combo.blockSignals(False)
-        if not s.modelo["barras"]:
+        if self.modo == "edificio":
+            al_dia, hay = s.edificio_al_dia, s.resultados_edificio is not None
+            vacio = not s.es_edificio or len(self.edificio.modelo()) == 0
+        else:
+            al_dia, hay = s.al_dia, s.resultados is not None
+            vacio = not s.modelo["barras"]
+        if vacio:
             estado = "Modelo vacío"
-        elif s.al_dia:
+        elif al_dia:
             estado = "● Resultados al día"
-        elif s.resultados is not None:
+        elif hay:
             estado = "● Resultados desactualizados: calculá de nuevo (F5)"
         else:
             estado = "Sin calcular"
         self.lbl_estado.setText(estado)
-        color = (
-            estilo.OK
-            if s.al_dia
-            else estilo.NEGATIVO
-            if s.resultados is not None
-            else estilo.TEXTO_2
-        )
+        color = estilo.OK if al_dia else estilo.NEGATIVO if hay else estilo.TEXTO_2
         self.lbl_estado.setStyleSheet(f"color: {color};")
         self._actualizar_etapas()
         self._actualizar_revision()
@@ -1297,7 +1323,10 @@ class Ventana(QMainWindow):
                 self.vista3d.elegir_diagrama(self.vista.diagrama)
                 self.vista3d.perspectiva = self.botones_proyeccion["perspectiva"].isChecked()
                 self.vista3d.vista_pedida.connect(self._vista_desde_brujula)
+                self.vista3d.barra_pulsada.connect(self._barra_del_edificio)
                 self.vista3d.botones_navegacion.actualizar_iconos()
+                self.vista3d.mostrar_edificio(self.modo == "edificio")
+                self._resaltar_en_3d()
             self.vistas.addWidget(self.vista3d)
         return self.vista3d
 
@@ -1309,17 +1338,34 @@ class Ventana(QMainWindow):
         return camara3d.Camara3D.de_frente(v.escala, v.cx, v.cy)
 
     def vista_visible(self) -> str:
-        """``"frente"`` o ``"3d"``: la vista del modelo de cálculo que se ve."""
-        return "3d" if self.botones_vista["3d"].isChecked() else "frente"
+        """``"planta"``, ``"frente"`` o ``"3d"``: la vista que se ve."""
+        for nombre in ("3d", "planta"):
+            if self.botones_vista[nombre].isChecked():
+                return nombre
+        return "frente"
 
     def mostrar_vista(self, nombre: str, animar: bool = True) -> None:
-        """Muestra la vista ``"frente"`` o ``"3d"`` en el centro de la ventana.
+        """Muestra la vista ``"planta"`` (edificio), ``"frente"`` (pórtico plano) o
+        ``"3d"`` en el centro de la ventana.
 
-        Es un solo visor: al pasar de una a otra la cámara se mueve con una transición
-        corta, desde donde se miraba el pórtico de frente o hasta ahí."""
+        Es un solo visor: en el pórtico, al pasar de frente a 3D y volver, la cámara se
+        mueve con una transición corta desde donde se lo miraba de frente."""
         nombre = ALIAS_VISTAS.get(nombre, nombre)
+        edificio = self.modo == "edificio"
+        # Un edificio se mira en planta o en 3D; un pórtico plano, de frente o en 3D.
+        if nombre in ("planta", "frente"):
+            nombre = "planta" if edificio else "frente"
         actual = self.vistas.currentWidget()
-        if nombre == "3d":
+        # El diagrama y la combinación son de los resultados: no van en la planta.
+        self.ctx_calculo.setVisible(not edificio or nombre == "3d")
+        if nombre == "planta":
+            self.vistas.setCurrentWidget(self.planta)
+        elif edificio:
+            if self.planta.dibujo.activo:
+                self.planta.dibujo.elegir("seleccionar")
+            w = self._vista3d()
+            self.vistas.setCurrentWidget(w)
+        elif nombre == "3d":
             # Se dibuja en la vista de frente: al pasar a 3D se vuelve a Seleccionar.
             if self.vista.dibujo.activo:
                 self.vista.dibujo.elegir("seleccionar")
@@ -1352,9 +1398,31 @@ class Ventana(QMainWindow):
         if isinstance(self.vista3d, Vista3D):
             self.vista3d.elegir_perspectiva(clave == "perspectiva")
 
+    def _barra_del_edificio(self, barra) -> None:
+        """Clic en una barra del edificio en 3D: elige el elemento del que sale."""
+        if barra is None or not self.sesion.es_edificio:
+            self.edificio.elegir(None)
+            return
+        o = self.sesion.modelo_calculo().origenes[barra]
+        self.edificio.elegir(o.lista, o.id)
+
+    def _resaltar_en_3d(self) -> None:
+        """Resalta en 3D las barras del elemento elegido del edificio."""
+        if not isinstance(self.vista3d, Vista3D):
+            return
+        barras: list[int] = []
+        eleccion = self.edificio.eleccion
+        if eleccion is not None and eleccion[0] in ("columnas", "vigas", "muros"):
+            try:
+                barras = self.sesion.modelo_calculo().barras_de(*eleccion)
+            except (ValueError, KeyError):
+                barras = []
+        self.vista3d.resaltar(barras)
+
     def _vista_desde_brujula(self, extremo: str) -> None:
-        """Clic en la brújula: de frente (``-Y``) es la vista plana; las demás, la 3D."""
-        if extremo == "-Y":
+        """Clic en la brújula: de frente (``-Y``) es la vista plana del pórtico; las
+        demás, y todas en un edificio, la 3D."""
+        if extremo == "-Y" and self.modo != "edificio":
             self.mostrar_vista("frente")
             return
         self.mostrar_vista("3d", animar=False)
@@ -1401,48 +1469,47 @@ class Ventana(QMainWindow):
         self.arbol.marcar_activo("cargas" if nombre in casos else "combinaciones", nombre)
 
     def mostrar_tabla(self, lista: str) -> None:
-        self.panel_inferior.setCurrentWidget(self.tabs_modelo)
+        """Tabla ``lista`` del pórtico plano, en la etapa que le toca (Geometría o
+        Cargas)."""
+        self.botones_etapa[1 if lista in LISTAS_CARGAS else 0].setChecked(True)
+        self._mostrar_etapa(self.etapas.checkedId())
         self.tabs_modelo.setCurrentIndex(list(LISTAS).index(lista))
 
     # --- Modelo físico del edificio (#73) ------------------------------------------
+    def _modo_del_proyecto(self) -> None:
+        """Edificio si el proyecto tiene modelo físico; si no, pórtico plano. No hay
+        selector: el edificio manda y su modelo de cálculo se genera solo (#74)."""
+        self.elegir_modo("edificio" if self.sesion.es_edificio else "calculo")
+
     def elegir_modo(self, modo: str) -> None:
-        """Muestra el modelo físico (``"edificio"``) o el analítico (``"calculo"``)."""
+        """Pone la ventana para un edificio (``"edificio"``) o para un pórtico plano
+        armado a mano (``"calculo"``). Lo decide el proyecto
+        (:meth:`_modo_del_proyecto`), no un control de la ventana."""
         self.modo = modo
         edificio = modo == "edificio"
-        self.botones_modo[modo].setChecked(True)
         self.ctx_edificio.setVisible(edificio)
-        self.ctx_calculo.setVisible(not edificio)
-        # La planta del edificio todavía no tiene vista de frente ni 3D.
-        self.selector_vista.setVisible(not edificio)
+        self.botones_vista["planta"].setVisible(edificio)
+        self.botones_vista["frente"].setVisible(not edificio)
+        self.a_planta.setVisible(edificio)
+        self.a_vista2d.setVisible(not edificio)
         self._accion_dibujo["edificio"].setVisible(edificio)
         self._accion_dibujo["calculo"].setVisible(not edificio)
         self.paneles["estructura"].setWindowTitle("Edificio" if edificio else "Estructura")
         self.pila_arbol.setCurrentWidget(self.arbol_edificio if edificio else self.arbol)
         self._actualizar_dibujo()
-        tabs = self.panel_inferior
-        i_modelo, i_edificio = tabs.indexOf(self.tabs_modelo), tabs.indexOf(self.tablas_edificio)
-        # La pestaña de tablas del modo nuevo reemplaza a la del otro en el mismo lugar.
-        nueva, vieja = (i_edificio, i_modelo) if edificio else (i_modelo, i_edificio)
-        tabs.setTabVisible(nueva, True)
-        if tabs.currentIndex() == vieja:
-            tabs.setCurrentIndex(nueva)
-        tabs.setTabVisible(vieja, False)
-        # Resultados, Diseño y Dinámica son del modelo de cálculo: en Edificio se ocultan
-        # para no mostrar barras que no son del edificio (todavía no genera su modelo, #74).
-        for panel in (self.tabs_res, self.panel_diseno, self.panel_dinamica):
-            if edificio and tabs.currentWidget() is panel:
-                tabs.setCurrentIndex(nueva)
-            tabs.setTabVisible(tabs.indexOf(panel), not edificio)
-        if edificio:
-            self.vistas.setCurrentWidget(self.planta)
+        if isinstance(self.vista3d, Vista3D):
+            self.vista3d.mostrar_edificio(edificio)
+        if self.vista_visible() == "3d":
+            self.mostrar_vista("3d", animar=False)
         else:
-            self.mostrar_vista(self.vista_visible(), animar=False)
-        # Re Pág y Av Pág cambian de planta solo en Edificio; en Cálculo son de las tablas.
+            self.mostrar_vista("planta" if edificio else "frente", animar=False)
+        # Re Pág y Av Pág cambian de planta solo en un edificio; en un pórtico son de
+        # las tablas.
         self.a_subir.setEnabled(edificio)
         self.a_bajar.setEnabled(edificio)
         self._actualizar_edificio()
-        if not edificio:
-            self._actualizar_resultados()
+        self._actualizar_resultados()
+        self._mostrar_etapa(max(self.etapas.checkedId(), 0))
 
     def subir_planta(self, pasos: int) -> None:
         """▲ (``pasos`` = 1) o ▼ (``pasos`` = -1): la planta de arriba o la de abajo."""
@@ -1460,7 +1527,9 @@ class Ventana(QMainWindow):
         return dialogo
 
     def mostrar_tabla_edificio(self, lista: str) -> None:
-        self.panel_inferior.setCurrentWidget(self.tablas_edificio)
+        if self.etapas.checkedId() not in (0, 1):
+            self.botones_etapa[0].setChecked(True)
+            self._mostrar_etapa(0)
         self.tablas_edificio.mostrar(lista)
 
     def _actualizar_edificio(self) -> None:
@@ -1491,44 +1560,75 @@ class Ventana(QMainWindow):
         self.b_bajar.setEnabled(est.puede(-1))
         if self.modo == "edificio":
             n = {k: len(mf.lista(k)) for k in ("pisos", "columnas", "vigas", "losas", "muros")}
-            self.lbl_estado.setText("Modelo físico")
-            self.lbl_estado.setStyleSheet(f"color: {estilo.TEXTO_2};")
             self.lbl_unidades.setText(f"{mf.longitud} · mm · MPa")
-            self.lbl_tamano.setText(
+            texto = (
                 f"{n['pisos']} pisos · {n['columnas']} columnas · {n['vigas']} vigas · "
                 f"{n['losas']} losas · {n['muros']} muros"
             )
-
-    def _pasar_a_calculo(self) -> None:
-        """Análisis, resultados, diseño y dinámica trabajan sobre el modelo de cálculo."""
-        if self.modo == "edificio":
-            self.elegir_modo("calculo")
-            self.statusBar().showMessage(
-                "Resultados y diseño son del modelo de cálculo: el edificio todavía no lo genera",
-                8000,
-            )
+            if self.sesion.es_edificio and len(mf):
+                try:
+                    mc = self.sesion.modelo_calculo()
+                    texto += f"  →  {len(mc.nudos)} nudos · {mc.n_barras} barras"
+                except (ValueError, KeyError):
+                    pass
+            self.lbl_tamano.setText(texto)
 
     def ir_a_etapa(self, n: int) -> None:
+        """Etapa ``n`` (0 Geometría … 4 Diseño): qué se ve en el panel inferior y,
+        en Geometría y Cargas, qué tabla."""
         self.botones_etapa[n].setChecked(True)
-        if n >= 2:
-            self._pasar_a_calculo()
+        edificio = self.modo == "edificio"
         if n == 0:
-            self.mostrar_tabla("nudos")
+            if edificio:
+                self.tablas_edificio.mostrar("pisos")
+            else:
+                self.tabs_modelo.setCurrentIndex(list(LISTAS).index("nudos"))
         elif n == 1:
-            self.mostrar_tabla("cargas_barra")
+            if edificio:
+                self.tablas_edificio.mostrar("losas")
+            else:
+                self.tabs_modelo.setCurrentIndex(list(LISTAS).index("cargas_barra"))
         elif n == 2:
-            self.panel_inferior.setCurrentWidget(self.revision)
-        elif n == 3:
-            self.panel_inferior.setCurrentWidget(self.tabs_res)
-        elif n == 4:
-            self.panel_inferior.setCurrentWidget(self.panel_diseno)
+            self.tabs_analisis.setCurrentWidget(self.revision)
+        self._mostrar_etapa(n)
+        if n == 4 and not edificio:
             # La tabla de diseño necesita más alto que las tablas del modelo.
             self._agrandar_panel_inferior()
         self._actualizar_diseno()
 
+    def _mostrar_etapa(self, n: int) -> None:
+        """Muestra en el panel inferior la página de la etapa ``n`` y solo sus pestañas."""
+        edificio = self.modo == "edificio"
+        tabs = self.panel_inferior
+        if n in (0, 1):
+            pagina = self.tablas_edificio if edificio else self.tabs_modelo
+        elif n == 2:
+            pagina = self.tabs_analisis
+        elif n == 3:
+            pagina = self.res_edificio if edificio else self.tabs_res
+        else:
+            pagina = self.diseno_edificio if edificio else self.panel_diseno
+        tabs.setCurrentWidget(pagina)
+        # Pórtico: Geometría y Cargas reparten las tablas de modelo.json.
+        if pagina is self.tabs_modelo:
+            cargas = n == 1
+            for k, lista in enumerate(LISTAS):
+                self.tabs_modelo.setTabVisible(k, (lista in LISTAS_CARGAS) == cargas)
+        # Análisis: el modelo de cálculo es del edificio; la dinámica, del pórtico.
+        a = self.tabs_analisis
+        a.setTabVisible(a.indexOf(self.panel_modelo_calculo), edificio)
+        a.setTabVisible(a.indexOf(self.panel_dinamica), not edificio)
+
     def mostrar_dinamica(self) -> None:
-        self._pasar_a_calculo()
-        self.panel_inferior.setCurrentWidget(self.panel_dinamica)
+        """Análisis › Dinámica (del pórtico plano; la del edificio llega después)."""
+        if self.modo == "edificio":
+            self.statusBar().showMessage(
+                "El análisis modal y espectral del edificio llega en una próxima versión",
+                8000,
+            )
+            return
+        self.ir_a_etapa(2)
+        self.tabs_analisis.setCurrentWidget(self.panel_dinamica)
         self._agrandar_panel_inferior()
 
     def _agrandar_panel_inferior(self) -> None:
@@ -1586,9 +1686,15 @@ class Ventana(QMainWindow):
         )
         return r == QMessageBox.Discard
 
-    def nuevo(self) -> None:
+    def nuevo(self, edificio: bool = True) -> None:
+        """*Nuevo edificio* (Ctrl+N): un proyecto con el modelo físico vacío, que se
+        dibuja en planta. ``edificio=False``: *Nuevo pórtico plano*, armado a mano."""
         if self._seguir_si_hay_cambios():
-            self.sesion.nuevo()
+            doc = formato.Documento.nuevo()
+            if edificio:
+                doc.fisico = formato.fisico.nuevo()
+            self.sesion.nuevo(doc)
+            self._modo_del_proyecto()
             self._encuadrar_vistas()
             self.ir_a_etapa(0)
 
@@ -1600,6 +1706,7 @@ class Ventana(QMainWindow):
     def abrir_ejemplo(self) -> None:
         if self._seguir_si_hay_cambios():
             self.sesion.nuevo(documento_ejemplo())
+            self._modo_del_proyecto()
             self._encuadrar_vistas()
             self.ir_a_etapa(0)
 
@@ -1642,6 +1749,7 @@ class Ventana(QMainWindow):
             QMessageBox.warning(self, "No se pudo abrir el proyecto", str(e))
             return False
         ajustes.agregar_reciente(self.sesion.ruta)
+        self._modo_del_proyecto()
         self._encuadrar_vistas()
         doc = self.sesion.doc
         if doc.migrado_desde:
@@ -1764,7 +1872,7 @@ class Ventana(QMainWindow):
 
     def _error_calculo(self, texto: str) -> None:
         self._actualizar_revision()
-        self.panel_inferior.setCurrentWidget(self.revision)
+        self.mostrar_revision()
         self.statusBar().showMessage(texto, 8000)
 
     def entradas_paleta(self) -> list[Entrada]:
@@ -1833,10 +1941,15 @@ class Ventana(QMainWindow):
         return dialogo
 
     def mostrar_consola(self) -> None:
-        self.panel_inferior.setCurrentWidget(self.consola)
+        """Abre el panel de la consola Python (Herramientas › Consola Python)."""
+        dock = self.paneles["consola"]
+        dock.show()
+        dock.raise_()
+        self.consola.setFocus()
 
     def mostrar_revision(self) -> None:
-        self.panel_inferior.setCurrentWidget(self.revision)
+        self.ir_a_etapa(2)
+        self.tabs_analisis.setCurrentWidget(self.revision)
 
     def acerca_de(self) -> None:
         version = formato.contenedor._version_programa()

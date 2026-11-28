@@ -48,6 +48,9 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | modelo físico (`ModeloFisico`, `fisico`) | physical model | modelo físico | физическая модель |
 | modelo analítico, modelo de cálculo (`ModeloCalculo`) | analytical model | modelo analítico | расчётная модель |
 | idealización, generar el modelo de cálculo (`idealizacion`, `generar`, `modelo_calculo`) | analytical model generation, idealization | idealização, geração do modelo analítico | идеализация, построение расчётной модели |
+| esfuerzos por elemento (`ModeloCalculo.resumen`, *Por elemento*) | member forces mapped to each physical element | esforços por elemento | усилия по элементам |
+| el edificio manda; proyecto con edificio (`Proyecto.es_edificio`, `calcular_edificio`, `resultado_edificio`) | building-driven project | projeto com edifício | проект со зданием |
+| mostrar edificio, cálculo o ambos (`Vista3D.mostrar`, `escena3d.MOSTRAR`) | show building, analysis model or both | mostrar edifício, cálculo ou ambos | показать здание, расчётную модель или обе |
 | columna ancha equivalente | equivalent wide column, wall-column | pilar-parede equivalente | эквивалентная широкая колонна |
 | nivel (`nivel`) | elevation, level | cota, nível | отметка |
 | planta (`PlantaEdificio`, gestor de plantas) | floor plan; story (in the floor manager) | planta; pavimento | план этажа; этаж |
