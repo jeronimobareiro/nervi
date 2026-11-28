@@ -216,6 +216,8 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | proyecto académico (`proyecto-academico`) | academic project | projeto acadêmico | учебный проект |
 | tesis posible (`tesis-posible`) | possible thesis | tese possível | возможная тема диссертации |
 | tema de la interfaz (`Tema`, `estilo.aplicar`), claro / oscuro | UI theme, light / dark | tema da interface, claro / escuro | тема интерфейса, светлая / тёмная |
+| enganche (`nervi.enganche`, `IndiceEnganche`): extremo, medio, cruce, perpendicular, polar, prolongación, grilla | object snap: endpoint, midpoint, intersection, perpendicular, polar, extension, grid | snap (captura de ponto): extremidade, ponto médio, interseção, perpendicular, polar, extensão, grade | объектная привязка: конечная точка, середина, пересечение, перпендикуляр, полярная, продолжение, сетка |
+| zoom, paneo, encuadrar (`nervi.gui.navegacion`, `Camara`) | zoom, pan, zoom to fit | zoom, deslocar, enquadrar | масштаб, панорамирование, показать всё |
 | preferencias (`ajustes.Preferencias`, `PREFERENCIAS`) | preferences (per user) | preferências | настройки пользователя |
 | configuración del proyecto (`ConfiguracionProyecto`) | project settings | configuração do projeto | параметры проекта |
 | apartado (de los ajustes) | settings section | seção (das configurações) | раздел настроек |
