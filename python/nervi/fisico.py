@@ -3,10 +3,10 @@
 
 Representa la estructura como la dibuja quien proyecta: **pisos** con su nivel,
 **ejes**, **materiales**, **secciones** y los elementos **columnas**, **vigas**,
-**losas** y **muros**, cada uno con su sección o espesor, material y ubicación. No
-reemplaza al modelo analítico (``nervi.Modelo``, ``nervi.Modelo3D``): el modelo de
-cálculo se generará desde el físico (#74). Se guarda en el módulo ``fisico`` del
-``.nrv`` (``docs/formato-nrv.md`` §4f).
+**losas** y **muros**, cada uno con su sección o espesor, material y ubicación. El
+modelo de cálculo se genera desde él (#74). Se guarda en el módulo ``fisico`` del
+``.nrv`` (``docs/formato-nrv.md`` §4f). :meth:`ModeloFisico.modelo_calculo` genera
+el pórtico espacial desde él (:mod:`nervi.idealizacion`).
 
 Unidades: coordenadas y niveles en la unidad de longitud del modelo físico
 (``m`` por omisión); dimensiones de secciones y espesores en mm; resistencias y
@@ -150,6 +150,14 @@ class ModeloFisico:
         from .reparto import repartir
 
         return repartir(self, tol)
+
+    def modelo_calculo(self, *, peso_propio: bool = True, tol: float | None = None):
+        """Genera el modelo de cálculo (pórtico espacial) desde este edificio
+        (:mod:`nervi.idealizacion`, #74). Devuelve un
+        :class:`nervi.idealizacion.ModeloCalculo`."""
+        from .idealizacion import generar
+
+        return generar(self, peso_propio=peso_propio, tol=tol)
 
     def __len__(self) -> int:
         """Cantidad de elementos estructurales (columnas, vigas, losas y muros)."""

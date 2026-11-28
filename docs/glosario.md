@@ -46,7 +46,9 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | nudo maestro / esclavo (`maestro`, `esclavos`) | master / slave node | nó mestre / escravo | главный / подчинённый узел |
 | piso | story, floor | pavimento, andar | этаж |
 | modelo físico (`ModeloFisico`, `fisico`) | physical model | modelo físico | физическая модель |
-| modelo analítico, modelo de cálculo | analytical model | modelo analítico | расчётная модель |
+| modelo analítico, modelo de cálculo (`ModeloCalculo`) | analytical model | modelo analítico | расчётная модель |
+| idealización, generar el modelo de cálculo (`idealizacion`, `generar`, `modelo_calculo`) | analytical model generation, idealization | idealização, geração do modelo analítico | идеализация, построение расчётной модели |
+| columna ancha equivalente | equivalent wide column, wall-column | pilar-parede equivalente | эквивалентная широкая колонна |
 | nivel (`nivel`) | elevation, level | cota, nível | отметка |
 | planta (`PlantaEdificio`, gestor de plantas) | floor plan; story (in the floor manager) | planta; pavimento | план этажа; этаж |
 | altura de entrepiso, entrepiso | story height, floor-to-floor height | pé-direito estrutural, altura entre pisos | высота этажа |

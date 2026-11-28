@@ -4,7 +4,8 @@
 //! Núcleo de análisis estructural de Nervi. Fase 1: pórtico plano lineal
 //! elástico (barras Euler-Bernoulli, 3 GDL por nudo). Fase 2a: pórtico espacial
 //! (módulo [`espacial`], 6 GDL por nudo). Reparto de las cargas de las losas a
-//! sus vigas y muros por áreas tributarias (módulo [`losas`]).
+//! sus vigas y muros por áreas tributarias (módulo [`losas`]). Modelo de cálculo
+//! generado desde el modelo físico del edificio (módulo [`idealizacion`]).
 //!
 //! ```
 //! use nervi_core::{analizar, Barra, CasoCarga, Modelo};
@@ -33,6 +34,7 @@ pub mod diseno;
 pub mod elemento;
 pub mod error;
 pub mod espacial;
+pub mod idealizacion;
 pub mod losas;
 mod mecanismo;
 pub mod modelo;
