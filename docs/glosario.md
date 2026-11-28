@@ -202,6 +202,11 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | ventana / vista / tabla | window / view / table | janela / vista / tabela | окно / вид / таблица |
 | visor 3D (`vista3d`) / escena (`escena3d`) | 3D viewer / scene | visualizador 3D / cena | 3D-просмотрщик / сцена |
 | flecha / relleno / etiqueta | arrow / fill / label | seta / preenchimento / rótulo | стрелка / заливка / подпись |
+| visor único / vista de frente | single viewer / front view | visualizador único / vista de frente | единый просмотр / вид спереди |
+| cámara (`camara3d`) / acimut / elevación | camera / azimuth / elevation | câmera / azimute / elevação | камера / азимут / угол возвышения |
+| girar (giro tipo plato) / centro de giro | orbit (turntable) / orbit pivot | girar (giro tipo prato) / centro de giro | вращать (поворотный стол) / центр вращения |
+| brújula de vistas (`brujula`) | view compass | bússola de vistas | компас видов |
+| proyección paralela / perspectiva | parallel / perspective projection | projeção paralela / perspectiva | параллельная / перспективная проекция |
 | encuadrar / capturar | fit the view / render to an image | enquadrar / capturar | вписать вид / сохранить снимок |
 | prueba | test | teste | тест |
 
@@ -218,6 +223,11 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | proyecto académico (`proyecto-academico`) | academic project | projeto acadêmico | учебный проект |
 | tesis posible (`tesis-posible`) | possible thesis | tese possível | возможная тема диссертации |
 | tema de la interfaz (`Tema`, `estilo.aplicar`), claro / oscuro | UI theme, light / dark | tema da interface, claro / escuro | тема интерфейса, светлая / тёмная |
+| enganche (`nervi.enganche`, `IndiceEnganche`): extremo, medio, cruce, perpendicular, polar, prolongación, grilla | object snap: endpoint, midpoint, intersection, perpendicular, polar, extension, grid | snap (captura de ponto): extremidade, ponto médio, interseção, perpendicular, polar, extensão, grade | объектная привязка: конечная точка, середина, пересечение, перпендикуляр, полярная, продолжение, сетка |
+| zoom, paneo, encuadrar (`nervi.gui.navegacion`, `Camara`) | zoom, pan, zoom to fit | zoom, deslocar, enquadrar | масштаб, панорамирование, показать всё |
+| panel acoplable, acoplar, desacoplar (`nervi.gui.paneles`) | dock widget, dock, undock (float) | painel acoplável, acoplar, desacoplar | закрепляемая панель, закрепить, открепить |
+| barra de título propia, botones de la ventana (`nervi.gui.marco`) | custom title bar, window controls | barra de título própria, botões da janela | собственный заголовок окна, кнопки окна |
+| distribución (de los paneles) | layout (workspace) | disposição (dos painéis) | раскладка панелей |
 | preferencias (`ajustes.Preferencias`, `PREFERENCIAS`) | preferences (per user) | preferências | настройки пользователя |
 | configuración del proyecto (`ConfiguracionProyecto`) | project settings | configuração do projeto | параметры проекта |
 | apartado (de los ajustes) | settings section | seção (das configurações) | раздел настроек |

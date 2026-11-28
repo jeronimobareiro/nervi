@@ -20,6 +20,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
 mod diseno;
+mod enganche;
 mod idealizacion;
 mod losas;
 
@@ -997,6 +998,10 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(diseno::viga_elegir_barras, m)?)?;
     m.add("VERSION_CONTRATO_LOSAS", losas::VERSION_CONTRATO_LOSAS)?;
     m.add_function(wrap_pyfunction!(losas::repartir_losas, m)?)?;
+    m.add_class::<enganche::IndiceEnganche>()?;
+    m.add_function(wrap_pyfunction!(enganche::pano_en, m)?)?;
+    m.add_function(wrap_pyfunction!(enganche::cruces, m)?)?;
+    m.add_function(wrap_pyfunction!(enganche::partir, m)?)?;
     m.add(
         "VERSION_CONTRATO_IDEALIZACION",
         idealizacion::VERSION_CONTRATO_IDEALIZACION,

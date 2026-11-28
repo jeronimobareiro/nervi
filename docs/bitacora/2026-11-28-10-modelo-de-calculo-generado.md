@@ -1,4 +1,4 @@
-# 2026-11-28-02 · Modelo de cálculo generado desde el edificio (motor)
+# 2026-11-28-10 · Modelo de cálculo generado desde el edificio (motor)
 
 - **Agente:** Claude (Claude Code)
 - **Pedido por:** Jerónimo Bareiro
@@ -51,7 +51,7 @@ Jerónimo Bareiro notó que los modos *Edificio* y *Cálculo* de la interfaz par
 
 ## Documentación actualizada
 
-- `README.md` y sus traducciones (`README.en.md`, `README.pt.md`, `README.ru.md`): el modelo físico ya genera el modelo de cálculo desde Python.
+- `README.md` y sus traducciones (`README.en.md`, `README.pt.md`, `README.ru.md`): el modelo físico ya genera el modelo de cálculo desde Python; en las traducciones se corrigió además que el edificio ya se dibuja con el mouse.
 - `docs/ESTADO.md`: nueva línea del modelo de cálculo generado, conteos de pruebas y próximos pasos.
 - `docs/hoja-de-ruta.md`: #74 en curso.
 - `docs/contrato-datos.md`: contrato nuevo §Modelo de cálculo generado.

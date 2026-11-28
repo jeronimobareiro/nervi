@@ -214,7 +214,42 @@ _LISTA = (
         "Cerrar",
         "Archivo y edición",
         '<path d="M6 6l12 12M18 6L6 18"/>',
-        "Paneles y diálogos",
+        "Título de los paneles acoplables; barra de título de la ventana; diálogos",
+        True,
+    ),
+    _I(
+        "minimizar",
+        "Minimizar",
+        "Archivo y edición",
+        '<path d="M6 12h12"/>',
+        "Barra de título propia de la ventana",
+        True,
+    ),
+    _I(
+        "maximizar",
+        "Maximizar",
+        "Archivo y edición",
+        '<rect x="6" y="6" width="12" height="12" rx="1.5"/>',
+        "Barra de título propia de la ventana",
+        True,
+    ),
+    _I(
+        "restaurar",
+        "Restaurar",
+        "Archivo y edición",
+        '<rect x="6" y="9" width="9" height="9" rx="1.5"/>'
+        '<path d="M9 6h7.5A1.5 1.5 0 0 1 18 7.5V15"/>',
+        "Barra de título propia de la ventana (maximizada)",
+        True,
+    ),
+    _I(
+        "desacoplar",
+        "Desacoplar",
+        "Archivo y edición",
+        '<path d="M14 4h6v6"/><path d="M20 4l-8 8"/>'
+        '<path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+        "Título de los paneles acoplables: desacoplar o volver a acoplar",
+        True,
     ),
     _I("buscar", "Buscar", "Archivo y edición", _LUPA, "Paleta de comandos, tablas"),
     _I(
@@ -239,7 +274,8 @@ _LISTA = (
         "Seleccionar",
         "Vista y navegación",
         '<path d="M5.5 3.5l13 7-5.8 1.6-2.2 5.9z"/><path d="M12.8 12.2l5.2 6.3"/>',
-        "Edición gráfica (#31)",
+        "Barras Dibujar de la planta y de la vista 2D",
+        True,
     ),
     _I(
         "desplazar",
@@ -262,14 +298,16 @@ _LISTA = (
         "Acercar",
         "Vista y navegación",
         _LUPA + '<path d="M10.5 8v5M8 10.5h5"/>',
-        "Visor 3D y planta (#30)",
+        "Planta del edificio y vista 2D (zoom); visor 3D (#30)",
+        en_uso=True,
     ),
     _I(
         "alejar",
         "Alejar",
         "Vista y navegación",
         _LUPA + '<path d="M8 10.5h5"/>',
-        "Visor 3D y planta (#30)",
+        "Planta del edificio y vista 2D (zoom); visor 3D (#30)",
+        en_uso=True,
     ),
     _I(
         "encuadrar",
@@ -277,14 +315,16 @@ _LISTA = (
         "Vista y navegación",
         '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>'
         '<rect x="8.5" y="8.5" width="7" height="7" rx="0.6"/>',
-        "Visor 3D y planta (#30)",
+        "Planta del edificio y vista 2D (zoom); visor 3D (#30)",
+        en_uso=True,
     ),
     _I(
         "vista_3d",
         "Vista 3D",
         "Vista y navegación",
         '<path d="M4 8.5h11v11.5H4z"/><path d="M4 8.5L8.5 4H20v11.5L15 20M15 8.5L20 4"/>',
-        "Visor 3D (#30)",
+        "Selector Vista del visor: vista 3D (#30)",
+        en_uso=True,
     ),
     _I(
         "vista_planta",
@@ -300,7 +340,8 @@ _LISTA = (
         "Vista en alzado",
         "Vista y navegación",
         '<path d="M4 20V5h16v15M12 5v15M4 12.5h16"/><path d="M2.5 20h19"/>',
-        "Modo Edificio y visor (#30, #73)",
+        "Selector Vista del visor: vista de frente (#30); alzados del edificio (#73)",
+        en_uso=True,
     ),
     _I(
         "rejilla",
@@ -581,7 +622,8 @@ _LISTA = (
         "Carga puntual",
         "Cargas",
         '<path d="M3 20h18"/><path d="M12 3v13"/><path d="M8 12l4 4 4-4"/>',
-        "Cargas puntuales en barras y nudos (#31)",
+        "Barra Dibujar de la vista 2D: carga puntual en nudos y barras",
+        True,
     ),
     _I(
         "carga_repartida",
@@ -589,7 +631,8 @@ _LISTA = (
         "Cargas",
         '<path d="M3 20h18"/><path d="M4 5h16"/><path d="M7 5v10M12 5v10M17 5v10"/>'
         '<path d="M5 13l2 2 2-2M10 13l2 2 2-2M15 13l2 2 2-2"/>',
-        "Cargas en barras (#31)",
+        "Barra Dibujar de la vista 2D: carga repartida en barras",
+        True,
     ),
     _I(
         "carga_trapezoidal",

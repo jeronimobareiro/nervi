@@ -91,7 +91,11 @@ Para no confundir las cargas de la planta con las de las barras, la familia sigu
 | `borrar` | Borrar | reservado | Tablas y edición gráfica (#31) |
 | `agregar` | Agregar | reservado | Tablas y listas |
 | `quitar` | Quitar | reservado | Tablas y listas |
-| `cerrar` | Cerrar | reservado | Paneles y diálogos |
+| `cerrar` | Cerrar | en uso | Título de los paneles acoplables; barra de título de la ventana; diálogos |
+| `minimizar` | Minimizar | en uso | Barra de título propia de la ventana |
+| `maximizar` | Maximizar | en uso | Barra de título propia de la ventana |
+| `restaurar` | Restaurar | en uso | Barra de título propia de la ventana (maximizada) |
+| `desacoplar` | Desacoplar | en uso | Título de los paneles acoplables: desacoplar o volver a acoplar |
 | `buscar` | Buscar | reservado | Paleta de comandos, tablas |
 | `subir` | Subir | en uso | Modo Edificio: subir una planta |
 | `bajar` | Bajar | en uso | Modo Edificio: bajar una planta |
@@ -100,15 +104,15 @@ Para no confundir las cargas de la planta con las de las barras, la familia sigu
 
 | Clave | Nombre | Estado | Uso |
 |---|---|---|---|
-| `seleccionar` | Seleccionar | reservado | Edición gráfica (#31) |
+| `seleccionar` | Seleccionar | en uso | Barras Dibujar de la planta y de la vista de frente |
 | `desplazar` | Desplazar | reservado | Visor 3D y planta (#30) |
 | `orbitar` | Orbitar | reservado | Visor 3D (#30) |
-| `acercar` | Acercar | reservado | Visor 3D y planta (#30) |
-| `alejar` | Alejar | reservado | Visor 3D y planta (#30) |
-| `encuadrar` | Encuadrar todo | reservado | Visor 3D y planta (#30) |
-| `vista_3d` | Vista 3D | reservado | Visor 3D (#30) |
+| `acercar` | Acercar | en uso | Planta del edificio y vista 2D (zoom); visor 3D (#30) |
+| `alejar` | Alejar | en uso | Planta del edificio y vista 2D (zoom); visor 3D (#30) |
+| `encuadrar` | Encuadrar todo | en uso | Planta del edificio y vista 2D (zoom); visor 3D (#30) |
+| `vista_3d` | Vista 3D | en uso | Selector Vista del visor: vista 3D (#30) |
 | `vista_planta` | Vista en planta | reservado | Modo Edificio y visor (#30, #73) |
-| `vista_alzado` | Vista en alzado | reservado | Modo Edificio y visor (#30, #73) |
+| `vista_alzado` | Vista en alzado | en uso | Selector Vista del visor: vista de frente (#30); alzados del edificio (#73) |
 | `rejilla` | Rejilla | reservado | Edición gráfica (#31) |
 | `capas` | Capas | reservado | Capas del plano DXF (#75) |
 | `medir` | Medir | reservado | Edición gráfica (#31) |
@@ -157,8 +161,8 @@ Para no confundir las cargas de la planta con las de las barras, la familia sigu
 | Clave | Nombre | Estado | Uso |
 |---|---|---|---|
 | `cargas` | Cargas | en uso | Árbol del modelo; carga puntual |
-| `carga_puntual` | Carga puntual | reservado | Cargas puntuales en barras y nudos (#31) |
-| `carga_repartida` | Carga repartida | reservado | Cargas en barras (#31) |
+| `carga_puntual` | Carga puntual | en uso | Barra Dibujar de la vista 2D: carga puntual en nudos y barras |
+| `carga_repartida` | Carga repartida | en uso | Barra Dibujar de la vista 2D: carga repartida en barras |
 | `carga_trapezoidal` | Carga trapezoidal | reservado | Cargas trapezoidales en barras (#2, #31) |
 | `cargas_planta` | Cargas de la planta | en uso | Modo Edificio: botón Cargas |
 | `carga_lineal_losa` | Carga lineal en losa | reservado | Tabiques y cargas lineales sobre losas (#78, #79) |

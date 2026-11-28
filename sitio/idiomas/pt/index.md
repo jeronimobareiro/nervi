@@ -50,12 +50,12 @@ O Nervi analisa pórticos pelo método dos elementos finitos e mostra reações,
 - **Pórticos espaciais (3D)**, em versão preliminar: barras de 12 graus de liberdade, trechos rígidos e diafragma rígido por pavimento.
 - **Cargas** em nós e em barras: uniformes, pontuais, trapezoidais ou parciais, momentos concentrados e térmicas.
 - **Casos e combinações** de carga, por exemplo 1.2D + 1.6L.
-- **Resultados**: reações, diagramas de esforço normal, cortante e momento, e a deformada, em 2D e em um visualizador 3D. Ao passar o cursor sobre uma barra, os valores naquele ponto aparecem. Se o modelo for um mecanismo, indica qual nó se move sem rigidez.
+- **Resultados**: reações, diagramas de esforço normal, cortante e momento, e a deformada, de frente ou em 3D em um mesmo visualizador que gira em torno do ponto observado. Ao passar o cursor sobre uma barra, os valores naquele ponto aparecem. Se o modelo for um mecanismo, indica qual nó se move sem rigidez.
 - **Análise dinâmica**: modos de vibração, participação de massa e espectro de resposta (CQC e SRSS), em versão preliminar.
 - **Projeto de concreto armado segundo a ACI 318-19**, experimental: vigas (flexão, cisalhamento, flechas e detalhamento das armaduras) e pilares (flexão composta biaxial e esbeltez), cada verificação com seu artigo.
-- **Modelo físico do edifício**, em versão preliminar: pavimentos, eixos, pilares, vigas, lajes maciças e paredes vistos planta por planta e preenchidos em tabelas, com um gerenciador para adicionar, mover e copiar pavimentos. As cargas de cada pavimento são distribuídas das lajes às vigas por áreas de influência. Ainda não gera o modelo de cálculo.
+- **Modelo físico do edifício**, em versão preliminar: pavimentos, eixos, pilares, vigas, lajes maciças e paredes desenhados com o mouse em cada planta, com atração a extremos, eixos e grade, ou preenchidos em tabelas, com um gerenciador para adicionar, mover e copiar pavimentos. As cargas de cada pavimento são distribuídas das lajes às vigas por áreas de influência. Ainda não gera o modelo de cálculo.
 - **Memorial de cálculo em PDF** com geometria, cargas, diagramas, projeto e análise dinâmica.
-- **Interface de desktop** em uma única janela, com painel da estrutura, tabelas para montar o modelo, tema claro e noturno, e uso a partir do Python para quem programa.
+- **Interface de desktop** em uma única janela, com painel da estrutura, tabelas ou desenho com o mouse para montar o modelo (nós, barras, apoios e cargas), painéis que se acoplam, se desacoplam e são lembrados, tema claro e noturno, e uso a partir do Python para quem programa.
 - **Assistente de IA do seu jeito**: você conecta a IA que já usa (pelo padrão MCP) para consultar o modelo e os resultados. Ela só propõe mudanças que você aplica ou descarta, e cada número é calculado pelo motor do Nervi, nunca pela IA.
 - **Projetos** salvos em arquivos `.nrv` e dezenas de casos de verificação contra soluções conhecidas.
 

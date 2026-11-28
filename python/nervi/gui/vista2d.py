@@ -16,6 +16,9 @@ from PySide6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPainterPath, QP
 from PySide6.QtWidgets import QWidget
 
 from . import estilo
+from .brujula import Brujula
+from .dibujo_calculo import DibujoCalculo
+from .navegacion import METROS, Navegable, Vista, dibujar_coordenadas, dibujar_grilla
 from .sesion import Seleccion, Sesion
 
 DIAGRAMAS = {"M": "Momento", "V": "Cortante", "N": "Axil", "D": "Deformada"}
@@ -26,11 +29,21 @@ def _fmt(v: float) -> str:
     return f"{v:.2f}".replace("-", "−")
 
 
-class Vista2D(QWidget):
+class Vista2D(Navegable, QWidget):
     """Lienzo del pórtico. Clic selecciona; al pasar el cursor sobre una barra
-    muestra los esfuerzos en ese punto."""
+    muestra los esfuerzos en ese punto. Se navega con la rueda, el botón del medio y
+    ``F`` (ver :mod:`nervi.gui.navegacion`) y se dibuja con las herramientas de
+    :attr:`dibujo` (:mod:`nervi.gui.dibujo_calculo`)."""
 
     diagrama_cambiado = Signal(str)
+    #: Arrastre con el botón derecho: pasar a la vista 3D y girar desde este punto
+    #: del lienzo, alrededor de este punto del modelo (``x``, ``y``).
+    giro_pedido = Signal(QPointF, float, float)
+    #: El giro sigue (píxeles arrastrados desde el último aviso) o terminó.
+    giro_arrastre = Signal(float, float)
+    giro_terminado = Signal()
+    #: Píxeles que hay que mover con el botón derecho para que sea un giro y no un clic.
+    UMBRAL_GIRO = 4
 
     def __init__(self, sesion: Sesion, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -42,9 +55,15 @@ class Vista2D(QWidget):
         #: Color de cada barra (id -> color), por ejemplo el estado de su diseño.
         self.colores_barra: dict[int, str] = {}
         self._cursor: QPointF | None = None
-        self.setMouseTracking(True)
         self.setMinimumSize(320, 240)
+        self.iniciar_navegacion()
         self.setAutoFillBackground(False)
+        self.dibujo = DibujoCalculo(self, sesion)
+        #: Botón derecho apretado: (punto inicial, último punto, ya es un giro).
+        self._derecho: tuple[QPointF, QPointF, bool] | None = None
+        #: Brújula de vistas: la muestra la ventana, que sabe pasar a la vista 3D.
+        self.brujula = Brujula(self)
+        self.brujula.hide()
         for senal in (
             sesion.modelo_cambiado,
             sesion.resultados_cambiados,
@@ -62,19 +81,36 @@ class Vista2D(QWidget):
     def _nudos(self) -> dict[int, tuple[float, float]]:
         return {n["id"]: (n["x"], n["y"]) for n in self.sesion.modelo["nudos"]}
 
-    def _transformacion(self):
+    def _caja(self):
         nudos = self._nudos()
         if not nudos:
             return None
         xs = [p[0] for p in nudos.values()]
         ys = [p[1] for p in nudos.values()]
-        x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+        return min(xs), max(xs), min(ys), max(ys)
+
+    def ajuste(self) -> Vista | None:
+        """Encuadre automático del pórtico."""
+        caja = self._caja()
+        if caja is None:
+            # Modelo vacío: 40 px por metro alrededor de (5, 3) m, para empezar a dibujar.
+            m = METROS.get(self.sesion.modelo["unidades"]["longitud"], 1.0)
+            return Vista(40.0 * m, 5.0 / m, 3.0 / m)
+        x0, x1, y0, y1 = caja
         ancho, alto = max(x1 - x0, 1e-9), max(y1 - y0, 1e-9)
         tam = max(ancho, alto)
         margen = 90
         w, h = max(self.width() - 2 * margen, 50), max(self.height() - 2 * margen, 50)
         escala = min(w / max(ancho, tam * 0.3), h / max(alto, tam * 0.3))
-        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        return Vista(escala, (x0 + x1) / 2, (y0 + y1) / 2)
+
+    def _transformacion(self):
+        v = self.vista_actual()
+        if v is None:
+            return None
+        caja = self._caja()
+        tam = 1.0 if caja is None else max(caja[1] - caja[0], caja[3] - caja[2], 1e-9)
+        escala, cx, cy = v.escala, v.cx, v.cy
         ox, oy = self.width() / 2, self.height() / 2
 
         def a_pantalla(x: float, y: float) -> QPointF:
@@ -103,11 +139,15 @@ class Vista2D(QWidget):
         self._grilla(p)
         t = self._transformacion()
         if t is None:
+            return
+        if not self.sesion.modelo["nudos"] and not self.dibujo.activo:
             p.setPen(QColor(estilo.TEXTO_3))
             p.drawText(
-                self.rect(), Qt.AlignCenter, "Agregá nudos y barras en la tabla de Geometría"
+                self.rect(),
+                Qt.AlignCenter,
+                "Dibujá nudos, barras, apoyos y cargas con las herramientas de Dibujar,\n"
+                "o cargalos en la tabla de Geometría",
             )
-            return
         res = self.sesion.resultado()
         if res is not None:
             self._diagrama(p, res, t)
@@ -115,14 +155,16 @@ class Vista2D(QWidget):
         if res is not None:
             self._lectura(p, res)
         self._leyenda(p, res)
+        self.dibujo.pintar(p, self.transformacion())
+        v = self.vista_actual()
+        dibujar_coordenadas(
+            p, self, v, self.centro_lienzo(), self.cursor_lienzo, self._unidades()["l"]
+        )
 
     def _grilla(self, p: QPainter) -> None:
-        p.setPen(QPen(QColor(estilo.HOVER), 1))
-        paso = 28
-        for x in range(0, self.width(), paso):
-            p.drawLine(x, 0, x, self.height())
-        for y in range(0, self.height(), paso):
-            p.drawLine(0, y, self.width(), y)
+        v = self.vista_actual()
+        if v is not None:
+            dibujar_grilla(p, QRectF(self.rect()), v, self.centro_lienzo())
 
     def _estructura(self, p: QPainter, t) -> None:
         a_pantalla, _, _ = t
@@ -348,15 +390,63 @@ class Vista2D(QWidget):
                 return nid
         return None
 
+    def resizeEvent(self, evento) -> None:
+        super().resizeEvent(evento)
+        self.brujula.acomodar()
+
     def mouseMoveEvent(self, evento: QMouseEvent) -> None:
+        if self._derecho is not None:
+            inicio, ultimo, girando = self._derecho
+            pos = evento.position()
+            if girando:
+                d = pos - ultimo
+                self.giro_arrastre.emit(d.x(), d.y())
+                self._derecho = (inicio, pos, True)
+            elif (pos - inicio).manhattanLength() > self.UMBRAL_GIRO:
+                t = self.transformacion()
+                x, y = t.a_modelo(inicio) if t is not None else (0.0, 0.0)
+                self._derecho = (inicio, inicio, True)
+                self.giro_pedido.emit(inicio, x, y)
+                d = pos - inicio
+                self.giro_arrastre.emit(d.x(), d.y())
+                self._derecho = (inicio, pos, True)
+            return
+        if not self.navegacion_mover(evento):
+            self.dibujo.mover(evento.position())
         self._cursor = evento.position()
         self.update()
 
-    def leaveEvent(self, _evento) -> None:
+    def leaveEvent(self, evento) -> None:
         self._cursor = None
-        self.update()
+        self.dibujo.salir()
+        super().leaveEvent(evento)
+
+    def mouseReleaseEvent(self, evento: QMouseEvent) -> None:
+        if evento.button() == Qt.RightButton and self._derecho is not None:
+            girando = self._derecho[2]
+            self._derecho = None
+            if girando:
+                self.giro_terminado.emit()
+            elif self.dibujo.activo:
+                # Clic derecho sin arrastrar: termina el trazo (como Esc).
+                self.dibujo.cancelar()
+            return
+        if not self.navegacion_soltar(evento) and evento.button() == Qt.LeftButton:
+            self.dibujo.soltar(evento.position())
 
     def mousePressEvent(self, evento: QMouseEvent) -> None:
+        if self.navegacion_presionar(evento):
+            return
+        if evento.button() == Qt.RightButton:
+            # Clic: termina el trazo al soltar. Arrastre: gira en la vista 3D.
+            self._derecho = (evento.position(), evento.position(), False)
+            return
+        if evento.button() != Qt.LeftButton:
+            return
+        self.setFocus()
+        if self.dibujo.activo:
+            self.dibujo.presionar(evento.position())
+            return
         q = evento.position()
         nudo = self._nudo_cercano(q)
         if nudo is not None:
@@ -364,3 +454,12 @@ class Vista2D(QWidget):
             return
         barra = self._barra_cercana(q)
         self.sesion.seleccionar(Seleccion("barra", barra[0]) if barra else None)
+
+    def keyPressEvent(self, evento) -> None:
+        if self.dibujo.tecla(evento):
+            evento.accept()
+            return
+        if evento.key() == Qt.Key_Delete and self.dibujo.borrar(self.sesion.seleccion):
+            evento.accept()
+            return
+        super().keyPressEvent(evento)

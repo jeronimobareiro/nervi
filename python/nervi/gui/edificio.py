@@ -54,6 +54,15 @@ from ..formato import fisico as formato_fisico
 from ..formato.errores import FormatoError
 from ..reparto import CASOS, RepartoCargas
 from . import arbol, estilo
+from .dibujo import DibujoEdificio
+from .navegacion import (
+    METROS,
+    Navegable,
+    Transformacion,
+    Vista,
+    dibujar_coordenadas,
+    dibujar_grilla,
+)
 from .sesion import Sesion
 
 #: Casos de carga que se pueden ver en la planta, con su nombre.
@@ -302,17 +311,7 @@ def filas_arbol(mf: ModeloFisico, piso: int | None) -> list[arbol.Fila]:
 # --- Planta -----------------------------------------------------------------------------
 
 
-@dataclass
-class _Transformacion:
-    escala: float
-    ox: float
-    oy: float
-
-    def a_pantalla(self, x: float, y: float) -> QPointF:
-        return QPointF(self.ox + x * self.escala, self.oy - y * self.escala)
-
-    def a_modelo(self, p: QPointF) -> tuple[float, float]:
-        return ((p.x() - self.ox) / self.escala, (self.oy - p.y()) / self.escala)
+_Transformacion = Transformacion
 
 
 def _metros(mm: float, longitud: str) -> float:
@@ -340,13 +339,19 @@ def _dentro(p, poligono) -> bool:
     return dentro
 
 
-class PlantaEdificio(QWidget):
-    """Planta del piso elegido. Los colores salen de :mod:`estilo` al dibujar."""
+class PlantaEdificio(Navegable, QWidget):
+    """Planta del piso elegido. Los colores salen de :mod:`estilo` al dibujar.
+
+    Se navega con la rueda (zoom hacia el cursor), el botón del medio (paneo) y
+    ``F`` (encuadrar); ver :mod:`nervi.gui.navegacion`.
+    """
 
     def __init__(self, estado: EstadoEdificio) -> None:
         super().__init__()
         self.estado = estado
         self.setMinimumSize(320, 240)
+        self.iniciar_navegacion()
+        self.dibujo = DibujoEdificio(self, estado)
         estado.cambiado.connect(self.update)
 
     def _puntos(self, mf: ModeloFisico) -> list[tuple[float, float]]:
@@ -362,10 +367,19 @@ class PlantaEdificio(QWidget):
             pts += [tuple(p) for p in losa["contorno"]]
         return pts
 
-    def transformacion(self) -> _Transformacion | None:
-        pts = self._puntos(self.estado.modelo())
+    def centro_lienzo(self) -> QPointF:
+        return QPointF(self.width() / 2, (self.height() - 30) / 2)
+
+    def ajuste(self) -> Vista | None:
+        """Encuadre automático de todo el edificio (todas las plantas a la misma escala)."""
+        mf = self.estado.modelo()
+        pts = self._puntos(mf)
         if not pts:
-            return None
+            if self.estado.piso is None:
+                return None
+            # Planta vacía: 40 px por metro alrededor de (5, 4) m, para empezar a dibujar.
+            m = METROS.get(mf.longitud, 1.0)
+            return Vista(40.0 * m, 5.0 / m, 4.0 / m)
         xs, ys = [p[0] for p in pts], [p[1] for p in pts]
         ancho, alto = max(xs) - min(xs), max(ys) - min(ys)
         margen = 70
@@ -373,32 +387,34 @@ class PlantaEdificio(QWidget):
         escala = min(w / ancho if ancho else math.inf, h / alto if alto else math.inf)
         if not math.isfinite(escala):
             escala = 40.0
-        ox = self.width() / 2 - (min(xs) + max(xs)) / 2 * escala
-        oy = (self.height() - 30) / 2 + (min(ys) + max(ys)) / 2 * escala
-        return _Transformacion(escala, ox, oy)
+        return Vista(escala, (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2)
 
     # -- dibujo ---------------------------------------------------------------------
     def paintEvent(self, _evento) -> None:
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         p.fillRect(self.rect(), QColor(estilo.PANEL))
-        p.setPen(QPen(QColor(estilo.HOVER), 1))
-        for x in range(0, self.width(), 28):
-            p.drawLine(x, 0, x, self.height())
-        for y in range(0, self.height(), 28):
-            p.drawLine(0, y, self.width(), y)
         mf = self.estado.modelo()
+        v = self.vista_actual()
+        if v is not None:
+            dibujar_grilla(p, QRectF(self.rect()), v, self.centro_lienzo())
         t = self.transformacion()
         piso = self.estado.piso
         if t is None or piso is None:
             p.setPen(QColor(estilo.TEXTO_3))
-            texto = (
-                "Agregá un piso en el gestor de plantas o en la tabla Pisos"
-                if piso is None
-                else "Agregá ejes, columnas, vigas, losas o muros en las tablas de abajo"
+            p.drawText(
+                self.rect(),
+                Qt.AlignCenter,
+                "Agregá un piso en el gestor de plantas o en la tabla Pisos",
             )
-            p.drawText(self.rect(), Qt.AlignCenter, texto)
             return
+        if not self._puntos(mf) and not self.dibujo.activo:
+            p.setPen(QColor(estilo.TEXTO_3))
+            p.drawText(
+                self.rect(),
+                Qt.AlignCenter,
+                "Dibujá ejes, columnas, vigas, losas o muros con las herramientas de Dibujar",
+            )
         p.setFont(QFont(self.font().family(), 8))
         self._ejes(p, t, mf)
         en = mf.en_piso(piso)
@@ -411,6 +427,8 @@ class PlantaEdificio(QWidget):
         self._muros(p, t, mf, en["muros"], elegido)
         self._columnas(p, t, mf, en["columnas"], elegido)
         self._leyenda(p, mf, piso, en)
+        self.dibujo.pintar(p, t)
+        dibujar_coordenadas(p, self, v, self.centro_lienzo(), self.cursor_lienzo, mf.longitud)
 
     def _ejes(self, p: QPainter, t: _Transformacion, mf: ModeloFisico) -> None:
         for e in mf.lista("ejes"):
@@ -616,8 +634,50 @@ class PlantaEdificio(QWidget):
         return None
 
     def mousePressEvent(self, evento) -> None:
+        if self.navegacion_presionar(evento):
+            return
+        if evento.button() == Qt.RightButton and self.dibujo.activo:
+            # Clic derecho: termina el trazo (como Esc).
+            self.dibujo.cancelar()
+            return
+        if evento.button() != Qt.LeftButton:
+            return
+        self.setFocus()
+        if self.dibujo.activo:
+            self.dibujo.presionar(evento.position())
+            return
         elegido = self.elemento_en(evento.position())
         self.estado.elegir(*(elegido or (None, None)))
+
+    def mouseMoveEvent(self, evento) -> None:
+        if not self.navegacion_mover(evento):
+            self.dibujo.mover(evento.position())
+        self.update()
+
+    def mouseReleaseEvent(self, evento) -> None:
+        if not self.navegacion_soltar(evento) and evento.button() == Qt.LeftButton:
+            self.dibujo.soltar(evento.position())
+
+    def keyPressEvent(self, evento) -> None:
+        if self.dibujo.tecla(evento):
+            evento.accept()
+            return
+        if evento.key() == Qt.Key_Delete and self.estado.eleccion is not None:
+            self.borrar_eleccion()
+            evento.accept()
+            return
+        super().keyPressEvent(evento)
+
+    def leaveEvent(self, evento) -> None:
+        self.dibujo.salir()
+        super().leaveEvent(evento)
+
+    def borrar_eleccion(self) -> bool:
+        """Borra el elemento elegido (Supr). Se deshace con Ctrl+Z."""
+        lista, id = self.estado.eleccion
+        if lista not in ELEMENTOS and lista != "ejes":
+            return False
+        return self.estado.aplicar(lambda mf: mf.quitar(lista, id), "Borrar elemento")
 
 
 # --- Tablas ------------------------------------------------------------------------------
