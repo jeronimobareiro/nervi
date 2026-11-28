@@ -298,7 +298,8 @@ _LISTA = (
         "Vista 3D",
         "Vista y navegación",
         '<path d="M4 8.5h11v11.5H4z"/><path d="M4 8.5L8.5 4H20v11.5L15 20M15 8.5L20 4"/>',
-        "Visor 3D (#30)",
+        "Selector Vista del visor: vista 3D (#30)",
+        en_uso=True,
     ),
     _I(
         "vista_planta",
@@ -314,7 +315,8 @@ _LISTA = (
         "Vista en alzado",
         "Vista y navegación",
         '<path d="M4 20V5h16v15M12 5v15M4 12.5h16"/><path d="M2.5 20h19"/>',
-        "Modo Edificio y visor (#30, #73)",
+        "Selector Vista del visor: vista de frente (#30); alzados del edificio (#73)",
+        en_uso=True,
     ),
     _I(
         "rejilla",

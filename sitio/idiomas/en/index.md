@@ -50,7 +50,7 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 - **Space (3D) frames**, preliminary: 12-degree-of-freedom members, rigid offsets and a rigid diaphragm per floor.
 - **Loads** on nodes and members: uniform, point, trapezoidal or partial, concentrated moments and thermal loads.
 - **Load cases and combinations**, for example 1.2D + 1.6L.
-- **Results**: reactions, axial force, shear and moment diagrams and the deformed shape, in 2D and in a 3D viewer. Hovering over a member shows the values at that point. If the model is a mechanism, it tells you which node moves without stiffness.
+- **Results**: reactions, axial force, shear and moment diagrams and the deformed shape, from the front or in 3D in a single viewer that orbits around the point you are looking at. Hovering over a member shows the values at that point. If the model is a mechanism, it tells you which node moves without stiffness.
 - **Dynamic analysis**: vibration modes, mass participation and response spectrum (CQC and SRSS), preliminary.
 - **Reinforced concrete design to ACI 318-19**, experimental: beams (flexure, shear, deflections and reinforcement detailing) and columns (biaxial bending with axial load, and slenderness), each check with its code article.
 - **Physical building model**, preliminary: stories, grid lines, columns, beams, solid slabs and walls drawn with the mouse on each floor, snapping to endpoints, grid lines and the grid, or entered in tables, with a manager to add, move and copy floors. Floor loads are distributed from the slabs to the beams by tributary areas. It does not generate the analysis model yet.

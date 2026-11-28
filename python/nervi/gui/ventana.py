@@ -9,9 +9,10 @@ propiedades de la selección; abajo, tablas, revisión del modelo y consola.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
-from PySide6.QtCore import QByteArray, QElapsedTimer, QPoint, QSize, Qt, QTimer, QUrl
+from PySide6.QtCore import QByteArray, QElapsedTimer, QPoint, QPointF, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import (
     QAction,
     QActionGroup,
@@ -49,7 +50,7 @@ from PySide6.QtWidgets import (
 
 from .. import MecanismoError, formato
 from ..design import proyecto
-from . import ajustes, estilo, iconos, paneles, vista3d
+from . import ajustes, camara3d, estilo, iconos, paneles, vista3d
 from .ajustes import ConfiguracionProyecto, Preferencias
 from .arbol import ArbolModelo
 from .asistente import PanelAsistente
@@ -131,6 +132,10 @@ def icono() -> QIcon:
     return QIcon(str(RECURSOS / "nervi.svg"))
 
 
+#: Nombres viejos de las vistas (antes había una vista 2D y una 3D separadas).
+ALIAS_VISTAS = {"2D": "frente", "2d": "frente", "3D": "3d"}
+
+
 class Ventana(QMainWindow):
     def __init__(self, sesion: Sesion | None = None) -> None:
         super().__init__()
@@ -145,6 +150,11 @@ class Ventana(QMainWindow):
         # lleva sus herramientas de dibujo.
         self.planta = PlantaEdificio(self.edificio)
         self.vista = Vista2D(self.sesion)
+        self.vista.brujula.show()
+        self.vista.brujula.vista_pedida.connect(self._vista_desde_brujula)
+        self.vista.giro_pedido.connect(self._girar_desde_frente)
+        self.vista.giro_arrastre.connect(self._seguir_giro)
+        self.vista.giro_terminado.connect(self._terminar_giro)
         self.modo = "calculo"
         self._acciones()
 
@@ -406,8 +416,8 @@ class Ventana(QMainWindow):
         # inactivas para que las tablas usen esas teclas).
         self.a_subir.setEnabled(False)
         self.a_bajar.setEnabled(False)
-        self.a_vista2d = self._accion("Vista 2D", lambda: self.mostrar_vista("2D"))
-        self.a_vista3d = self._accion("Vista 3D", lambda: self.mostrar_vista("3D"))
+        self.a_vista2d = self._accion("Vista de frente", lambda: self.mostrar_vista("frente"))
+        self.a_vista3d = self._accion("Vista 3D", lambda: self.mostrar_vista("3d"))
         self.a_temas = {}
         grupo_temas = QActionGroup(self)
         for clave, tema in estilo.TEMAS.items():
@@ -637,6 +647,56 @@ class Ventana(QMainWindow):
         if not rutas:
             self.menu_recientes.addAction("Todavía no hay proyectos recientes").setEnabled(False)
 
+    def _selector_vista(self) -> QWidget:
+        """Vista: Frente | 3D (y Paralela | Perspectiva en 3D). No depende del modo
+        Edificio | Cálculo: es el primer control del visor."""
+        self.selector_vista = QWidget()
+        capa = QHBoxLayout(self.selector_vista)
+        capa.setContentsMargins(0, 0, 0, 0)
+        capa.setSpacing(10)
+        # Visor único: la vista de frente (plana, con dibujo y enganche) y la 3D son
+        # dos formas de mirar el mismo modelo (docs/diseno-interfaz.md, Visor).
+        capa.addWidget(QLabel("Vista", objectName="tenue"))
+        vistas = QWidget(objectName="grupo")
+        v = QHBoxLayout(vistas)
+        v.setContentsMargins(2, 2, 2, 2)
+        v.setSpacing(2)
+        self.grupo_vistas = QButtonGroup(self)
+        self.botones_vista: dict[str, QToolButton] = {}
+        for nombre, texto, icono, ayuda in (
+            ("frente", "Frente", "vista_alzado", "Vista de frente: se dibuja y se engancha"),
+            ("3d", "3D", "vista_3d", "Vista 3D: arrastrar con el botón derecho gira"),
+        ):
+            b = QToolButton(objectName="segmento", checkable=True)
+            b.setText(texto)
+            b.setProperty("icono", icono)
+            b.setIconSize(QSize(16, 16))
+            b.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+            b.setToolTip(ayuda)
+            b.clicked.connect(lambda _=False, n=nombre: self.mostrar_vista(n))
+            self.grupo_vistas.addButton(b)
+            self.botones_vista[nombre] = b
+            v.addWidget(b)
+        self.botones_vista["frente"].setChecked(True)
+        capa.addWidget(vistas)
+        # Paralela o perspectiva: solo en la vista 3D.
+        self.grupo_proyeccion = QWidget(objectName="grupo")
+        g = QHBoxLayout(self.grupo_proyeccion)
+        g.setContentsMargins(2, 2, 2, 2)
+        g.setSpacing(2)
+        proyeccion = QButtonGroup(self)
+        self.botones_proyeccion: dict[str, QPushButton] = {}
+        for clave, texto in (("paralela", "Paralela"), ("perspectiva", "Perspectiva")):
+            b = QPushButton(texto, objectName="segmento", checkable=True)
+            b.clicked.connect(lambda _=False, c=clave: self.elegir_proyeccion(c))
+            proyeccion.addButton(b)
+            self.botones_proyeccion[clave] = b
+            g.addWidget(b)
+        self.botones_proyeccion["paralela"].setChecked(True)
+        self.grupo_proyeccion.hide()
+        capa.addWidget(self.grupo_proyeccion)
+        return self.selector_vista
+
     def _barra_contextual(self) -> QWidget:
         barra = QWidget(objectName="contexto")
         capa = QHBoxLayout(barra)
@@ -663,6 +723,7 @@ class Ventana(QMainWindow):
         capa.addWidget(modos)
         capa.addSpacing(8)
 
+        capa.addWidget(self._selector_vista())
         # Controles del modo Edificio: planta que se ve, ▲▼ y el gestor de plantas.
         self.ctx_edificio = QWidget()
         e = QHBoxLayout(self.ctx_edificio)
@@ -728,22 +789,6 @@ class Ventana(QMainWindow):
         capa = QHBoxLayout(self.ctx_calculo)
         capa.setContentsMargins(0, 0, 0, 0)
         capa.setSpacing(10)
-        vistas = QWidget(objectName="grupo")
-        v = QHBoxLayout(vistas)
-        v.setContentsMargins(2, 2, 2, 2)
-        v.setSpacing(2)
-        self.grupo_vistas = QButtonGroup(self)
-        self.botones_vista: dict[str, QPushButton] = {}
-        for nombre in ("2D", "3D"):
-            b = QPushButton(nombre, objectName="segmento", checkable=True)
-            b.setToolTip(f"Vista {nombre}")
-            b.clicked.connect(lambda _=False, n=nombre: self.mostrar_vista(n))
-            self.grupo_vistas.addButton(b)
-            self.botones_vista[nombre] = b
-            v.addWidget(b)
-        self.botones_vista["2D"].setChecked(True)
-        capa.addWidget(vistas)
-        capa.addSpacing(8)
         capa.addWidget(QLabel("Diagrama", objectName="tenue"))
         grupo = QWidget(objectName="grupo")
         g = QHBoxLayout(grupo)
@@ -880,6 +925,10 @@ class Ventana(QMainWindow):
             )
 
     def _iconos_dibujo(self) -> None:
+        for b in self.botones_vista.values():
+            b.setIcon(
+                iconos.qicon(b.property("icono"), estilo.actual, 16, self.devicePixelRatioF())
+            )
         for _dibujo, botones_h, _ in self._dibujos():
             for b in botones_h.values():
                 b.setIcon(
@@ -1220,22 +1269,93 @@ class Ventana(QMainWindow):
         if isinstance(self.vista3d, Vista3D):
             self.vista3d.elegir_diagrama(clave)
 
-    def mostrar_vista(self, nombre: str) -> None:
-        """Muestra la vista ``"2D"`` o ``"3D"`` en el centro de la ventana."""
-        if nombre == "3D":
-            # Se dibuja en la vista 2D: al pasar a 3D se vuelve a Seleccionar.
+    def _vista3d(self) -> QWidget:
+        """El visor 3D, creado la primera vez (VTK tarda en arrancar)."""
+        if self.vista3d is None:
+            self.vista3d = vista3d.crear(self.sesion)
+            if isinstance(self.vista3d, Vista3D):
+                self.vista3d.mostrar_valores = self.vista.mostrar_valores
+                self.vista3d.elegir_diagrama(self.vista.diagrama)
+                self.vista3d.perspectiva = self.botones_proyeccion["perspectiva"].isChecked()
+                self.vista3d.vista_pedida.connect(self._vista_desde_brujula)
+                self.vista3d.botones_navegacion.actualizar_iconos()
+            self.vistas.addWidget(self.vista3d)
+        return self.vista3d
+
+    def _camara_de_frente(self):
+        """La cámara 3D que muestra exactamente lo que muestra la vista de frente."""
+        v = self.vista.vista_actual()
+        if v is None:
+            return None
+        return camara3d.Camara3D.de_frente(v.escala, v.cx, v.cy)
+
+    def vista_visible(self) -> str:
+        """``"frente"`` o ``"3d"``: la vista del modelo de cálculo que se ve."""
+        return "3d" if self.botones_vista["3d"].isChecked() else "frente"
+
+    def mostrar_vista(self, nombre: str, animar: bool = True) -> None:
+        """Muestra la vista ``"frente"`` o ``"3d"`` en el centro de la ventana.
+
+        Es un solo visor: al pasar de una a otra la cámara se mueve con una transición
+        corta, desde donde se miraba el pórtico de frente o hasta ahí."""
+        nombre = ALIAS_VISTAS.get(nombre, nombre)
+        actual = self.vistas.currentWidget()
+        if nombre == "3d":
+            # Se dibuja en la vista de frente: al pasar a 3D se vuelve a Seleccionar.
             if self.vista.dibujo.activo:
                 self.vista.dibujo.elegir("seleccionar")
-            if self.vista3d is None:
-                self.vista3d = vista3d.crear(self.sesion)
-                if isinstance(self.vista3d, Vista3D):
-                    self.vista3d.mostrar_valores = self.vista.mostrar_valores
-                    self.vista3d.elegir_diagrama(self.vista.diagrama)
-                self.vistas.addWidget(self.vista3d)
-            self.vistas.setCurrentWidget(self.vista3d)
+            w = self._vista3d()
+            if isinstance(w, Vista3D) and actual is not w:
+                frente = self._camara_de_frente()
+                if frente is not None:
+                    w.poner(replace(frente, perspectiva=w.perspectiva))
+                self.vistas.setCurrentWidget(w)
+                if animar and w.escena is not None and w.escena.barras:
+                    w.ir_a("isometrica")
+            else:
+                self.vistas.setCurrentWidget(w)
         else:
-            self.vistas.setCurrentWidget(self.vista)
+            w = self.vista3d
+            frente = self._camara_de_frente()
+            if isinstance(w, Vista3D) and actual is w and animar and frente is not None:
+                w.animar_a(
+                    replace(frente, perspectiva=False),
+                    lambda: self.vistas.setCurrentWidget(self.vista),
+                )
+            else:
+                self.vistas.setCurrentWidget(self.vista)
         self.botones_vista[nombre].setChecked(True)
+        self.grupo_proyeccion.setVisible(nombre == "3d")
+
+    def elegir_proyeccion(self, clave: str) -> None:
+        """``"paralela"`` o ``"perspectiva"`` en la vista 3D."""
+        self.botones_proyeccion[clave].setChecked(True)
+        if isinstance(self.vista3d, Vista3D):
+            self.vista3d.elegir_perspectiva(clave == "perspectiva")
+
+    def _vista_desde_brujula(self, extremo: str) -> None:
+        """Clic en la brújula: de frente (``-Y``) es la vista plana; las demás, la 3D."""
+        if extremo == "-Y":
+            self.mostrar_vista("frente")
+            return
+        self.mostrar_vista("3d", animar=False)
+        if isinstance(self.vista3d, Vista3D):
+            self.vista3d.ir_a(extremo)
+
+    def _girar_desde_frente(self, pos: QPointF, x: float, y: float) -> None:
+        """Arrastre con el botón derecho en la vista de frente: pasa a 3D sin saltos y
+        gira alrededor del punto donde empezó el arrastre."""
+        self.mostrar_vista("3d", animar=False)
+        if isinstance(self.vista3d, Vista3D):
+            self.vista3d.empezar_giro(pos, (x, 0.0, y))
+
+    def _seguir_giro(self, dx: float, dy: float) -> None:
+        if isinstance(self.vista3d, Vista3D):
+            self.vista3d.girar(dx, dy)
+
+    def _terminar_giro(self) -> None:
+        if isinstance(self.vista3d, Vista3D):
+            self.vista3d.terminar_arrastre()
 
     def _item_explorador(self, tipo: str, valor) -> None:
         if tipo == "edificio":
@@ -1273,6 +1393,8 @@ class Ventana(QMainWindow):
         self.botones_modo[modo].setChecked(True)
         self.ctx_edificio.setVisible(edificio)
         self.ctx_calculo.setVisible(not edificio)
+        # La planta del edificio todavía no tiene vista de frente ni 3D.
+        self.selector_vista.setVisible(not edificio)
         self._accion_dibujo["edificio"].setVisible(edificio)
         self._accion_dibujo["calculo"].setVisible(not edificio)
         self.paneles["estructura"].setWindowTitle("Edificio" if edificio else "Estructura")
@@ -1295,8 +1417,7 @@ class Ventana(QMainWindow):
         if edificio:
             self.vistas.setCurrentWidget(self.planta)
         else:
-            vista = "3D" if self.botones_vista["3D"].isChecked() else "2D"
-            self.mostrar_vista(vista)
+            self.mostrar_vista(self.vista_visible(), animar=False)
         # Re Pág y Av Pág cambian de planta solo en Edificio; en Cálculo son de las tablas.
         self.a_subir.setEnabled(edificio)
         self.a_bajar.setEnabled(edificio)
@@ -1717,6 +1838,8 @@ class Ventana(QMainWindow):
         self._iconos_riel()
         for lienzo in (self.vista, self.planta):
             lienzo.botones_navegacion.actualizar_iconos()
+        if isinstance(self.vista3d, Vista3D):
+            self.vista3d.botones_navegacion.actualizar_iconos()
         self._actualizar_explorador()
         self._actualizar_resultados()
         self._actualizar_propiedades()

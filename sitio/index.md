@@ -50,7 +50,7 @@ Nervi analiza pórticos por el método de los elementos finitos y muestra reacci
 - **Pórticos espaciales (3D)**, en versión preliminar: barras de 12 grados de libertad, brazos rígidos y diafragma rígido por piso.
 - **Cargas** en nudos y en barras: uniformes, puntuales, trapezoidales o parciales, momentos concentrados y térmicas.
 - **Casos y combinaciones** de carga, por ejemplo 1.2D + 1.6L.
-- **Resultados**: reacciones, diagramas de axil, cortante y momento, y deformada, en 2D y en un visor 3D. Al pasar el cursor por una barra se leen los valores en ese punto. Si el modelo es un mecanismo, indica qué nudo se mueve sin rigidez.
+- **Resultados**: reacciones, diagramas de axil, cortante y momento, y deformada, de frente o en 3D en un mismo visor que gira alrededor del punto que se mira. Al pasar el cursor por una barra se leen los valores en ese punto. Si el modelo es un mecanismo, indica qué nudo se mueve sin rigidez.
 - **Análisis dinámico**: modos de vibración, participación de masa y espectro de respuesta (CQC y SRSS), en versión preliminar.
 - **Diseño de hormigón armado según ACI 318-19**, experimental: vigas (flexión, cortante, flechas y detalle de armaduras) y columnas (flexocompresión biaxial y esbeltez), cada verificación con su artículo.
 - **Modelo físico del edificio**, en versión preliminar: pisos, ejes, columnas, vigas, losas macizas y muros que se dibujan con el mouse en cada planta, con enganche a extremos, ejes y grilla, o se cargan en tablas, con un gestor para agregar, mover y copiar plantas. Las cargas de cada planta se reparten de las losas a las vigas por áreas tributarias. Todavía no genera el modelo de cálculo.

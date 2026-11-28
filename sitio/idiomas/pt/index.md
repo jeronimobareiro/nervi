@@ -50,7 +50,7 @@ O Nervi analisa pórticos pelo método dos elementos finitos e mostra reações,
 - **Pórticos espaciais (3D)**, em versão preliminar: barras de 12 graus de liberdade, trechos rígidos e diafragma rígido por pavimento.
 - **Cargas** em nós e em barras: uniformes, pontuais, trapezoidais ou parciais, momentos concentrados e térmicas.
 - **Casos e combinações** de carga, por exemplo 1.2D + 1.6L.
-- **Resultados**: reações, diagramas de esforço normal, cortante e momento, e a deformada, em 2D e em um visualizador 3D. Ao passar o cursor sobre uma barra, os valores naquele ponto aparecem. Se o modelo for um mecanismo, indica qual nó se move sem rigidez.
+- **Resultados**: reações, diagramas de esforço normal, cortante e momento, e a deformada, de frente ou em 3D em um mesmo visualizador que gira em torno do ponto observado. Ao passar o cursor sobre uma barra, os valores naquele ponto aparecem. Se o modelo for um mecanismo, indica qual nó se move sem rigidez.
 - **Análise dinâmica**: modos de vibração, participação de massa e espectro de resposta (CQC e SRSS), em versão preliminar.
 - **Projeto de concreto armado segundo a ACI 318-19**, experimental: vigas (flexão, cisalhamento, flechas e detalhamento das armaduras) e pilares (flexão composta biaxial e esbeltez), cada verificação com seu artigo.
 - **Modelo físico do edifício**, em versão preliminar: pavimentos, eixos, pilares, vigas, lajes maciças e paredes desenhados com o mouse em cada planta, com atração a extremos, eixos e grade, ou preenchidos em tabelas, com um gerenciador para adicionar, mover e copiar pavimentos. As cargas de cada pavimento são distribuídas das lajes às vigas por áreas de influência. Ainda não gera o modelo de cálculo.

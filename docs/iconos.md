@@ -101,15 +101,15 @@ Para no confundir las cargas de la planta con las de las barras, la familia sigu
 
 | Clave | Nombre | Estado | Uso |
 |---|---|---|---|
-| `seleccionar` | Seleccionar | en uso | Barras Dibujar de la planta y de la vista 2D |
+| `seleccionar` | Seleccionar | en uso | Barras Dibujar de la planta y de la vista de frente |
 | `desplazar` | Desplazar | reservado | Visor 3D y planta (#30) |
 | `orbitar` | Orbitar | reservado | Visor 3D (#30) |
 | `acercar` | Acercar | en uso | Planta del edificio y vista 2D (zoom); visor 3D (#30) |
 | `alejar` | Alejar | en uso | Planta del edificio y vista 2D (zoom); visor 3D (#30) |
 | `encuadrar` | Encuadrar todo | en uso | Planta del edificio y vista 2D (zoom); visor 3D (#30) |
-| `vista_3d` | Vista 3D | reservado | Visor 3D (#30) |
+| `vista_3d` | Vista 3D | en uso | Selector Vista del visor: vista 3D (#30) |
 | `vista_planta` | Vista en planta | reservado | Modo Edificio y visor (#30, #73) |
-| `vista_alzado` | Vista en alzado | reservado | Modo Edificio y visor (#30, #73) |
+| `vista_alzado` | Vista en alzado | en uso | Selector Vista del visor: vista de frente (#30); alzados del edificio (#73) |
 | `rejilla` | Rejilla | reservado | Edición gráfica (#31) |
 | `capas` | Capas | reservado | Capas del plano DXF (#75) |
 | `medir` | Medir | reservado | Edición gráfica (#31) |
