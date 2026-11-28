@@ -152,6 +152,20 @@ Decidido el 28/11/2026 con muestras en los dos temas (entrada [2026-11-28-08](bi
 - **Brújula de vistas** (`gui.brujula.Brujula`), abajo a la derecha de la vista de frente y de la 3D, sobre la barra de coordenadas: círculo de 96 px con fondo `PANEL` y borde `BORDE`; los tres ejes como los ve la cámara, X en `NEGATIVO`, Y en `OK`, Z en `ACENTO`; el extremo positivo es un círculo lleno de 8 px con su letra y el negativo uno hueco de 5,5 px. Al pasar el mouse, un anillo de acento y el nombre de la vista. Clic: mirar desde ese lado (−Y vuelve a la vista de frente; +Z es la planta). Reemplaza al triedro de VTK.
 - **Vista 3D:** grilla del terreno en el plano del nudo más bajo, cada 1 m en `BORDE` y marcada cada 5 m en `borde_fuerte` (se agranda de a 5 si salen más de 60 líneas); botones de zoom y encuadre arriba a la derecha como en la vista de frente, con *Cargas* en el mismo grupo; la ayuda de navegación abajo a la derecha en `TEXTO_3`. Las etiquetas de valores van sobre `PANEL`, así se leen en los dos temas.
 
+## Barra de título propia
+
+Muestra aprobada el 28/11/2026 (entrada [2026-11-28-09](bitacora/2026-11-28-09-barra-de-titulo-propia.md)), en tema claro.
+
+![Ventana sin la barra del sistema: la fila superior lleva el logo, el archivo, las etapas, Buscar, Calcular y los botones de la ventana](img/barra-titulo.png)
+
+- La barra de título del sistema no sigue los temas: la dibuja el gestor de ventanas (Windows, KWin, Mutter…). Por defecto Nervi la quita (`nervi.gui.marco`) y la **fila superior hace de barra de título**: logo con el menú Archivo, nombre del archivo, etapas, Buscar, Calcular y, al final, un separador de 1 px (`separador_ventana`, `BORDE`) y *Minimizar*, *Maximizar* / *Restaurar* y *Cerrar*.
+- La fila mide 40 px (`marco.ALTO_BARRA`). Buscar es un botón de 180 px con "Buscar…  Ctrl K" (el nombre completo va en la ayuda y el texto accesible); Calcular queda igual; 8 px entre Calcular y el separador.
+- Botones de la ventana (`boton_ventana`, `boton_cerrar_ventana`): 46 × 40 px, planos y sin esquinas redondeadas, íconos `minimizar`, `maximizar`, `restaurar` y `cerrar` del catálogo a 16 px en `TEXTO_2`. Al pasar el mouse, fondo `HOVER`; *Cerrar* va en `CERRAR_VENTANA` (el rojo de cerrar de los sistemas, igual en los dos temas) con el ícono en `SOBRE_CERRAR_VENTANA`.
+- Arrastran la ventana las partes vacías de la fila y sus etiquetas; doble clic maximiza o restaura. Se redimensiona desde una franja de 5 px en los bordes (`marco.BORDE`).
+- **Windows**: la ventana conserva el estilo de ventana con marco y solo se le quita el área que dibujaba el sistema (`WM_NCCALCSIZE`); `WM_NCHITTEST` le dice qué es barra (`HTCAPTION`), borde o *Maximizar* (`HTMAXBUTTON`, para el menú de distribuciones de Snap en Windows 11). Así siguen Snap, Win + flechas, la sombra, las esquinas redondeadas y las animaciones.
+- **Linux** (X11 y Wayland): ventana sin marco con un margen de 5 px y una línea de 1 px en `BORDE_FUERTE`; el arrastre y el redimensionado los hace el gestor de ventanas (`startSystemMove`, `startSystemResize`).
+- *Preferencias › Apariencia › Barra de título* vuelve a la del sistema operativo (se aplica al volver a abrir Nervi).
+
 ## Cómo agregar algo
 
 1. Usá los nombres de objeto existentes (`primario`, `fantasma`, `peligro`, `segmento`, `seccion`, `tenue`, `aviso`…) antes de crear uno nuevo.
