@@ -5,7 +5,8 @@
 //! elástico (barras Euler-Bernoulli, 3 GDL por nudo). Fase 2a: pórtico espacial
 //! (módulo [`espacial`], 6 GDL por nudo). Reparto de las cargas de las losas a
 //! sus vigas y muros por áreas tributarias (módulo [`losas`]). Enganche de puntos
-//! para dibujar en planta con el mouse (módulo [`enganche`]).
+//! para dibujar en planta con el mouse (módulo [`enganche`]) y geometría de las
+//! herramientas de dibujo (módulo [`planta`]).
 //!
 //! ```
 //! use nervi_core::{analizar, Barra, CasoCarga, Modelo};
@@ -38,6 +39,7 @@ pub mod espacial;
 pub mod losas;
 mod mecanismo;
 pub mod modelo;
+pub mod planta;
 
 pub use analisis::{analizar, Resultados, ResultadosCaso, Seccion};
 pub use elemento::CargaLocal;

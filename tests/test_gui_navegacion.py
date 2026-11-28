@@ -62,6 +62,13 @@ def test_camara_acerca_hacia_el_cursor():
     assert not c.activa and c.resolver(ajuste) is ajuste
 
 
+@pytest.fixture(autouse=True)
+def preferencias_aparte(tmp_path, monkeypatch):
+    from nervi.gui import ajustes
+
+    monkeypatch.setattr(ajustes, "ARCHIVO", str(tmp_path / "preferencias.ini"))
+
+
 @pytest.fixture
 def ventana(qtbot):
     s = Sesion(documento_ejemplo())

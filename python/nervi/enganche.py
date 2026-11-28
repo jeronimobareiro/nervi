@@ -20,7 +20,16 @@ import numpy as np
 
 from . import _core
 
-__all__ = ["TIPOS", "Enganche", "GeometriaPlanta", "IndiceEnganche", "geometria_planta"]
+__all__ = [
+    "TIPOS",
+    "Enganche",
+    "GeometriaPlanta",
+    "IndiceEnganche",
+    "cruces",
+    "geometria_planta",
+    "pano_en",
+    "partir",
+]
 
 #: Tipos de enganche, de mayor a menor prioridad, con su nombre para la interfaz.
 TIPOS = {
@@ -165,3 +174,29 @@ def geometria_planta(mf, piso: int | None, ejes: bool = True) -> GeometriaPlanta
                 segmentos.append((c[k], c[(k + 1) % len(c)]))
                 o_s.append(("losas", losa["id"]))
     return GeometriaPlanta(IndiceEnganche(puntos, segmentos), o_p, o_s)
+
+
+def _segmentos(segmentos) -> np.ndarray:
+    return np.asarray([(a[0], a[1], b[0], b[1]) for a, b in segmentos], dtype=float).reshape(-1, 4)
+
+
+def pano_en(segmentos, punto: Punto, tol: float = 1e-6) -> list[Punto] | None:
+    """El paño cerrado por ``segmentos`` (vigas y muros) que contiene ``punto``, como
+    polígono antihorario sin vértices alineados, o ``None`` (``nervi_core::planta``).
+
+    >>> pano_en([((0, 0), (4, 0)), ((4, 0), (4, 3)), ((4, 3), (0, 3)), ((0, 3), (0, 0))], (1, 1))
+    [(0.0, 0.0), (4.0, 0.0), (4.0, 3.0), (0.0, 3.0)]
+    """
+    return _core.pano_en(_segmentos(segmentos), float(punto[0]), float(punto[1]), float(tol))
+
+
+def cruces(segmentos, tol: float = 1e-6) -> list[Punto]:
+    """Cruces entre ``segmentos`` (por ejemplo, los ejes), sin repetir."""
+    return _core.cruces(_segmentos(segmentos), float(tol))
+
+
+def partir(segmento: tuple[Punto, Punto], puntos, tol: float = 1e-6) -> list[float]:
+    """Parámetros (entre 0 y 1, sin los extremos) donde ``segmento`` pasa por ``puntos``."""
+    (a, b), (c, d) = segmento
+    p = np.asarray(list(puntos), dtype=float).reshape(-1, 2)
+    return _core.partir((float(a), float(b), float(c), float(d)), p, float(tol))

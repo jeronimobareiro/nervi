@@ -103,6 +103,19 @@ Muestra del 27/11/2026 en los dos temas (entrada [2026-11-27-02](bitacora/2026-1
 - **Propiedades:** de la planta, *Permanente* y *Sobrecarga* editables bajo *Cargas de las losas* (en kN/m², además del peso propio). De una losa, sus cargas (vacías toman las del piso, que se ven como texto de ejemplo), el peso propio que resulta y, si no se reparte, el motivo en `aviso`. De una viga o un muro, *Cargas de losas*: el diagrama del caso elegido (`DiagramaCarga`, acento con relleno al 16 % y el máximo arriba), una tabla por caso con la fuerza en kN y el máximo en kN/m (el caso elegido en acento) y el área tributaria.
 - **Tablas:** *Pisos* y *Losas* suman *Permanente* y *Sobrecarga* en kN/m², y *Materiales* el *Peso* en kN/m³. En *Losas*, una carga que se toma del piso se ve en `TEXTO_3` con su explicación al pasar el mouse; al editarla queda vacía.
 
+### Dibujar en la planta
+
+Muestra del 28/11/2026 (entrada [2026-11-28-05](bitacora/2026-11-28-05-dibujar-edificio.md)), según la muestra aprobada del plan de dibujo con el mouse.
+
+![Herramienta Viga con un voladizo desde C1, enganche polar y largo junto al cursor](img/dibujar-edificio.png)
+
+- **Barra *Dibujar*** (en *Edificio*, `gui.dibujo.HERRAMIENTAS`): *Seleccionar*, *Eje*, *Columna*, *Viga*, *Losa* y *Muro* como `QToolButton` `segmento` con su ícono del catálogo, en un `grupo`; uno solo marcado. Esc vuelve a *Seleccionar*.
+- **Barra *Enganche*** (`gui.dibujo.ENGANCHES`): *Grilla* (con su paso, 0,50 m), *Ejes*, *Extremos*, *Medio*, *Cruces* y *Orto F8*, botones `segmento` que se quedan marcados; se recuerdan en las preferencias (`dibujo/<clave>`).
+- **Planta mientras se dibuja:** el tramo en curso en acento con trazo de 2 px; la guía polar o la prolongación a trazos (`TEXTO_3`); la marca del enganche con forma por tipo (cuadrado en extremos y puntos, triángulo en el medio, cruz en cruces, rombo en la grilla) y una pastilla con *Tipo · elemento* y *largo · ángulo°*. El paño que tomaría la losa se rellena con el acento al 18 %.
+- **Entrada numérica** (`EntradaNumerica`): al escribir un número aparece junto al cursor con *Largo* y *Ángulo*; Tab pasa de uno al otro, Enter fija el punto y Esc la cierra. Sin ángulo, sigue la dirección del cursor.
+- **Panel de la herramienta** (`PanelHerramienta`, en lugar de Propiedades): título *Nueva viga* (o columna, losa, muro, eje), *Sección* y *Material* con *Automática* primero (la más usada del modelo o una por defecto), *Espesor* en losas y muros, *Encadenar tramos* y *Partir en cada columna*, y una ayuda breve en `TEXTO_2`.
+- Clic derecho cancela el tramo; Backspace saca el último punto; cada elemento creado es un Ctrl+Z.
+
 ## Cómo agregar algo
 
 1. Usá los nombres de objeto existentes (`primario`, `fantasma`, `peligro`, `segmento`, `seccion`, `tenue`, `aviso`…) antes de crear uno nuevo.

@@ -577,7 +577,8 @@ impl IndiceEnganche {
         // 5. Grilla (snapToGrid), o el cursor tal cual.
         if op.paso_grilla > 0.0 {
             let g = op.paso_grilla;
-            let p = [(c[0] / g).round() * g, (c[1] / g).round() * g];
+            // `+ 0.0` cambia el −0 de redondear un número negativo chico por 0.
+            let p = [(c[0] / g).round() * g + 0.0, (c[1] / g).round() * g + 0.0];
             return enganche(p, Tipo::Grilla, None, None, None);
         }
         enganche(c, Tipo::Libre, None, None, None)
@@ -616,7 +617,7 @@ impl IndiceEnganche {
         let l = dir[0].hypot(dir[1]);
         let t = ((q[0] - ant[0]) * dir[0] + (q[1] - ant[1]) * dir[1]) / l;
         let t = (t / paso).round() * paso;
-        [ant[0] + t * dir[0] / l, ant[1] + t * dir[1] / l]
+        [ant[0] + t * dir[0] / l + 0.0, ant[1] + t * dir[1] / l + 0.0]
     }
 
     fn orto(

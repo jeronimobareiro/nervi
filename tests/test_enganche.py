@@ -1,12 +1,21 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Enganche de puntos en planta desde Python (``nervi.enganche``, motor en Rust)."""
 
+import importlib.util
 import random
+from pathlib import Path
 
 import pytest
-from test_gui_edificio import _edificio
 
 from nervi.enganche import Enganche, IndiceEnganche, geometria_planta
+
+
+def _edificio():
+    ruta = Path(__file__).resolve().parents[1] / "examples" / "edificio_fisico.py"
+    spec = importlib.util.spec_from_file_location("edificio_fisico", ruta)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.armar()
 
 
 def test_tipos_basicos():

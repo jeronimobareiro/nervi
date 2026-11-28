@@ -52,6 +52,7 @@ from .arbol import ArbolModelo
 from .asistente import PanelAsistente
 from .canal import CanalVentana
 from .consola import Consola
+from .dibujo import ENGANCHES, HERRAMIENTAS, PASO_GRILLA_M, PanelHerramienta
 from .dinamica import PanelDinamica, fase
 from .diseno import PanelDiseno, color_estado
 from .edificio import (
@@ -135,6 +136,9 @@ class Ventana(QMainWindow):
         estilo.aplicar(tema=ajustes.tema())
         # Modelo físico del edificio (#73): piso que se ve y elemento elegido.
         self.edificio = EstadoEdificio(self.sesion)
+        # La planta se crea antes que las barras: la barra contextual lleva sus
+        # herramientas de dibujo.
+        self.planta = PlantaEdificio(self.edificio)
         self.modo = "calculo"
         self._acciones()
 
@@ -151,7 +155,6 @@ class Ventana(QMainWindow):
         self.vista3d: QWidget | None = None
         self.vistas = QStackedWidget()
         self.vistas.addWidget(self.vista)
-        self.planta = PlantaEdificio(self.edificio)
         self.vistas.addWidget(self.planta)
         self.panel_inferior = self._panel_inferior()
         self.centro = centro = QSplitter(Qt.Vertical)
@@ -257,6 +260,11 @@ class Ventana(QMainWindow):
                 atajo,
             )
             self.a_diagramas[clave].setShortcutContext(Qt.WidgetWithChildrenShortcut)
+        self.a_orto = self._accion(
+            "Orto: dibujar en horizontal y vertical",
+            lambda: self.botones_enganche["orto"].toggle(),
+            "F8",
+        )
         self.a_plantas = self._accion("Plantas", self.gestionar_plantas)
         self.a_subir = self._accion("Subir una planta", lambda: self.subir_planta(1), "PgUp")
         self.a_bajar = self._accion("Bajar una planta", lambda: self.subir_planta(-1), "PgDown")
@@ -448,6 +456,7 @@ class Ventana(QMainWindow):
         }
 
     def _iconos_riel(self) -> None:
+        self._iconos_dibujo()
         # Ícono del gestor de plantas: tres losas apiladas, con el color del tema.
         self.b_plantas.setIcon(
             QIcon(icono_trazo(ICONO_PLANTAS, estilo.TEXTO_2, 20, self.devicePixelRatioF()))
@@ -579,6 +588,8 @@ class Ventana(QMainWindow):
         self.combo_caso.setVisible(False)
         self.b_cargas.toggled.connect(self.combo_caso.setVisible)
         e.addWidget(self.combo_caso)
+        e.addSpacing(8)
+        e.addWidget(self._barra_dibujo())
         self.ctx_edificio.hide()
         capa.addWidget(self.ctx_edificio)
 
@@ -633,6 +644,79 @@ class Ventana(QMainWindow):
         capa_calculo.addStretch()
         return barra
 
+    def _barra_dibujo(self) -> QWidget:
+        """Herramientas de dibujo de la planta y enganches (``nervi.gui.dibujo``)."""
+        dibujo = self.planta.dibujo
+        barra = QWidget()
+        capa = QHBoxLayout(barra)
+        capa.setContentsMargins(0, 0, 0, 0)
+        capa.setSpacing(6)
+        capa.addWidget(QLabel("Dibujar", objectName="tenue"))
+        grupo = QWidget(objectName="grupo")
+        g = QHBoxLayout(grupo)
+        g.setContentsMargins(2, 2, 2, 2)
+        g.setSpacing(2)
+        self.grupo_herramientas = QButtonGroup(self)
+        self.botones_herramienta: dict[str, QToolButton] = {}
+        for clave, (icono_clave, nombre) in HERRAMIENTAS.items():
+            b = QToolButton(objectName="segmento", checkable=True)
+            b.setText("" if clave == "seleccionar" else nombre)
+            b.setToolTip(nombre)
+            b.setAccessibleName(nombre)
+            b.setIconSize(QSize(18, 18))
+            b.setToolButtonStyle(
+                Qt.ToolButtonIconOnly if clave == "seleccionar" else Qt.ToolButtonTextBesideIcon
+            )
+            b.setProperty("icono", icono_clave)
+            b.clicked.connect(lambda _=False, c=clave: self.elegir_herramienta(c))
+            self.grupo_herramientas.addButton(b)
+            self.botones_herramienta[clave] = b
+            g.addWidget(b)
+        capa.addWidget(grupo)
+        capa.addSpacing(6)
+        capa.addWidget(QLabel("Enganche", objectName="tenue"))
+        grupo_e = QWidget(objectName="grupo")
+        ge = QHBoxLayout(grupo_e)
+        ge.setContentsMargins(2, 2, 2, 2)
+        ge.setSpacing(2)
+        self.botones_enganche: dict[str, QPushButton] = {}
+        for clave, nombre in ENGANCHES.items():
+            texto = f"{nombre} {PASO_GRILLA_M:.2f}" if clave == "grilla" else nombre
+            b = QPushButton(texto, objectName="segmento", checkable=True)
+            b.setChecked(dibujo.opciones.enganches[clave])
+            b.toggled.connect(lambda v, c=clave: self.planta.dibujo.poner_enganche(c, v))
+            self.botones_enganche[clave] = b
+            ge.addWidget(b)
+        capa.addWidget(grupo_e)
+        dibujo.cambiado.connect(self._actualizar_dibujo)
+        self._actualizar_dibujo()
+        return barra
+
+    def elegir_herramienta(self, clave: str) -> None:
+        """Elige una herramienta de dibujo de la planta (pasa al modo Edificio)."""
+        if self.modo != "edificio":
+            self.elegir_modo("edificio")
+        self.planta.dibujo.elegir(clave)
+        self.planta.setFocus()
+
+    def _actualizar_dibujo(self) -> None:
+        dibujo = self.planta.dibujo
+        self.botones_herramienta[dibujo.herramienta].setChecked(True)
+        for clave, b in self.botones_enganche.items():
+            b.blockSignals(True)
+            b.setChecked(dibujo.opciones.enganches[clave])
+            b.blockSignals(False)
+        if self.modo == "edificio":
+            self.pila_prop.setCurrentWidget(
+                self.panel_herramienta if dibujo.activo else self.prop_edificio
+            )
+
+    def _iconos_dibujo(self) -> None:
+        for b in self.botones_herramienta.values():
+            b.setIcon(
+                iconos.qicon(b.property("icono"), estilo.actual, 18, self.devicePixelRatioF())
+            )
+
     def _explorador(self) -> QWidget:
         panel = QWidget(objectName="panel")
         capa = QVBoxLayout(panel)
@@ -685,6 +769,8 @@ class Ventana(QMainWindow):
         self.pila_prop = QStackedWidget()
         self.pila_prop.addWidget(panel)
         self.pila_prop.addWidget(self.prop_edificio)
+        self.panel_herramienta = PanelHerramienta(self.planta.dibujo)
+        self.pila_prop.addWidget(self.panel_herramienta)
         return self.pila_prop
 
     def _panel_inferior(self) -> QTabWidget:
@@ -1019,7 +1105,9 @@ class Ventana(QMainWindow):
         self.titulo_arbol.setText("Edificio" if edificio else "Estructura")
         self.pila_arbol.setCurrentWidget(self.arbol_edificio if edificio else self.arbol)
         self.pila_prop.setCurrentWidget(
-            self.prop_edificio if edificio else self.pila_prop.widget(0)
+            (self.panel_herramienta if self.planta.dibujo.activo else self.prop_edificio)
+            if edificio
+            else self.pila_prop.widget(0)
         )
         tabs = self.panel_inferior
         i_modelo, i_edificio = tabs.indexOf(self.tabs_modelo), tabs.indexOf(self.tablas_edificio)

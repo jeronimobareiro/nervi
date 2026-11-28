@@ -108,3 +108,52 @@ impl IndiceEnganche {
         (self.indice.puntos().len(), self.indice.segmentos().len())
     }
 }
+
+fn segmentos(s: &PyReadonlyArray2<'_, f64>) -> PyResult<Vec<[[f64; 2]; 2]>> {
+    let s = s.as_array();
+    verificar_forma("segmentos", s.shape(), &[s.nrows(), 4])?;
+    Ok((0..s.nrows())
+        .map(|k| [[s[[k, 0]], s[[k, 1]]], [s[[k, 2]], s[[k, 3]]]])
+        .collect())
+}
+
+/// El paño cerrado por los `segmentos` (M×4) que contiene `(x, y)`: lista de
+/// vértices antihoraria, o `None`.
+#[pyfunction]
+pub fn pano_en(
+    py: Python<'_>,
+    segmentos_: PyReadonlyArray2<'_, f64>,
+    x: f64,
+    y: f64,
+    tol: f64,
+) -> PyResult<Option<Vec<(f64, f64)>>> {
+    let s = segmentos(&segmentos_)?;
+    let p = py.detach(|| nervi_core::planta::pano_en(&s, [x, y], tol));
+    Ok(p.map(|v| v.into_iter().map(|q| (q[0], q[1])).collect()))
+}
+
+/// Cruces entre los `segmentos` (M×4), sin repetir.
+#[pyfunction]
+pub fn cruces(
+    py: Python<'_>,
+    segmentos_: PyReadonlyArray2<'_, f64>,
+    tol: f64,
+) -> PyResult<Vec<(f64, f64)>> {
+    let s = segmentos(&segmentos_)?;
+    let c = py.detach(|| nervi_core::planta::cruces(&s, tol));
+    Ok(c.into_iter().map(|q| (q[0], q[1])).collect())
+}
+
+/// Parámetros donde partir el segmento `(x1, y1, x2, y2)` en los `puntos` (N×2).
+#[pyfunction]
+pub fn partir(
+    segmento: (f64, f64, f64, f64),
+    puntos: PyReadonlyArray2<'_, f64>,
+    tol: f64,
+) -> PyResult<Vec<f64>> {
+    let p = puntos.as_array();
+    verificar_forma("puntos", p.shape(), &[p.nrows(), 2])?;
+    let pts: Vec<[f64; 2]> = (0..p.nrows()).map(|k| [p[[k, 0]], p[[k, 1]]]).collect();
+    let (a, b, c, d) = segmento;
+    Ok(nervi_core::planta::partir([[a, b], [c, d]], &pts, tol))
+}

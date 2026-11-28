@@ -998,5 +998,8 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("VERSION_CONTRATO_LOSAS", losas::VERSION_CONTRATO_LOSAS)?;
     m.add_function(wrap_pyfunction!(losas::repartir_losas, m)?)?;
     m.add_class::<enganche::IndiceEnganche>()?;
+    m.add_function(wrap_pyfunction!(enganche::pano_en, m)?)?;
+    m.add_function(wrap_pyfunction!(enganche::cruces, m)?)?;
+    m.add_function(wrap_pyfunction!(enganche::partir, m)?)?;
     Ok(())
 }
