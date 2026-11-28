@@ -12,8 +12,12 @@ Cargas por planta (issue #78): los pisos llevan 1,5 kN/m² de permanente y
 espesor de cada losa. Se reparten a las vigas por áreas tributarias y se
 comprueba el equilibrio: lo que reciben las vigas es lo que pesan las losas.
 
+Modelo de cálculo (issue #74): se genera el pórtico espacial desde el edificio
+(columnas y vigas con brazos rígidos, un diafragma por piso, empotramientos y las
+cargas de las losas), se resuelve y se muestran los momentos de una viga, leídos
+sobre la viga del edificio aunque el cálculo la haya partido en barras.
+
 Coordenadas y niveles en m; secciones y espesores en mm; resistencias en MPa.
-El modelo de cálculo todavía no se genera desde el físico (issue #74).
 """
 
 import tempfile
@@ -97,6 +101,23 @@ def main() -> None:
     for viga in mf.en_piso(piso1)["vigas"]:
         r = [reparto.resultante(("vigas", viga["id"]), c) for c in reparto.casos]
         print(f"  {viga['nombre']}: " + "  ".join(f"{x:7.3f}" for x in r))
+
+    mc = mf.modelo_calculo()
+    print(
+        f"Modelo de cálculo: {len(mc.nudos)} nudos, {mc.n_barras} barras, "
+        f"{len(mc.maestros)} diafragmas, {len(mc.apoyos)} apoyos"
+    )
+    for aviso in mc.avisos:
+        print(f"  Aviso: {aviso.texto(mf)}")
+    res = mc.modelo.resolver()
+    comb = res.combinar("1.2D+1.6L", {"D": 1.2, "L": 1.6})
+    print(f"Reacción vertical total con D: {res['D'].reacciones[:, 2].sum():.3f} kN")
+    viga = next(v for v in mf.lista("vigas") if v["nombre"] == "V102")
+    d = mc.diagrama(comb, "vigas", viga["id"])
+    print(
+        f"V102 con 1.2D+1.6L: M en las caras {d['Mz'][0]:.2f} y {d['Mz'][-1]:.2f} kN·m, "
+        f"M+ máximo {d['Mz'].max():.2f} kN·m"
+    )
 
 
 if __name__ == "__main__":

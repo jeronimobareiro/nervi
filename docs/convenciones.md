@@ -132,6 +132,21 @@ Issue #14. `Modelo3D.diafragma(nudos, maestro=None)` declara que los nudos de un
 - Las barras entre nudos del mismo diafragma no se alargan en su eje ni se flexionan en el plano: sus esfuerzos `N` y `Vy`/`Vz` horizontales salen de la deformación que el diafragma permite (cero en una viga horizontal entre dos nudos del piso).
 - **Derivas de piso** (`Resultados3D.derivas(caso)` y `ResultadoEspectro3D.derivas()`): diferencia de `ux` y `uy` de los maestros de dos pisos consecutivos (ordenados por altura) dividida por la altura de entrepiso; el primer piso se compara con desplazamiento nulo en la cota más baja del modelo. Se miden en el maestro de cada piso. En el espectro se combina la deriva de cada modo, no la diferencia de los desplazamientos combinados.
 
+### Modelo de cálculo generado desde el edificio
+
+Issue #74 (`nervi.idealizacion.generar`, `ModeloFisico.modelo_calculo()`; reglas en `nervi_core::idealizacion`). El pórtico espacial que sale del modelo físico sigue estas convenciones:
+
+- **Ejes de las barras:** columnas y muros sobre su eje vertical, de la base hacia arriba; vigas sobre su eje en planta, en el nivel del piso (la cara superior de la losa), de `p1` a `p2`. No se modela la excentricidad vertical de la viga.
+- **Sección de las columnas:** el ancho `b` va sobre la dirección girada `angulo` (antihorario desde X) y el alto `h` sobre su perpendicular, que es el eje `y` local (`referencia` = esa perpendicular). Con `angulo` = 0, `b` va sobre X y `h` sobre Y, como en la planta. Las columnas circulares usan los ejes por omisión.
+- **Muros** (provisorio hasta las láminas, Fase 6): columna ancha equivalente sobre el centro del muro, con el largo del muro sobre `y` local, y un nudo en el centro en cada piso que alcanza. Una viga apoyada en todo su largo sobre un muro no es una barra: su carga pasa al nudo del muro con el momento de su excentricidad.
+- **Nudos:** dos puntos a menos de la tolerancia (1e-6 del tamaño del modelo, al menos 1 m) son el mismo nudo. Cada barra se parte en los nudos que caen sobre su eje; dos vigas del mismo piso que se cruzan se unen en un nudo.
+- **Brazos rígidos:** solo en las vigas, del nudo a la cara de la columna o del muro donde llega (el semiancho de la sección en la dirección de la viga). Si los brazos de un tramo ocupan toda su luz, el tramo va sin brazos y se avisa.
+- **Apoyos:** empotramiento en la base de las columnas y los muros que arrancan del piso más bajo.
+- **Diafragmas:** uno por cada piso con losas, con todos los nudos de su nivel y el maestro en su centroide.
+- **Casos de carga:** `D` = peso propio de losas y barras + permanente de las losas; `L` = sobrecarga. Las cargas de las losas son las del reparto (#78). Lo que cae sobre un brazo rígido pasa al nudo como fuerza vertical con el momento de su excentricidad (estática exacta).
+- **Materiales:** `E` del material o, si falta, `4700 √f'c` MPa en hormigón (ACI 318-19 §19.2.2.1(b)) y 200 000 MPa en acero; `G = E / (2 (1 + ν))` con ν = 0,2 en hormigón y 0,3 en acero. Peso específico del material o 25 kN/m³ en hormigón y 78,5 kN/m³ en acero.
+- **Vuelta al elemento físico:** cada barra guarda el elemento y el tramo de su eje (`s0`, `s1`) del que sale; `ModeloCalculo.diagrama(resultado, lista, id)` arma los diagramas del elemento con los de sus barras, con la abscisa `s` sobre su eje.
+
 ## Dinámica: masas, modal y espectro (Fase 2b)
 
 Módulo `nervi_core::espacial::dinamica` en Rust y `Modelo3D.modal` / `nervi.dinamica` en Python (issues #16, #17 y #18). Solo para el pórtico espacial; las masas se dan aparte del modelo estático, así que el análisis estático y su contrato no cambian.

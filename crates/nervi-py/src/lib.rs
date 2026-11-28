@@ -21,6 +21,7 @@ use pyo3::types::{PyDict, PyList};
 
 mod diseno;
 mod enganche;
+mod idealizacion;
 mod losas;
 
 /// Versión del contrato de datos del pórtico plano que entiende este módulo.
@@ -1001,5 +1002,10 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(enganche::pano_en, m)?)?;
     m.add_function(wrap_pyfunction!(enganche::cruces, m)?)?;
     m.add_function(wrap_pyfunction!(enganche::partir, m)?)?;
+    m.add(
+        "VERSION_CONTRATO_IDEALIZACION",
+        idealizacion::VERSION_CONTRATO_IDEALIZACION,
+    )?;
+    m.add_function(wrap_pyfunction!(idealizacion::idealizar_edificio, m)?)?;
     Ok(())
 }

@@ -234,3 +234,46 @@ Errores: `ValueError` si la versión no coincide, las formas no son las esperada
 | Versión | Cambio |
 |---|---|
 | 1 | Versión inicial: reparto por áreas tributarias en losas convexas. |
+
+# Modelo de cálculo generado (`idealizar_edificio`)
+
+Genera el modelo de cálculo (pórtico espacial) desde el modelo físico del edificio (issue #74, `nervi_core::idealizacion`). Contrato propio, `VERSION_CONTRATO_IDEALIZACION = 1`, que se versiona aparte de los demás. Lo usa `nervi.idealizacion`, que arma con la salida un `Modelo3D`; no es API pública. Las reglas de la idealización y sus fuentes, en la documentación del módulo de Rust.
+
+## Entrada
+
+| Argumento | Forma y tipo | Contenido |
+|---|---|---|
+| `version` | entero | `VERSION_CONTRATO_IDEALIZACION` |
+| `columnas` | `(C, 8)` float64 | `x y z1 z2 b h angulo circular`: eje vertical, sección (ancho `b` sobre la dirección girada `angulo`, en radianes antihorario desde X, y alto `h` en la perpendicular; en una circular, `b` es el diámetro y `circular` vale 1) |
+| `muros` | `(M, 7)` float64 | `x1 y1 x2 y2 z1 z2 espesor` |
+| `vigas` | `(V, 5)` float64 | `x1 y1 x2 y2 z` |
+| `niveles` | `(L,)` float64 | Niveles de los pisos, de abajo hacia arriba: los muros tienen un nudo en el centro en cada uno que alcanzan |
+| `base` | float | Nivel de la base: se empotran las columnas y los muros que arrancan ahí |
+| `diafragmas` | `(D,)` int64 | Niveles (índices en `niveles`) con diafragma rígido |
+| `tramos` | `(T, 5)` float64 | `tipo elemento nivel a b`: carga lineal sobre una viga (`tipo` 0) o un muro (`tipo` 1, en el nivel `nivel`), de la abscisa `a` a la `b` medidas desde `p1` |
+| `cargas` | `(T, K, 2)` float64 | Carga vertical hacia abajo en `a` y en `b` de cada caso, en fuerza por unidad de longitud del modelo |
+| `tol` | float | Tolerancia geométrica: dos puntos a menos de `tol` son el mismo nudo, y un nudo está sobre un eje si está a menos de `tol` de él |
+
+Todas las longitudes van en la unidad del modelo (también las secciones y los espesores).
+
+## Salida
+
+Un diccionario con:
+
+- `nudos (N, 3)`: coordenadas.
+- `barras (B, 8)`: `tipo origen i j s0 s1 brazo_i brazo_j`. `tipo` 0 columna, 1 muro y 2 viga; `origen` es la fila del elemento en su arreglo; `s0` y `s1` son las abscisas del tramo sobre el eje del elemento (desde `p1` en vigas y muros, desde `z1` en columnas); los brazos rígidos se miden desde cada nudo sobre el eje de la barra.
+- `apoyos (A,)` int64: nudos empotrados.
+- `diafragmas`: lista de `(nivel, [nudos])`.
+- `cargas_barra (K, 6)`: `barra caso a b q_a q_b`, carga trapezoidal vertical hacia abajo sobre la parte flexible de la barra, con `a` y `b` desde el fin del brazo del nudo `i`.
+- `cargas_nudo (K, 5)`: `nudo caso fz mx my`, en ejes globales (`fz` positiva hacia arriba): lo que cae sobre un brazo rígido o sobre una viga apoyada en un muro, con el momento de su excentricidad.
+- `avisos`: lista de `(viga, otro o None, motivo)`, con `motivo` ∈ {`viga_sobre_muro` (la viga apoya en todo su largo sobre el muro `otro` y no es una barra: su carga pasa al muro), `brazos_sin_luz` (los brazos de un tramo ocupan toda su luz: va sin brazos)}.
+
+Garantía: la fuerza vertical y los momentos totales de `cargas_barra` y `cargas_nudo` son los de los `tramos`, salvo el redondeo de la aritmética de doble precisión (estática exacta).
+
+Errores: `ValueError` si la versión no coincide, las formas no son las esperadas, `tol` no es positiva, una columna o un muro no tienen altura, largo, sección o espesor, una viga no tiene largo o un tramo referencia un elemento o nivel que no existe.
+
+### Historial de versiones (modelo de cálculo generado)
+
+| Versión | Cambio |
+|---|---|
+| 1 | Versión inicial: columnas, vigas y muros como columna ancha, brazos rígidos de las vigas, diafragmas por nivel, empotramientos en la base y cargas lineales por estática exacta. |
