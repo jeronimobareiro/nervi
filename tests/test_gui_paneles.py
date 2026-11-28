@@ -46,8 +46,9 @@ def test_paneles_de_fabrica(qtbot):
     assert v.dockWidgetArea(d["inferior"]) == Qt.BottomDockWidgetArea
     assert not d["asistente"].isVisible()
     assert d["estructura"].isVisible() and d["inferior"].isVisible()
-    # El ancho de las tablas no obliga a una ventana enorme.
-    assert v.minimumSizeHint().width() < 1300
+    # El ancho de las tablas no obliga a una ventana enorme (antes, unos 2000 px). El
+    # mínimo depende de las fuentes de cada sistema: lo fija la barra superior.
+    assert v.minimumSizeHint().width() < 1600
     v.elegir_modo("edificio")
     assert d["estructura"].windowTitle() == "Edificio"
     assert d["estructura"].titleBarWidget().etiqueta.text() == "Edificio"
