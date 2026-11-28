@@ -137,6 +137,20 @@ class ModeloFisico:
         contorno = self._ctx.ids["losas"][id]["contorno"]
         return abs(_formato.area_poligono([tuple(p) for p in contorno]))
 
+    def cargas_losa(self, id: int) -> dict[str, float]:
+        """Cargas de superficie de la losa en kN/m² (``peso_propio``, ``permanente`` y
+        ``sobrecarga``), con las del piso donde la losa no da las suyas."""
+        from .reparto import cargas_losa
+
+        return cargas_losa(self, self.elemento("losas", id))
+
+    def repartir_cargas(self, tol: float | None = None):
+        """Reparte las cargas de las losas a sus vigas y muros por áreas tributarias
+        (:mod:`nervi.reparto`). Devuelve un :class:`nervi.reparto.RepartoCargas`."""
+        from .reparto import repartir
+
+        return repartir(self, tol)
+
     def __len__(self) -> int:
         """Cantidad de elementos estructurales (columnas, vigas, losas y muros)."""
         return sum(len(self._datos[k]) for k in ("columnas", "vigas", "losas", "muros"))
@@ -149,9 +163,21 @@ class ModeloFisico:
         self._datos[lista].append(el)
         return el["id"]
 
-    def agregar_piso(self, nombre: str, nivel: float) -> int:
-        """Piso con su ``nivel`` (cota de la cara superior de la losa)."""
-        return self._agregar("pisos", {"nombre": nombre, "nivel": nivel})
+    def agregar_piso(
+        self,
+        nombre: str,
+        nivel: float,
+        *,
+        permanente: float | None = None,
+        sobrecarga: float | None = None,
+    ) -> int:
+        """Piso con su ``nivel`` (cota de la cara superior de la losa). ``permanente``
+        y ``sobrecarga`` (kN/m²) son las cargas de superficie de sus losas, salvo las
+        que den las suyas (:mod:`nervi.reparto`)."""
+        return self._agregar(
+            "pisos",
+            {"nombre": nombre, "nivel": nivel, "permanente": permanente, "sobrecarga": sobrecarga},
+        )
 
     def agregar_eje(self, nombre: str, p1: Punto, p2: Punto) -> int:
         return self._agregar("ejes", {"nombre": nombre, "p1": _punto(p1), "p2": _punto(p2)})
@@ -165,11 +191,15 @@ class ModeloFisico:
         fy: float | None = None,
         fu: float | None = None,
         E: float | None = None,
+        peso: float | None = None,
     ) -> int:
         """``tipo="hormigon"`` con ``fc`` o ``tipo="acero"`` con ``fy`` (y ``fu``), en MPa.
-        ``E`` es opcional; sin ``E`` lo dará la norma que se use."""
+        ``E`` es opcional; sin ``E`` lo dará la norma que se use. ``peso`` es el peso
+        específico en kN/m³ (sin él, el peso propio de las losas de hormigón toma
+        :data:`nervi.reparto.PESO_HORMIGON`)."""
         return self._agregar(
-            "materiales", {"nombre": nombre, "tipo": tipo, "fc": fc, "fy": fy, "fu": fu, "E": E}
+            "materiales",
+            {"nombre": nombre, "tipo": tipo, "fc": fc, "fy": fy, "fu": fu, "E": E, "peso": peso},
         )
 
     def agregar_seccion(
@@ -245,9 +275,12 @@ class ModeloFisico:
         *,
         nombre: str | None = None,
         tipo: str | None = None,
+        permanente: float | None = None,
+        sobrecarga: float | None = None,
     ) -> int:
         """Losa del ``piso`` con su ``contorno`` en planta (polígono simple, sin repetir
-        el primer punto) y ``espesor`` en mm. ``tipo`` por omisión ``"maciza"``."""
+        el primer punto) y ``espesor`` en mm. ``tipo`` por omisión ``"maciza"``.
+        ``permanente`` y ``sobrecarga`` (kN/m²) reemplazan a las del piso."""
         return self._agregar(
             "losas",
             {
@@ -257,6 +290,8 @@ class ModeloFisico:
                 "espesor": espesor,
                 "material": material,
                 "tipo": tipo,
+                "permanente": permanente,
+                "sobrecarga": sobrecarga,
             },
         )
 

@@ -52,8 +52,19 @@ from PySide6.QtWidgets import (
 from ..fisico import ModeloFisico
 from ..formato import fisico as formato_fisico
 from ..formato.errores import FormatoError
+from ..reparto import CASOS, RepartoCargas
 from . import arbol, estilo
 from .sesion import Sesion
+
+#: Casos de carga que se pueden ver en la planta, con su nombre.
+CASOS_VISTA = {
+    "total": "Total de servicio",
+    "peso_propio": "Peso propio",
+    "permanente": "Permanente",
+    "sobrecarga": "Sobrecarga",
+}
+#: Abreviatura de cada caso en los rótulos de la planta.
+ABREV = {"peso_propio": "PP", "permanente": "D", "sobrecarga": "L"}
 
 #: Listas que se dibujan en la planta de un piso.
 ELEMENTOS = ("columnas", "vigas", "losas", "muros")
@@ -93,6 +104,39 @@ def _medida(mm: float) -> str:
     return f"{mm / 10:.1f}".rstrip("0").rstrip(".")
 
 
+def _kn(v: float, decimales: int = 1) -> str:
+    return f"{v:.{decimales}f}".replace(".", ",")
+
+
+def resultante(reparto: RepartoCargas, apoyo: tuple[str, int], caso: str) -> float:
+    """Fuerza que recibe el apoyo en ``caso`` (``"total"`` suma los tres)."""
+    casos = CASOS if caso == "total" else (caso,)
+    return sum(reparto.resultante(apoyo, c) for c in casos)
+
+
+def diagrama(reparto: RepartoCargas, apoyo: tuple[str, int], caso: str) -> list[tuple]:
+    """Puntos ``(abscisa, carga)`` de la carga lineal sobre el apoyo, sumando las losas
+    que lo cargan, de un extremo al otro (para dibujarla)."""
+    casos = CASOS if caso == "total" else (caso,)
+    tramos = reparto.de(apoyo)
+    cortes = sorted({t.a for t in tramos} | {t.b for t in tramos})
+
+    def carga(x: float, lado: int) -> float:
+        total = 0.0
+        for t in tramos:
+            dentro = t.a <= x < t.b if lado > 0 else t.a < x <= t.b
+            if dentro:
+                for c in casos:
+                    q1, q2 = t.cargas[c]
+                    total += q1 + (q2 - q1) * (x - t.a) / (t.b - t.a)
+        return total
+
+    puntos = []
+    for x in cortes:
+        puntos += [(x, carga(x, -1)), (x, carga(x, 1))]
+    return puntos
+
+
 def nombre_elemento(lista: str, el: dict) -> str:
     """Código que se muestra de un elemento: su nombre o, si no tiene, letra e id."""
     return el.get("nombre") or f"{SINGULAR[lista][0]}{el['id']}"
@@ -110,6 +154,11 @@ class EstadoEdificio(QObject):
         self.sesion = sesion
         self.piso: int | None = None
         self.eleccion: tuple[str, int] | None = None
+        #: Si la planta muestra las cargas de las losas y su reparto (#78).
+        self.cargas_visibles = False
+        #: Caso que se muestra: uno de ``nervi.reparto.CASOS`` o ``"total"``.
+        self.caso = "total"
+        self._reparto: RepartoCargas | None = None
         sesion.fisico_cambiado.connect(self._revisar)
         self._revisar()
 
@@ -131,8 +180,23 @@ class EstadoEdificio(QObject):
         self.sesion.editar_fisico(mf.a_json(), descripcion)
         return True
 
+    def reparto(self) -> RepartoCargas:
+        """El reparto de las losas a vigas y muros del modelo actual (se calcula una vez
+        por cambio del modelo)."""
+        if self._reparto is None:
+            self._reparto = self.modelo().repartir_cargas()
+        return self._reparto
+
+    def mostrar_cargas(self, visibles: bool, caso: str | None = None) -> None:
+        if caso is not None and caso not in CASOS_VISTA:
+            raise ValueError(f"caso {caso!r}; válidos {tuple(CASOS_VISTA)}")
+        self.cargas_visibles = visibles
+        self.caso = caso or self.caso
+        self.cambiado.emit()
+
     def _revisar(self) -> None:
         """Después de un cambio, el piso y el elemento elegidos tienen que seguir existiendo."""
+        self._reparto = None
         mf = self.modelo()
         pisos = [p["id"] for p in mf.pisos_ordenados()]
         if self.piso not in pisos:
@@ -339,8 +403,11 @@ class PlantaEdificio(QWidget):
         self._ejes(p, t, mf)
         en = mf.en_piso(piso)
         elegido = self.estado.eleccion
-        self._losas(p, t, mf, en["losas"], elegido)
-        self._vigas(p, t, mf, en["vigas"], elegido)
+        reparto = self.estado.reparto() if self.estado.cargas_visibles else None
+        if reparto is not None:
+            self._zonas(p, t, en["losas"], elegido, reparto)
+        self._losas(p, t, mf, en["losas"], elegido, reparto)
+        self._vigas(p, t, mf, en["vigas"], elegido, reparto)
         self._muros(p, t, mf, en["muros"], elegido)
         self._columnas(p, t, mf, en["columnas"], elegido)
         self._leyenda(p, mf, piso, en)
@@ -361,7 +428,7 @@ class PlantaEdificio(QWidget):
     def _color(self, lista: str, el: dict, elegido) -> QColor:
         return QColor(estilo.ACENTO if elegido == (lista, el["id"]) else estilo.ESTRUCTURA)
 
-    def _losas(self, p, t, mf, losas, elegido) -> None:
+    def _losas(self, p, t, mf, losas, elegido, reparto=None) -> None:
         for losa in losas:
             poli = QPolygonF([t.a_pantalla(*q) for q in losa["contorno"]])
             sel = elegido == ("losas", losa["id"])
@@ -374,6 +441,13 @@ class PlantaEdificio(QWidget):
             f = QFont(self.font().family(), 8)
             f.setWeight(QFont.DemiBold)
             p.setFont(f)
+            if reparto is not None:
+                nombre = nombre_elemento("losas", losa)
+                caja = QRectF(0, 0, p.fontMetrics().horizontalAdvance(nombre) + 12, 16)
+                caja.moveCenter(QPointF(centro.x(), centro.y() - 10))
+                p.setPen(Qt.NoPen)
+                p.setBrush(QColor(estilo.PANEL))
+                p.drawRoundedRect(caja, 3, 3)
             p.setPen(QColor(estilo.ACENTO if sel else estilo.TEXTO_2))
             p.drawText(
                 QRectF(centro.x() - 80, centro.y() - 18, 160, 16),
@@ -383,11 +457,48 @@ class PlantaEdificio(QWidget):
             p.setFont(QFont(self.font().family(), 8))
             p.setPen(QColor(estilo.TEXTO_3))
             area = mf.area_losa(losa["id"])
-            p.drawText(
-                QRectF(centro.x() - 110, centro.y(), 220, 16),
-                Qt.AlignCenter,
-                f"Maciza · e = {_medida(losa['espesor'])} cm · {area:.1f} {mf.longitud}²",
-            )
+            texto = f"Maciza · e = {_medida(losa['espesor'])} cm · {area:.1f} {mf.longitud}²"
+            if reparto is not None:
+                q = reparto.cargas_losa[losa["id"]]
+                texto = " · ".join(f"{ABREV[c]} {_kn(q[c], 2)}" for c in CASOS) + " kN/m²"
+                if losa["id"] not in reparto.repartidas:
+                    poli_borde = QPen(QColor(estilo.NEGATIVO), 1.5, Qt.DashLine)
+                    p.setPen(poli_borde)
+                    p.setBrush(Qt.NoBrush)
+                    p.drawPolygon(poli)
+                    p.setPen(QColor(estilo.NEGATIVO))
+                    p.drawText(
+                        QRectF(centro.x() - 110, centro.y() + 16, 220, 16),
+                        Qt.AlignCenter,
+                        "Sin repartir",
+                    )
+                    p.setPen(QColor(estilo.TEXTO_3))
+            if reparto is not None:
+                caja = QRectF(0, 0, p.fontMetrics().horizontalAdvance(texto) + 12, 16)
+                caja.moveCenter(QPointF(centro.x(), centro.y() + 8))
+                p.save()
+                p.setPen(Qt.NoPen)
+                p.setBrush(QColor(estilo.PANEL))
+                p.drawRoundedRect(caja, 3, 3)
+                p.restore()
+            p.drawText(QRectF(centro.x() - 130, centro.y(), 260, 16), Qt.AlignCenter, texto)
+
+    def _zonas(self, p, t, losas, elegido, reparto: RepartoCargas) -> None:
+        """Zonas tributarias de las losas del piso: líneas de quiebre a trazos y, si hay
+        una viga o un muro elegido, su zona resaltada."""
+        del_piso = {losa["id"] for losa in losas}
+        for z in reparto.zonas:
+            if z.losa not in del_piso:
+                continue
+            poli = QPolygonF([t.a_pantalla(*q) for q in z.contorno])
+            if elegido in z.apoyos:
+                relleno = QColor(estilo.ACENTO)
+                relleno.setAlphaF(0.22)
+                p.setBrush(relleno)
+            else:
+                p.setBrush(Qt.NoBrush)
+            p.setPen(QPen(QColor(estilo.TEXTO_3), 1, Qt.DashLine))
+            p.drawPolygon(poli)
 
     def _franja(self, t, el: dict, ancho_mm: float, longitud: str) -> QPolygonF:
         (x1, y1), (x2, y2) = el["p1"], el["p2"]
@@ -403,7 +514,7 @@ class PlantaEdificio(QWidget):
             ]
         )
 
-    def _vigas(self, p, t, mf, vigas, elegido) -> None:
+    def _vigas(self, p, t, mf, vigas, elegido, reparto=None) -> None:
         secciones = {s["id"]: s for s in mf.lista("secciones")}
         for v in vigas:
             s = secciones[v["seccion"]]
@@ -428,6 +539,9 @@ class PlantaEdificio(QWidget):
             p.setPen(QColor(estilo.ACENTO if elegido == ("vigas", v["id"]) else estilo.TEXTO_3))
             alto = t.escala * _metros(ancho, mf.longitud) / 2
             texto = f"{nombre_elemento('vigas', v)} · {s['nombre']}"
+            if reparto is not None:
+                r = resultante(reparto, ("vigas", v["id"]), self.estado.caso)
+                texto = f"{nombre_elemento('vigas', v)} · {_kn(r)} kN"
             p.drawText(QRectF(-90, -alto - 16, 180, 14), Qt.AlignCenter, texto)
             p.restore()
 
@@ -519,7 +633,13 @@ class Col:
 
 
 COLUMNAS: dict[str, tuple[Col, ...]] = {
-    "pisos": (Col("Id", "id", "id"), Col("Nombre", "nombre", "texto"), Col("Nivel", "nivel")),
+    "pisos": (
+        Col("Id", "id", "id"),
+        Col("Nombre", "nombre", "texto"),
+        Col("Nivel", "nivel"),
+        Col("Permanente [kN/m²]", "permanente", opcional=True),
+        Col("Sobrecarga [kN/m²]", "sobrecarga", opcional=True),
+    ),
     "ejes": (
         Col("Id", "id", "id"),
         Col("Nombre", "nombre", "texto"),
@@ -536,6 +656,7 @@ COLUMNAS: dict[str, tuple[Col, ...]] = {
         Col("fy [MPa]", "fy", opcional=True),
         Col("fu [MPa]", "fu", opcional=True),
         Col("E [MPa]", "E", opcional=True),
+        Col("Peso [kN/m³]", "peso", opcional=True),
     ),
     "secciones": (
         Col("Id", "id", "id"),
@@ -572,6 +693,8 @@ COLUMNAS: dict[str, tuple[Col, ...]] = {
         Col("Contorno (x, y; …)", "contorno", "contorno"),
         Col("Espesor [mm]", "espesor"),
         Col("Material", "material", "material"),
+        Col("Permanente [kN/m²]", "permanente", opcional=True),
+        Col("Sobrecarga [kN/m²]", "sobrecarga", opcional=True),
     ),
     "muros": (
         Col("Id", "id", "id"),
@@ -677,13 +800,30 @@ class TablaFisico(QAbstractTableModel):
         if not indice.isValid():
             return None
         el, col = self._filas[indice.row()], self.columnas[indice.column()]
-        if rol in (Qt.DisplayRole, Qt.EditRole):
+        if rol == Qt.EditRole or (rol == Qt.DisplayRole and self._heredada(el, col) is None):
             return self._texto(el, col)
         if rol == Qt.TextAlignmentRole and col.tipo in ("num", "x", "y", "id"):
             return int(Qt.AlignRight | Qt.AlignVCenter)
         if rol == Qt.ForegroundRole and col.tipo == "id":
             return QColor(estilo.TEXTO_3)
+        heredada = self._heredada(el, col)
+        if heredada is not None:
+            if rol == Qt.DisplayRole:
+                return f"{heredada:g}"
+            if rol == Qt.ForegroundRole:
+                return QColor(estilo.TEXTO_3)
+            if rol == Qt.ToolTipRole:
+                return "Toma la del piso. Escribí un valor para que la losa tenga la suya."
         return None
+
+    def _heredada(self, el: dict, col: Col) -> float | None:
+        """En las losas sin carga propia, la carga del piso que toman (para mostrarla)."""
+        if self.lista != "losas" or col.clave not in ("permanente", "sobrecarga"):
+            return None
+        if col.clave in el:
+            return None
+        piso = next((q for q in self._mf.lista("pisos") if q["id"] == el["piso"]), {})
+        return piso.get(col.clave, 0.0)
 
     def flags(self, indice: QModelIndex):
         base = Qt.ItemIsEnabled | Qt.ItemIsSelectable
@@ -984,9 +1124,70 @@ class PropiedadesEdificio(QWidget):
             self.form.addRow("Largo", QLabel(f"{mf.largo_viga(id):.3f} {mf.longitud}"))
         elif lista == "losas":
             self.form.addRow("Área", QLabel(f"{mf.area_losa(id):.2f} {mf.longitud}²"))
+            self._cargas_losa(mf, datos)
         elif lista == "columnas":
             self.form.addRow("Altura", QLabel(f"{mf.altura_columna(id):.3f} {mf.longitud}"))
+        if lista in ("vigas", "muros"):
+            self._cargas_apoyo(mf, (lista, id))
         self.lbl_nota.setText("Los cambios se deshacen con Ctrl+Z.")
+
+    def _titulo_seccion(self, texto: str) -> None:
+        etiqueta = QLabel(texto.upper(), objectName="seccion")
+        etiqueta.setContentsMargins(0, 8, 0, 0)
+        self.form.addRow(etiqueta)
+
+    def _cargas_losa(self, mf: ModeloFisico, losa: dict) -> None:
+        """Peso propio que resulta y, en los campos vacíos, las cargas que toma del piso."""
+        q = mf.cargas_losa(losa["id"])
+        piso = mf.elemento("pisos", losa["piso"])
+        for k in range(self.form.rowCount()):
+            campo = self.form.itemAt(k, QFormLayout.FieldRole)
+            w = campo.widget() if campo is not None else None
+            clave = w.property("clave") if w is not None else None
+            if isinstance(w, QLineEdit) and clave in ("permanente", "sobrecarga"):
+                w.setPlaceholderText(f"del piso: {_kn(piso.get(clave, 0.0), 2)}")
+        self.form.addRow("Peso propio", QLabel(f"{_kn(q['peso_propio'], 2)} kN/m²"))
+        r = self.estado.reparto()
+        if losa["id"] not in r.repartidas:
+            aviso = next((a for a in r.avisos if a.losa == losa["id"]), None)
+            texto = QLabel(aviso.texto if aviso else "Sin repartir", objectName="aviso")
+            texto.setWordWrap(True)
+            self.form.addRow(texto)
+
+    def _cargas_apoyo(self, mf: ModeloFisico, apoyo: tuple[str, int]) -> None:
+        """Lo que recibe de las losas: diagrama del caso que se ve y, por caso, la
+        resultante y la carga máxima."""
+        r = self.estado.reparto()
+        self._titulo_seccion("Cargas de losas")
+        if not r.de(apoyo):
+            self.form.addRow(QLabel("No recibe cargas de losas.", objectName="tenue"))
+            return
+        el = mf.elemento(*apoyo)
+        largo = math.dist(el["p1"], el["p2"])
+        caso = self.estado.caso
+        self.form.addRow(DiagramaCarga(diagrama(r, apoyo, caso), largo, mf.longitud))
+        tabla = QWidget()
+        g = QGridLayout(tabla)
+        g.setContentsMargins(0, 0, 0, 0)
+        g.setHorizontalSpacing(10)
+        g.setVerticalSpacing(3)
+        for k, titulo in enumerate(("", "kN", "máx kN/m")):
+            g.addWidget(QLabel(titulo, objectName="tenue"), 0, k, Qt.AlignRight)
+        for fila, c in enumerate((*CASOS, "total"), start=1):
+            qmax = max(q for _, q in diagrama(r, apoyo, c))
+            celdas = (
+                CASOS_VISTA[c] if c != "total" else "Total",
+                _kn(resultante(r, apoyo, c)),
+                _kn(qmax, 2),
+            )
+            for k, texto in enumerate(celdas):
+                etiqueta = QLabel(texto)
+                if c == caso:
+                    etiqueta.setStyleSheet(f"color: {estilo.ACENTO}; font-weight: 600;")
+                g.addWidget(etiqueta, fila, k, Qt.AlignLeft if k == 0 else Qt.AlignRight)
+        self.form.addRow(tabla)
+        area = r.area_tributaria(apoyo)
+        self.form.addRow("Área tributaria", QLabel(f"{area:.2f} {mf.longitud}²"))
 
     def _piso(self, mf: ModeloFisico) -> None:
         piso = self.estado.piso
@@ -1006,6 +1207,15 @@ class PropiedadesEdificio(QWidget):
             self.form.addRow("Entrepiso", QLabel(f"{h:.2f} {mf.longitud}"))
         for lista, v in mf.en_piso(piso).items():
             self.form.addRow(TITULOS[lista], QLabel(str(len(v))))
+        self._titulo_seccion("Cargas de las losas")
+        for col in COLUMNAS["pisos"]:
+            if col.clave in ("permanente", "sobrecarga"):
+                campo = self._control(mf, "pisos", p, col)
+                campo.setPlaceholderText("0,00")
+                self.form.addRow(col.titulo.replace(" [kN/m²]", ""), campo)
+        nota = QLabel("En kN/m², además del peso propio de cada losa.", objectName="tenue")
+        nota.setWordWrap(True)
+        self.form.addRow(nota)
         self.lbl_nota.setText("Hacé clic en un elemento de la planta para ver y cambiar sus datos.")
 
     def _control(self, mf: ModeloFisico, lista: str, datos: dict, col: Col) -> QWidget:
@@ -1032,10 +1242,53 @@ class PropiedadesEdificio(QWidget):
             combo.activated.connect(lambda _k: aplicar(combo.currentText()))
             return combo
         campo = QLineEdit(texto)
+        campo.setProperty("clave", col.clave)
         if col.tipo in ("num", "x", "y"):
             campo.setAlignment(Qt.AlignRight)
         campo.editingFinished.connect(lambda: aplicar(campo.text()))
         return campo
+
+
+class DiagramaCarga(QWidget):
+    """Carga lineal sobre una viga o un muro, a lo largo de su eje (p1 a la izquierda)."""
+
+    def __init__(self, puntos: list[tuple], largo: float, longitud: str) -> None:
+        super().__init__()
+        self.puntos, self.largo, self.longitud = puntos, largo, longitud
+        self.setMinimumHeight(96)
+
+    def paintEvent(self, _evento) -> None:
+        p = QPainter(self)
+        p.setRenderHint(QPainter.Antialiasing)
+        f = QFont(self.font().family(), 8)
+        p.setFont(f)
+        izq, der, arriba, abajo = 4, self.width() - 4, 18, self.height() - 18
+        qmax = max((q for _, q in self.puntos), default=0.0) or 1.0
+
+        def a_px(s: float, q: float) -> QPointF:
+            return QPointF(izq + (der - izq) * s / self.largo, abajo - (abajo - arriba) * q / qmax)
+
+        relleno = QColor(estilo.ACENTO)
+        relleno.setAlphaF(0.16)
+        poli = [a_px(self.puntos[0][0], 0.0), *(a_px(s, q) for s, q in self.puntos)]
+        poli.append(a_px(self.puntos[-1][0], 0.0))
+        p.setPen(QPen(QColor(estilo.ACENTO), 1.5))
+        p.setBrush(relleno)
+        p.drawPolygon(QPolygonF(poli))
+        # La viga y sus extremos.
+        p.setPen(QPen(QColor(estilo.ESTRUCTURA), 2))
+        p.drawLine(QPointF(izq, abajo), QPointF(der, abajo))
+        p.setPen(QColor(estilo.TEXTO_3))
+        p.drawText(QRectF(izq, abajo + 2, 60, 14), Qt.AlignLeft, "0")
+        p.drawText(
+            QRectF(der - 80, abajo + 2, 80, 14), Qt.AlignRight, f"{_n(self.largo)} {self.longitud}"
+        )
+        s_max, q_max = max(self.puntos, key=lambda x: x[1])
+        cima = a_px(s_max, q_max)
+        p.setPen(QColor(estilo.ACENTO))
+        p.drawText(
+            QRectF(cima.x() - 60, arriba - 17, 120, 14), Qt.AlignCenter, f"{_kn(q_max, 2)} kN/m"
+        )
 
 
 class _TablaSuelta(TablaFisico):

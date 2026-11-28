@@ -7,6 +7,11 @@ objetos físicos: pisos con su nivel, ejes, columnas, vigas, losas macizas de
 12 cm y un muro de 20 cm en el eje A. Se guarda en un ``.nrv`` (módulo
 ``fisico``), se vuelve a abrir y se comprueba que quedó igual.
 
+Cargas por planta (issue #78): los pisos llevan 1,5 kN/m² de permanente y
+2 kN/m² de sobrecarga, la azotea 1 kN/m² de sobrecarga; el peso propio sale del
+espesor de cada losa. Se reparten a las vigas por áreas tributarias y se
+comprueba el equilibrio: lo que reciben las vigas es lo que pesan las losas.
+
 Coordenadas y niveles en m; secciones y espesores en mm; resistencias en MPa.
 El modelo de cálculo todavía no se genera desde el físico (issue #74).
 """
@@ -27,7 +32,15 @@ N_PISOS = 3
 def armar() -> ModeloFisico:
     mf = ModeloFisico("m")
     pisos = [mf.agregar_piso("Planta baja", 0.0)]
-    pisos += [mf.agregar_piso(f"Piso {k}", k * ALTURA_PISO) for k in range(1, N_PISOS + 1)]
+    pisos += [
+        mf.agregar_piso(
+            f"Piso {k}",
+            k * ALTURA_PISO,
+            permanente=1.5,
+            sobrecarga=1.0 if k == N_PISOS else 2.0,
+        )
+        for k in range(1, N_PISOS + 1)
+    ]
     for n, x in zip("ABC", XS, strict=True):
         mf.agregar_eje(n, (x, YS[0] - 1.0), (x, YS[-1] + 1.0))
     for n, y in zip("12", YS, strict=True):
@@ -72,6 +85,18 @@ def main() -> None:
         formato.guardar(doc, ruta)
         otra = ModeloFisico.desde_json(formato.abrir(ruta).fisico)
     print("Guardado y vuelto a abrir igual:", otra.a_json() == mf.a_json())
+
+    reparto = mf.repartir_cargas()
+    print("Cargas de las losas repartidas a las vigas (kN):")
+    for caso in reparto.casos:
+        print(
+            f"  {caso:12s} vigas {reparto.total(caso):8.3f}  losas {reparto.total_losas(caso):8.3f}"
+        )
+    piso1 = mf.pisos_ordenados()[1]["id"]
+    print("Vigas del Piso 1 (resultante por caso, kN):")
+    for viga in mf.en_piso(piso1)["vigas"]:
+        r = [reparto.resultante(("vigas", viga["id"]), c) for c in reparto.casos]
+        print(f"  {viga['nombre']}: " + "  ".join(f"{x:7.3f}" for x in r))
 
 
 if __name__ == "__main__":

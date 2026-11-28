@@ -32,6 +32,13 @@ def diseno_1_a_2(datos: Datos) -> Datos:
     return d
 
 
+def fisico_1_a_2(datos: Datos) -> Datos:
+    """``fisico`` 1 → 2: la versión 2 solo suma claves opcionales (cargas de
+    superficie de pisos y losas y peso específico de los materiales), así que un
+    ``fisico.json`` 1 ya es válido como 2 y no cambia."""
+    return dict(datos)
+
+
 #: módulo -> versión de origen -> función que lleva a la versión siguiente.
 MIGRACIONES: dict[str, dict[int, Migracion]] = {
     "modelo": {},
@@ -39,7 +46,7 @@ MIGRACIONES: dict[str, dict[int, Migracion]] = {
     "dinamica": {},
     "proyecto": {},
     "historial": {},
-    "fisico": {},
+    "fisico": {1: fisico_1_a_2},
 }
 
 

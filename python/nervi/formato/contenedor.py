@@ -67,7 +67,7 @@ MODULOS: dict[str, Modulo] = {
     "proyecto": Modulo("proyecto", 1, (_proyecto.MIEMBRO,), requerido=False),
     # Modelo físico del edificio (Fase 7, #73): pisos, ejes, vigas, columnas, losas y
     # muros. Solo si el proyecto lo tiene; no cambia el modelo analítico.
-    "fisico": Modulo("fisico", 1, (_fisico.MIEMBRO,), requerido=False),
+    "fisico": Modulo("fisico", 2, (_fisico.MIEMBRO,), requerido=False),
 }
 
 
