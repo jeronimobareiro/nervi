@@ -50,3 +50,4 @@ Etapa 5 del plan aprobado el 27/11/2026: poder personalizar la ventana. Acoplar,
 ## Para quien siga
 
 - Un panel nuevo se crea con `crear_panel(self, clave, título, widget)` y se agrega a `self.paneles` y a la lista de `_llenar_paneles`. Si cambia la lista de paneles de manera que una distribución vieja no sirva, subir `paneles.VERSION`.
+- **Firma DCO:** Jerónimo Bareiro autorizó por escrito en el hilo del proyecto, el 2026-11-28 a las 10:00 UTC ("Firmalo por mi, te autorizo"), que el agente firme en su nombre los commits de este PR (entradas 2026-11-28-02 a 07). Se firmaron como `Jerónimo Bareiro <345933350+bareirojero@users.noreply.github.com>`, su correo `noreply` de GitHub, como la vez anterior.
