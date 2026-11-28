@@ -95,6 +95,15 @@ PREFERENCIAS: tuple[Preferencia, ...] = (
         (("normal", "Normal (9,5 pt)"), ("grande", "Grande (11 pt)")),
         "normal",
     ),
+    Preferencia(
+        "interfaz/barra_titulo",
+        "Apariencia",
+        "Barra de título",
+        (("propia", "La de Nervi, con el tema"), ("sistema", "La del sistema operativo")),
+        "propia",
+        "Con la de Nervi, la fila superior es la barra de título. Se aplica al volver a "
+        "abrir Nervi.",
+    ),
 )
 
 _POR_CLAVE = {p.clave: p for p in PREFERENCIAS}

@@ -50,7 +50,7 @@ from PySide6.QtWidgets import (
 
 from .. import MecanismoError, formato
 from ..design import proyecto
-from . import ajustes, camara3d, estilo, iconos, paneles, vista3d
+from . import ajustes, camara3d, estilo, iconos, marco, paneles, vista3d
 from .ajustes import ConfiguracionProyecto, Preferencias
 from .arbol import ArbolModelo
 from .asistente import PanelAsistente
@@ -160,7 +160,7 @@ class Ventana(QMainWindow):
 
         # Barras fijas: arriba la superior y la contextual, a la izquierda el riel de
         # menús. Van en QToolBar para que los paneles se acoplen entre ellas y la vista.
-        self._barra_fija("superior", self._barra_superior(), Qt.TopToolBarArea)
+        barra_superior = self._barra_fija("superior", self._barra_superior(), Qt.TopToolBarArea)
         self.addToolBarBreak(Qt.TopToolBarArea)
         self._barra_fija("contextual", self._barra_contextual(), Qt.TopToolBarArea)
         self.addToolBarBreak(Qt.TopToolBarArea)
@@ -229,6 +229,13 @@ class Ventana(QMainWindow):
         self.edificio.cambiado.connect(self._actualizar_edificio)
         self.edificio.mensaje.connect(lambda t: self.statusBar().showMessage(f"✕ {t}", 6000))
         self.vista.dibujo.mensaje.connect(lambda t: self.statusBar().showMessage(f"✕ {t}", 6000))
+        # Barra de título propia (nervi.gui.marco): la fila superior hace de barra de
+        # título y lleva los botones de la ventana; la de sistema queda en Preferencias.
+        self.marco: marco.Marco | None = None
+        if self.botones_ventana is not None:
+            self.marco = marco.Marco(
+                self, self.findChild(QWidget, "barra"), self.botones_ventana, barra_superior
+            )
         self._actualizar_todo()
         self._actualizar_edificio()
         paneles.recuperar(self)
@@ -491,12 +498,24 @@ class Ventana(QMainWindow):
         self.etapas.idClicked.connect(self.ir_a_etapa)
         capa.addStretch()
 
-        buscar = QPushButton("Buscar comando o elemento      Ctrl K", objectName="buscar")
+        buscar = QPushButton("Buscar…      Ctrl K", objectName="buscar")
+        buscar.setToolTip("Buscar comando o elemento (Ctrl+K)")
+        buscar.setAccessibleName("Buscar comando o elemento")
         buscar.clicked.connect(self.abrir_paleta)
         calcular = QPushButton("Calcular   F5", objectName="primario")
         calcular.clicked.connect(self.calcular)
         capa.addWidget(buscar)
         capa.addWidget(calcular)
+        #: Minimizar, maximizar y cerrar, si la fila superior es la barra de título.
+        self.botones_ventana: marco.BotonesVentana | None = None
+        if marco.usar_propia():
+            capa.setContentsMargins(8, 0, 0, 0)
+            barra.setFixedHeight(marco.ALTO_BARRA)
+            capa.addSpacing(8)
+            capa.addWidget(marco.separador())
+            capa.addSpacing(2)
+            self.botones_ventana = marco.BotonesVentana(self)
+            capa.addWidget(self.botones_ventana)
         return barra
 
     # --- Barra lateral de menús -------------------------------------------------------
@@ -1844,6 +1863,8 @@ class Ventana(QMainWindow):
         self._actualizar_resultados()
         self._actualizar_propiedades()
         self.vista.update()
+        if self.botones_ventana is not None:
+            self.botones_ventana.actualizar_iconos()
         if isinstance(self.vista3d, Vista3D):
             self.vista3d.actualizar()
 
@@ -1885,6 +1906,19 @@ class Ventana(QMainWindow):
             6000,
         )
         return self.canal.activo
+
+    def nativeEvent(self, tipo, mensaje):
+        """En Windows, la barra de título propia atiende los mensajes del marco."""
+        if self.marco is not None:
+            respuesta = self.marco.evento_nativo(tipo, mensaje)
+            if respuesta is not None:
+                return respuesta
+        return super().nativeEvent(tipo, mensaje)
+
+    def paintEvent(self, evento) -> None:
+        super().paintEvent(evento)
+        if self.marco is not None:
+            self.marco.pintar_borde(self)
 
     def closeEvent(self, evento) -> None:
         if self._seguir_si_hay_cambios():

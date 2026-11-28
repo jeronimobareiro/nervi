@@ -214,7 +214,32 @@ _LISTA = (
         "Cerrar",
         "Archivo y edición",
         '<path d="M6 6l12 12M18 6L6 18"/>',
-        "Título de los paneles acoplables; diálogos",
+        "Título de los paneles acoplables; barra de título de la ventana; diálogos",
+        True,
+    ),
+    _I(
+        "minimizar",
+        "Minimizar",
+        "Archivo y edición",
+        '<path d="M6 12h12"/>',
+        "Barra de título propia de la ventana",
+        True,
+    ),
+    _I(
+        "maximizar",
+        "Maximizar",
+        "Archivo y edición",
+        '<rect x="6" y="6" width="12" height="12" rx="1.5"/>',
+        "Barra de título propia de la ventana",
+        True,
+    ),
+    _I(
+        "restaurar",
+        "Restaurar",
+        "Archivo y edición",
+        '<rect x="6" y="9" width="9" height="9" rx="1.5"/>'
+        '<path d="M9 6h7.5A1.5 1.5 0 0 1 18 7.5V15"/>',
+        "Barra de título propia de la ventana (maximizada)",
         True,
     ),
     _I(

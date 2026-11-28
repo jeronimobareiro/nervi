@@ -55,6 +55,9 @@ def test_los_iconos_en_uso_son_los_de_la_aplicacion():
         "desacoplar",
         "vista_alzado",
         "vista_3d",
+        "minimizar",
+        "maximizar",
+        "restaurar",
     } == (en_uso)
 
 

@@ -91,7 +91,10 @@ Para no confundir las cargas de la planta con las de las barras, la familia sigu
 | `borrar` | Borrar | reservado | Tablas y edición gráfica (#31) |
 | `agregar` | Agregar | reservado | Tablas y listas |
 | `quitar` | Quitar | reservado | Tablas y listas |
-| `cerrar` | Cerrar | en uso | Título de los paneles acoplables; diálogos |
+| `cerrar` | Cerrar | en uso | Título de los paneles acoplables; barra de título de la ventana; diálogos |
+| `minimizar` | Minimizar | en uso | Barra de título propia de la ventana |
+| `maximizar` | Maximizar | en uso | Barra de título propia de la ventana |
+| `restaurar` | Restaurar | en uso | Barra de título propia de la ventana (maximizada) |
 | `desacoplar` | Desacoplar | en uso | Título de los paneles acoplables: desacoplar o volver a acoplar |
 | `buscar` | Buscar | reservado | Paleta de comandos, tablas |
 | `subir` | Subir | en uso | Modo Edificio: subir una planta |
