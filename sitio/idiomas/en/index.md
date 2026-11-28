@@ -55,7 +55,7 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 - **Reinforced concrete design to ACI 318-19**, experimental: beams (flexure, shear, deflections and reinforcement detailing) and columns (biaxial bending with axial load, and slenderness), each check with its code article.
 - **Physical building model**, preliminary: stories, grid lines, columns, beams, solid slabs and walls drawn with the mouse on each floor, snapping to endpoints, grid lines and the grid, or entered in tables, with a manager to add, move and copy floors. Floor loads are distributed from the slabs to the beams by tributary areas. It does not generate the analysis model yet.
 - **Calculation report in PDF** with geometry, loads, diagrams, design and dynamic analysis.
-- **Desktop interface** in a single window, with a structure panel, tables or mouse drawing to enter the model (nodes, members, supports and loads), light and night themes, and use from Python for those who program.
+- **Desktop interface** in a single window, with a structure panel, tables or mouse drawing to enter the model (nodes, members, supports and loads), panels you can dock, undock and save as layouts, light and night themes, and use from Python for those who program.
 - **An AI assistant on your terms**: you connect the AI you already use (through the MCP standard) to query the model and the results. It can only propose changes that you apply or discard, and every number is computed by Nervi's engine, never by the AI.
 - **Projects** saved as `.nrv` files and dozens of verification cases against known solutions.
 

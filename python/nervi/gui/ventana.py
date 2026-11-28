@@ -24,11 +24,13 @@ from PySide6.QtGui import (
 )
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
+    QBoxLayout,
     QButtonGroup,
     QComboBox,
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QListWidget,
     QListWidgetItem,
@@ -36,9 +38,10 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPushButton,
-    QSplitter,
+    QSizePolicy,
     QStackedWidget,
     QTabWidget,
+    QToolBar,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -46,7 +49,7 @@ from PySide6.QtWidgets import (
 
 from .. import MecanismoError, formato
 from ..design import proyecto
-from . import ajustes, estilo, iconos, vista3d
+from . import ajustes, estilo, iconos, paneles, vista3d
 from .ajustes import ConfiguracionProyecto, Preferencias
 from .arbol import ArbolModelo
 from .asistente import PanelAsistente
@@ -67,6 +70,7 @@ from .edificio import (
     nombre_elemento,
 )
 from .paleta import Entrada, Paleta
+from .paneles import crear_panel
 from .sesion import Seleccion, Sesion, documento_ejemplo
 from .tablas import LISTAS, EditorLista, TablaResultados, vista_tabla
 from .vista2d import DIAGRAMAS, Vista2D
@@ -144,45 +148,56 @@ class Ventana(QMainWindow):
         self.modo = "calculo"
         self._acciones()
 
-        raiz = QWidget(objectName="raiz")
-        capa = QVBoxLayout(raiz)
-        capa.setContentsMargins(0, 0, 0, 0)
-        capa.setSpacing(0)
-        capa.addWidget(self._barra_superior())
-        capa.addWidget(self._barra_contextual())
+        # Barras fijas: arriba la superior y la contextual, a la izquierda el riel de
+        # menús. Van en QToolBar para que los paneles se acoplen entre ellas y la vista.
+        self._barra_fija("superior", self._barra_superior(), Qt.TopToolBarArea)
+        self.addToolBarBreak(Qt.TopToolBarArea)
+        self._barra_fija("contextual", self._barra_contextual(), Qt.TopToolBarArea)
+        self.addToolBarBreak(Qt.TopToolBarArea)
+        self.barra_dibujo = self._barra_herramientas_dibujo()
+        self._barra_fija("riel", self._riel(), Qt.LeftToolBarArea)
 
         # El visor 3D se crea la primera vez que se lo pide: VTK tarda en arrancar
         # y es una dependencia opcional (nervi[visor3d]).
         self.vista3d: QWidget | None = None
-        self.vistas = QStackedWidget()
+        self.vistas = QStackedWidget(objectName="raiz")
         self.vistas.addWidget(self.vista)
         self.vistas.addWidget(self.planta)
-        self.panel_inferior = self._panel_inferior()
-        self.centro = centro = QSplitter(Qt.Vertical)
-        centro.addWidget(self.vistas)
-        centro.addWidget(self.panel_inferior)
-        centro.setStretchFactor(0, 3)
-        centro.setStretchFactor(1, 1)
-        centro.setSizes([560, 250])
+        self.setCentralWidget(self.vistas)
 
+        # Paneles acoplables (nervi.gui.paneles): se mueven, se apilan, se desacoplan
+        # y se cierran; el menú Ver > Paneles los vuelve a abrir.
+        self.setDockOptions(
+            QMainWindow.AnimatedDocks | QMainWindow.AllowNestedDocks | QMainWindow.AllowTabbedDocks
+        )
+        self.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
+        self.setCorner(Qt.BottomRightCorner, Qt.RightDockWidgetArea)
+        self.panel_inferior = self._panel_inferior()
+        # Sin esto, el ancho de las pestañas y las tablas fija el ancho mínimo de la
+        # ventana; las pestañas que no entran se recorren con flechas.
+        self.panel_inferior.setMinimumWidth(360)
         # Panel del asistente de IA: junto a la barra lateral, se abre con su ícono.
         self.asistente = PanelAsistente(self.sesion, self.canal)
-        self.asistente.hide()
-        horizontal = QSplitter(Qt.Horizontal)
-        horizontal.addWidget(self.asistente)
-        horizontal.addWidget(self._explorador())
-        horizontal.addWidget(centro)
-        horizontal.addWidget(self._propiedades())
-        horizontal.setStretchFactor(2, 1)
-        horizontal.setSizes([360, 240, 900, 290])
-        self.horizontal = horizontal
-        cuerpo = QHBoxLayout()
-        cuerpo.setContentsMargins(0, 0, 0, 0)
-        cuerpo.setSpacing(0)
-        cuerpo.addWidget(self._riel())
-        cuerpo.addWidget(horizontal, 1)
-        capa.addLayout(cuerpo, 1)
-        self.setCentralWidget(raiz)
+        self.paneles = {
+            "asistente": crear_panel(self, "asistente", "Asistente de IA", self.asistente),
+            "estructura": crear_panel(self, "estructura", "Estructura", self._explorador()),
+            "propiedades": crear_panel(self, "propiedades", "Propiedades", self._propiedades()),
+            "inferior": crear_panel(self, "inferior", "Tablas y resultados", self.panel_inferior),
+        }
+        d = self.paneles
+        self.addDockWidget(Qt.LeftDockWidgetArea, d["estructura"])
+        self.addDockWidget(Qt.RightDockWidgetArea, d["propiedades"])
+        self.addDockWidget(Qt.BottomDockWidgetArea, d["inferior"])
+        self.addDockWidget(Qt.LeftDockWidgetArea, d["asistente"])
+        self.splitDockWidget(d["asistente"], d["estructura"], Qt.Horizontal)
+        d["asistente"].hide()
+        self.resizeDocks([d["estructura"], d["propiedades"]], [240, 290], Qt.Horizontal)
+        self.resizeDocks([d["inferior"]], [250], Qt.Vertical)
+        d["asistente"].toggleViewAction().toggled.connect(
+            lambda v: self.botones_riel["ia"].setChecked(v)
+        )
+        #: Distribución de fábrica, para *Restablecer*.
+        self._distribucion_inicial = self.saveState(paneles.VERSION)
         self._barra_estado()
 
         s = self.sesion
@@ -206,6 +221,111 @@ class Ventana(QMainWindow):
         self.vista.dibujo.mensaje.connect(lambda t: self.statusBar().showMessage(f"✕ {t}", 6000))
         self._actualizar_todo()
         self._actualizar_edificio()
+        paneles.recuperar(self)
+
+    def _barra_fija(self, clave: str, widget: QWidget, area) -> QToolBar:
+        """Una barra que no se mueve ni se cierra (la superior, la contextual, el riel)."""
+        barra = QToolBar(objectName=f"barra_{clave}")
+        barra.setMovable(False)
+        barra.setFloatable(False)
+        barra.setContextMenuPolicy(Qt.PreventContextMenu)
+        barra.toggleViewAction().setVisible(False)
+        vertical = area in (Qt.LeftToolBarArea, Qt.RightToolBarArea)
+        widget.setSizePolicy(
+            QSizePolicy.Preferred if vertical else QSizePolicy.Expanding,
+            QSizePolicy.Expanding if vertical else QSizePolicy.Preferred,
+        )
+        barra.addWidget(widget)
+        self.addToolBar(area, barra)
+        return barra
+
+    def _barra_herramientas_dibujo(self) -> QToolBar:
+        """Barra *Dibujo* con las herramientas del modo que se ve. Se puede mover a otro
+        borde (se pone vertical a los costados), desacoplar o cerrar desde *Ver >
+        Paneles*."""
+        barra = QToolBar("Barra de dibujo", objectName="barra_dibujo")
+        barra.setMovable(True)
+        barra.setFloatable(True)
+        self.dibujo_edificio = self._barra_dibujo()
+        self.dibujo_calculo = self._barra_dibujo(
+            self.vista.dibujo, HERRAMIENTAS_CALCULO, ENGANCHES_CALCULO
+        )
+        self._accion_dibujo = {
+            "edificio": barra.addWidget(self.dibujo_edificio),
+            "calculo": barra.addWidget(self.dibujo_calculo),
+        }
+        self._accion_dibujo["edificio"].setVisible(False)
+        barra.orientationChanged.connect(self._orientar_dibujo)
+        self.addToolBar(Qt.TopToolBarArea, barra)
+        return barra
+
+    def _orientar_dibujo(self, orientacion) -> None:
+        direccion = QBoxLayout.TopToBottom if orientacion == Qt.Vertical else QBoxLayout.LeftToRight
+        for w in (self.dibujo_edificio, self.dibujo_calculo):
+            for capa in w.property("capas"):
+                capa.setDirection(direccion)
+
+    # --- Paneles y distribuciones ---------------------------------------------------
+    def _menu_paneles(self) -> QMenu:
+        """*Ver › Paneles*. Se llena al abrirse: el riel se arma antes que los paneles."""
+        self.menu_paneles = QMenu("Paneles", self)
+        self.menu_paneles.aboutToShow.connect(self._llenar_paneles)
+        self.menu_distribuciones = QMenu("Distribuciones guardadas", self)
+        self.menu_distribuciones.aboutToShow.connect(self._llenar_distribuciones)
+        return self.menu_paneles
+
+    def _llenar_paneles(self) -> None:
+        menu = self.menu_paneles
+        menu.clear()
+        for clave in ("estructura", "propiedades", "inferior", "asistente"):
+            menu.addAction(self.paneles[clave].toggleViewAction())
+        menu.addAction(self.barra_dibujo.toggleViewAction())
+        menu.addSeparator()
+        menu.addAction(self.a_guardar_distribucion)
+        menu.addMenu(self.menu_distribuciones)
+        menu.addAction(self.a_restablecer_distribucion)
+
+    def _llenar_distribuciones(self) -> None:
+        m = self.menu_distribuciones
+        m.clear()
+        nombres = paneles.distribuciones()
+        for nombre in nombres:
+            m.addAction(nombre, lambda n=nombre: self.aplicar_distribucion(n))
+        if not nombres:
+            m.addAction("Ninguna todavía").setEnabled(False)
+            return
+        m.addSeparator()
+        borrar = m.addMenu("Borrar")
+        for nombre in nombres:
+            borrar.addAction(nombre, lambda n=nombre: paneles.borrar_distribucion(n))
+
+    def guardar_distribucion(self, nombre: str | None = None) -> str | None:
+        """Guarda la distribución de los paneles con un nombre (lo pide si falta)."""
+        if nombre is None:
+            nombre, ok = QInputDialog.getText(
+                self, "Guardar distribución", "Nombre de la distribución:"
+            )
+            if not ok:
+                return None
+        try:
+            nombre = paneles.guardar_distribucion(self, nombre)
+        except ValueError as e:
+            self.statusBar().showMessage(f"✕ {e}", 6000)
+            return None
+        self.statusBar().showMessage(f"Distribución «{nombre}» guardada", 4000)
+        return nombre
+
+    def aplicar_distribucion(self, nombre: str) -> bool:
+        ok = paneles.aplicar_distribucion(self, nombre)
+        if not ok:
+            self.statusBar().showMessage(f"✕ No se pudo usar la distribución «{nombre}»", 6000)
+        return ok
+
+    def restablecer_distribucion(self) -> None:
+        """Vuelve los paneles a la distribución de fábrica."""
+        for dock in self.paneles.values():
+            dock.setFloating(False)
+        self.restoreState(self._distribucion_inicial, paneles.VERSION)
 
     # --- Acciones y menú ------------------------------------------------------------
     def _accion(self, texto: str, funcion, atajo: str | QKeySequence | None = None) -> QAction:
@@ -266,6 +386,12 @@ class Ventana(QMainWindow):
             "Orto: dibujar en horizontal y vertical",
             self.alternar_orto,
             "F8",
+        )
+        self.a_guardar_distribucion = self._accion(
+            "Guardar distribución…", lambda: self.guardar_distribucion()
+        )
+        self.a_restablecer_distribucion = self._accion(
+            "Restablecer distribución", self.restablecer_distribucion
         )
         self.a_plantas = self._accion("Plantas", self.gestionar_plantas)
         self.a_subir = self._accion("Subir una planta", lambda: self.subir_planta(1), "PgUp")
@@ -452,6 +578,8 @@ class Ventana(QMainWindow):
                 self.a_vista3d,
                 None,
                 *self.a_diagramas.values(),
+                None,
+                self._menu_paneles(),
             ),
             "herramientas": menu(self.a_buscar, self.a_consola),
             "ayuda": menu(self.a_codigo, self.a_informar, None, self.a_acerca),
@@ -459,6 +587,8 @@ class Ventana(QMainWindow):
 
     def _iconos_riel(self) -> None:
         self._iconos_dibujo()
+        for dock in getattr(self, "paneles", {}).values():
+            dock.titleBarWidget().actualizar_iconos()
         # Ícono del gestor de plantas: tres losas apiladas, con el color del tema.
         self.b_plantas.setIcon(
             QIcon(icono_trazo(ICONO_PLANTAS, estilo.TEXTO_2, 20, self.devicePixelRatioF()))
@@ -590,8 +720,6 @@ class Ventana(QMainWindow):
         self.combo_caso.setVisible(False)
         self.b_cargas.toggled.connect(self.combo_caso.setVisible)
         e.addWidget(self.combo_caso)
-        e.addSpacing(8)
-        e.addWidget(self._barra_dibujo())
         self.ctx_edificio.hide()
         capa.addWidget(self.ctx_edificio)
 
@@ -642,10 +770,6 @@ class Ventana(QMainWindow):
         self.b_valores = QPushButton("Valores", checkable=True, checked=True)
         self.b_valores.toggled.connect(self._valores)
         capa.addWidget(self.b_valores)
-        capa.addSpacing(8)
-        capa.addWidget(
-            self._barra_dibujo(self.vista.dibujo, HERRAMIENTAS_CALCULO, ENGANCHES_CALCULO)
-        )
         capa_calculo.addWidget(self.ctx_calculo)
         capa_calculo.addStretch()
         return barra
@@ -656,12 +780,13 @@ class Ventana(QMainWindow):
         calculo = dibujo is not None
         dibujo = dibujo or self.planta.dibujo
         barra = QWidget()
-        capa = QHBoxLayout(barra)
-        capa.setContentsMargins(0, 0, 0, 0)
+        # QBoxLayout: si la barra de dibujo se lleva a un costado, se pone vertical.
+        capa = QBoxLayout(QBoxLayout.LeftToRight, barra)
+        capa.setContentsMargins(8, 4, 8, 4)
         capa.setSpacing(6)
         capa.addWidget(QLabel("Dibujar", objectName="tenue"))
         grupo = QWidget(objectName="grupo")
-        g = QHBoxLayout(grupo)
+        g = QBoxLayout(QBoxLayout.LeftToRight, grupo)
         g.setContentsMargins(2, 2, 2, 2)
         g.setSpacing(2)
         botones_h: dict[str, QToolButton] = {}
@@ -688,7 +813,7 @@ class Ventana(QMainWindow):
         capa.addSpacing(6)
         capa.addWidget(QLabel("Enganche", objectName="tenue"))
         grupo_e = QWidget(objectName="grupo")
-        ge = QHBoxLayout(grupo_e)
+        ge = QBoxLayout(QBoxLayout.LeftToRight, grupo_e)
         ge.setContentsMargins(2, 2, 2, 2)
         ge.setSpacing(2)
         botones_e: dict[str, QPushButton] = {}
@@ -700,6 +825,7 @@ class Ventana(QMainWindow):
             botones_e[clave] = b
             ge.addWidget(b)
         capa.addWidget(grupo_e)
+        barra.setProperty("capas", [capa, g, ge])
         if calculo:
             self.botones_herramienta_calculo, self.botones_enganche_calculo = botones_h, botones_e
         else:
@@ -765,10 +891,6 @@ class Ventana(QMainWindow):
         capa = QVBoxLayout(panel)
         capa.setContentsMargins(0, 10, 0, 8)
         capa.setSpacing(6)
-        titulo = QLabel("Estructura", objectName="titulo_arbol")
-        titulo.setContentsMargins(12, 0, 12, 0)
-        capa.addWidget(titulo)
-        self.titulo_arbol = titulo
         self.arbol = ArbolModelo()
         self.arbol.elegido.connect(self._item_explorador)
         self.arbol_edificio = ArbolModelo()
@@ -1151,7 +1273,9 @@ class Ventana(QMainWindow):
         self.botones_modo[modo].setChecked(True)
         self.ctx_edificio.setVisible(edificio)
         self.ctx_calculo.setVisible(not edificio)
-        self.titulo_arbol.setText("Edificio" if edificio else "Estructura")
+        self._accion_dibujo["edificio"].setVisible(edificio)
+        self._accion_dibujo["calculo"].setVisible(not edificio)
+        self.paneles["estructura"].setWindowTitle("Edificio" if edificio else "Estructura")
         self.pila_arbol.setCurrentWidget(self.arbol_edificio if edificio else self.arbol)
         self._actualizar_dibujo()
         tabs = self.panel_inferior
@@ -1259,17 +1383,23 @@ class Ventana(QMainWindow):
         elif n == 4:
             self.panel_inferior.setCurrentWidget(self.panel_diseno)
             # La tabla de diseño necesita más alto que las tablas del modelo.
-            alto = sum(self.centro.sizes())
-            if self.centro.sizes()[1] < 0.42 * alto:
-                self.centro.setSizes([int(0.55 * alto), alto - int(0.55 * alto)])
+            self._agrandar_panel_inferior()
         self._actualizar_diseno()
 
     def mostrar_dinamica(self) -> None:
         self._pasar_a_calculo()
         self.panel_inferior.setCurrentWidget(self.panel_dinamica)
-        alto = sum(self.centro.sizes())
-        if self.centro.sizes()[1] < 0.42 * alto:
-            self.centro.setSizes([int(0.55 * alto), alto - int(0.55 * alto)])
+        self._agrandar_panel_inferior()
+
+    def _agrandar_panel_inferior(self) -> None:
+        """Lleva el panel de tablas y resultados al 45 % del alto, si está acoplado abajo
+        y es más bajo (Diseño y Dinámica necesitan más alto que las tablas)."""
+        dock = self.paneles["inferior"]
+        if dock.isFloating() or self.dockWidgetArea(dock) != Qt.BottomDockWidgetArea:
+            return
+        alto = self.vistas.height() + dock.height()
+        if dock.height() < 0.42 * alto:
+            self.resizeDocks([dock], [alto - int(0.55 * alto)], Qt.Vertical)
 
     def analizar_dinamica(self) -> bool:
         """Va a la pestaña Dinámica y hace el análisis modal y espectral."""
@@ -1596,15 +1726,14 @@ class Ventana(QMainWindow):
 
     def mostrar_asistente(self, mostrar: bool = True) -> None:
         """Abre o cierra el panel del asistente de IA junto a la barra lateral."""
-        if mostrar and not self.asistente.isVisible():
-            tamanos = self.horizontal.sizes()
-            ancho = 370
-            tamanos[0] = ancho
-            tamanos[2] = max(tamanos[2] - ancho, 300)  # lo toma de la vista central
-            self.asistente.setVisible(True)
-            self.horizontal.setSizes(tamanos)
-        else:
-            self.asistente.setVisible(mostrar)
+        dock = self.paneles["asistente"]
+        if mostrar and not dock.isVisible():
+            dock.show()
+            if not dock.isFloating():
+                self.resizeDocks([dock], [370], Qt.Horizontal)
+            dock.raise_()
+        elif not mostrar:
+            dock.hide()
         self.botones_riel["ia"].setChecked(mostrar)
 
     def _actualizar_insignia(self, pendientes: int) -> None:
@@ -1636,6 +1765,7 @@ class Ventana(QMainWindow):
 
     def closeEvent(self, evento) -> None:
         if self._seguir_si_hay_cambios():
+            paneles.guardar_al_cerrar(self)
             self.canal.cerrar()
             if isinstance(self.vista3d, Vista3D):
                 self.vista3d.plotter.close()

@@ -214,7 +214,17 @@ _LISTA = (
         "Cerrar",
         "Archivo y edición",
         '<path d="M6 6l12 12M18 6L6 18"/>',
-        "Paneles y diálogos",
+        "Título de los paneles acoplables; diálogos",
+        True,
+    ),
+    _I(
+        "desacoplar",
+        "Desacoplar",
+        "Archivo y edición",
+        '<path d="M14 4h6v6"/><path d="M20 4l-8 8"/>'
+        '<path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+        "Título de los paneles acoplables: desacoplar o volver a acoplar",
+        True,
     ),
     _I("buscar", "Buscar", "Archivo y edición", _LUPA, "Paleta de comandos, tablas"),
     _I(

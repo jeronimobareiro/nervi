@@ -127,6 +127,18 @@ Muestra del 28/11/2026 (entrada [2026-11-28-06](bitacora/2026-11-28-06-dibujar-c
 - **Panel de la herramienta** (`PanelCalculo`, en lugar de Propiedades): título (*Nueva barra*, *Apoyo*, *Carga puntual*…), y solo las filas de la herramienta: E, A e I con sus unidades; Tipo de apoyo; Caso (desplegable editable: un nombre nuevo crea el caso), Fx, Fy y Mz o qx y qy, y Ejes (Globales o Locales de la barra). Ayuda breve en `TEXTO_2`.
 - El modelo vacío se ve a 40 px por metro, para empezar a dibujar; al primer clic la vista se queda donde está (no sigue al encuadre automático) hasta que se pulsa F.
 
+### Paneles acoplables
+
+Muestra del 28/11/2026 (entrada [2026-11-28-07](bitacora/2026-11-28-07-paneles-acoplables.md)), en tema oscuro con el asistente abierto.
+
+![Ventana con los paneles Asistente de IA y Estructura a la izquierda y Tablas y resultados abajo](img/paneles-acoplables.png)
+
+- **Barras fijas** (`QToolBar` que no se mueven): la superior y la contextual arriba y el riel de menús a la izquierda, fuera del área de los paneles, así los paneles se acoplan entre ellas y la vista.
+- **Barra de dibujo** (`barra_dibujo`, segunda fila): las herramientas y enganches del modo que se ve, en una barra que se mueve con su asa a cualquier borde (a los costados se pone vertical: sus `QBoxLayout` cambian de dirección) o se desacopla.
+- **Paneles** (`gui.paneles.crear_panel`): Estructura (izquierda; su título dice *Edificio* en ese modo), Propiedades (derecha), Tablas y resultados (abajo, solo debajo de la vista: las esquinas son de los paneles laterales) y Asistente de IA (izquierda, junto al riel, cerrado al empezar). Barra de título propia (`TituloPanel`, fondo `PANEL`): el nombre con el estilo de `titulo_arbol` y dos botones `boton_panel` de 14 px, *Desacoplar* (`desacoplar`, cambia a *Acoplar* cuando flota) y *Cerrar* (`cerrar`). Se arrastra por el título; doble clic desacopla o acopla. Separadores de 1 px en `BORDE`, en `ACENTO` al pasar el mouse.
+- **Ver > Paneles**: una casilla por panel y por la barra de dibujo, *Guardar distribución…* (pide el nombre), *Distribuciones guardadas* (cada una se aplica con un clic, y *Borrar*) y *Restablecer distribución*.
+- La ventana guarda su tamaño, posición y distribución al cerrar (`ventana/geometria` y `ventana/estado` en las preferencias) y las recupera al abrir; las distribuciones con nombre van en `distribuciones/<nombre>`.
+
 ## Cómo agregar algo
 
 1. Usá los nombres de objeto existentes (`primario`, `fantasma`, `peligro`, `segmento`, `seccion`, `tenue`, `aviso`…) antes de crear uno nuevo.

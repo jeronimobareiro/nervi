@@ -427,6 +427,13 @@ QLabel#aviso {{
 }}
 QLabel#etiqueta {{ border: 1px solid {t.borde}; border-radius: {rc}px; padding: 0 6px; }}
 QSplitter::handle {{ background: {t.borde}; }}
+QToolBar {{ background: {t.panel}; border: 0; padding: 0; spacing: 0; }}
+QMainWindow::separator {{ background: {t.borde}; width: 1px; height: 1px; }}
+QMainWindow::separator:hover {{ background: {t.acento}; }}
+QWidget#titulo_panel {{ background: {t.panel}; }}
+QToolButton#boton_panel {{ border: 0; border-radius: {rc}px; padding: 3px; }}
+QToolButton#boton_panel:hover {{ background: {t.hover}; }}
+QDockWidget {{ color: {t.texto}; }}
 QStatusBar {{ border-top: 1px solid {t.borde}; color: {t.texto_2}; }}
 QStatusBar QLabel {{ color: {t.texto_2}; padding: 0 6px; }}
 QProgressBar {{ background: {t.hover}; border: 0; border-radius: 3px; color: transparent; max-height: 6px; }}
