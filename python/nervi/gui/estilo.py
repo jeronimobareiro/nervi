@@ -62,6 +62,11 @@ class Tema:
     estructura: str = "#2B3038"
     positivo: str = "#1D4ED8"
     borde_suave: str = "#EEF0F3"
+    # Botón Cerrar de la barra de título propia con el cursor encima: el rojo que usan
+    # Windows y los escritorios de Linux para cerrar la ventana, igual en los dos temas.
+    cerrar_ventana: str = "#C42B1C"
+    cerrar_ventana_presionado: str = "#A72617"
+    sobre_cerrar_ventana: str = "#FFFFFF"
     oscuro: bool = False
     radio: int = 6
     alto: int = 28  # alto de campos y botones, en píxeles
@@ -312,7 +317,7 @@ QPushButton#etapa:checked {{
     background: {t.hover}; color: {t.texto}; font-weight: 600; border-bottom: 2px solid {t.acento};
     border-bottom-left-radius: 0; border-bottom-right-radius: 0;
 }}
-QPushButton#buscar {{ text-align: left; color: {t.texto_3}; background: {t.fondo}; min-width: 210px; }}
+QPushButton#buscar {{ text-align: left; color: {t.texto_3}; background: {t.fondo}; min-width: 180px; }}
 
 /* Campos de texto, numéricos y desplegables */
 QLineEdit, QComboBox, QAbstractSpinBox {{
@@ -427,6 +432,21 @@ QLabel#aviso {{
 }}
 QLabel#etiqueta {{ border: 1px solid {t.borde}; border-radius: {rc}px; padding: 0 6px; }}
 QSplitter::handle {{ background: {t.borde}; }}
+QToolBar {{ background: {t.panel}; border: 0; padding: 0; spacing: 0; }}
+QMainWindow::separator {{ background: {t.borde}; width: 1px; height: 1px; }}
+QMainWindow::separator:hover {{ background: {t.acento}; }}
+QWidget#titulo_panel {{ background: {t.panel}; }}
+QToolButton#boton_panel {{ border: 0; border-radius: {rc}px; padding: 3px; }}
+QToolButton#boton_panel:hover {{ background: {t.hover}; }}
+
+/* Barra de título propia (nervi.gui.marco): botones planos, sin esquinas redondeadas */
+QToolButton#boton_ventana, QToolButton#boton_cerrar_ventana {{ border: 0; border-radius: 0; padding: 0; }}
+QToolButton#boton_ventana:hover, QToolButton#boton_ventana[encima="true"] {{ background: {t.hover}; }}
+QToolButton#boton_ventana:pressed {{ background: {t.presionado}; }}
+QToolButton#boton_cerrar_ventana:hover {{ background: {t.cerrar_ventana}; }}
+QToolButton#boton_cerrar_ventana:pressed {{ background: {t.cerrar_ventana_presionado}; }}
+QFrame#separador_ventana {{ background: {t.borde}; border: 0; }}
+QDockWidget {{ color: {t.texto}; }}
 QStatusBar {{ border-top: 1px solid {t.borde}; color: {t.texto_2}; }}
 QStatusBar QLabel {{ color: {t.texto_2}; padding: 0 6px; }}
 QProgressBar {{ background: {t.hover}; border: 0; border-radius: 3px; color: transparent; max-height: 6px; }}

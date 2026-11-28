@@ -14,7 +14,8 @@ pytest.importorskip("pytestqt")
 
 from PySide6.QtGui import QIcon
 
-from nervi.gui import arbol, estilo, iconos, ventana
+from nervi.gui import arbol, dibujo, dibujo_calculo, estilo, iconos, ventana
+from nervi.gui.navegacion import BotonesNavegacion
 
 RAIZ = Path(__file__).resolve().parent.parent
 FORMAS = {"path", "circle", "rect", "ellipse"}
@@ -47,6 +48,16 @@ def test_los_iconos_en_uso_son_los_de_la_aplicacion():
         "subir",
         "bajar",
         "cargas_planta",
+        *BotonesNavegacion.CLAVES,
+        *(icono for icono, _ in dibujo.HERRAMIENTAS.values()),
+        *(icono for icono, _ in dibujo_calculo.HERRAMIENTAS_CALCULO.values()),
+        "cerrar",
+        "desacoplar",
+        "vista_alzado",
+        "vista_3d",
+        "minimizar",
+        "maximizar",
+        "restaurar",
     } == (en_uso)
 
 

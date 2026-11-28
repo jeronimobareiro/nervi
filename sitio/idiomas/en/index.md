@@ -50,12 +50,12 @@ Nervi analyses frames with the finite element method and shows reactions, intern
 - **Space (3D) frames**, preliminary: 12-degree-of-freedom members, rigid offsets and a rigid diaphragm per floor.
 - **Loads** on nodes and members: uniform, point, trapezoidal or partial, concentrated moments and thermal loads.
 - **Load cases and combinations**, for example 1.2D + 1.6L.
-- **Results**: reactions, axial force, shear and moment diagrams and the deformed shape, in 2D and in a 3D viewer. Hovering over a member shows the values at that point. If the model is a mechanism, it tells you which node moves without stiffness.
+- **Results**: reactions, axial force, shear and moment diagrams and the deformed shape, from the front or in 3D in a single viewer that orbits around the point you are looking at. Hovering over a member shows the values at that point. If the model is a mechanism, it tells you which node moves without stiffness.
 - **Dynamic analysis**: vibration modes, mass participation and response spectrum (CQC and SRSS), preliminary.
 - **Reinforced concrete design to ACI 318-19**, experimental: beams (flexure, shear, deflections and reinforcement detailing) and columns (biaxial bending with axial load, and slenderness), each check with its code article.
-- **Physical building model**, preliminary: stories, grid lines, columns, beams, solid slabs and walls shown floor by floor and entered in tables, with a manager to add, move and copy floors. Floor loads are distributed from the slabs to the beams by tributary areas. It does not generate the analysis model yet.
+- **Physical building model**, preliminary: stories, grid lines, columns, beams, solid slabs and walls drawn with the mouse on each floor, snapping to endpoints, grid lines and the grid, or entered in tables, with a manager to add, move and copy floors. Floor loads are distributed from the slabs to the beams by tributary areas. It does not generate the analysis model yet.
 - **Calculation report in PDF** with geometry, loads, diagrams, design and dynamic analysis.
-- **Desktop interface** in a single window, with a structure panel, tables to enter the model, light and night themes, and use from Python for those who program.
+- **Desktop interface** in a single window, with a structure panel, tables or mouse drawing to enter the model (nodes, members, supports and loads), panels you can dock, undock and save as layouts, light and night themes, and use from Python for those who program.
 - **An AI assistant on your terms**: you connect the AI you already use (through the MCP standard) to query the model and the results. It can only propose changes that you apply or discard, and every number is computed by Nervi's engine, never by the AI.
 - **Projects** saved as `.nrv` files and dozens of verification cases against known solutions.
 

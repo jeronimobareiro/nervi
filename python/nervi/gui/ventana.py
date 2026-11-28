@@ -9,9 +9,10 @@ propiedades de la selección; abajo, tablas, revisión del modelo y consola.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
-from PySide6.QtCore import QByteArray, QElapsedTimer, QPoint, QSize, Qt, QTimer, QUrl
+from PySide6.QtCore import QByteArray, QElapsedTimer, QPoint, QPointF, QSize, Qt, QTimer, QUrl
 from PySide6.QtGui import (
     QAction,
     QActionGroup,
@@ -24,11 +25,13 @@ from PySide6.QtGui import (
 )
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
+    QBoxLayout,
     QButtonGroup,
     QComboBox,
     QFileDialog,
     QFormLayout,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QListWidget,
     QListWidgetItem,
@@ -36,9 +39,10 @@ from PySide6.QtWidgets import (
     QMenu,
     QMessageBox,
     QPushButton,
-    QSplitter,
+    QSizePolicy,
     QStackedWidget,
     QTabWidget,
+    QToolBar,
     QToolButton,
     QVBoxLayout,
     QWidget,
@@ -46,12 +50,14 @@ from PySide6.QtWidgets import (
 
 from .. import MecanismoError, formato
 from ..design import proyecto
-from . import ajustes, estilo, iconos, vista3d
+from . import ajustes, camara3d, estilo, iconos, marco, paneles, vista3d
 from .ajustes import ConfiguracionProyecto, Preferencias
 from .arbol import ArbolModelo
 from .asistente import PanelAsistente
 from .canal import CanalVentana
 from .consola import Consola
+from .dibujo import ENGANCHES, HERRAMIENTAS, PASO_GRILLA_M, PanelHerramienta
+from .dibujo_calculo import ENGANCHES_CALCULO, HERRAMIENTAS_CALCULO, PanelCalculo
 from .dinamica import PanelDinamica, fase
 from .diseno import PanelDiseno, color_estado
 from .edificio import (
@@ -65,6 +71,7 @@ from .edificio import (
     nombre_elemento,
 )
 from .paleta import Entrada, Paleta
+from .paneles import crear_panel
 from .sesion import Seleccion, Sesion, documento_ejemplo
 from .tablas import LISTAS, EditorLista, TablaResultados, vista_tabla
 from .vista2d import DIAGRAMAS, Vista2D
@@ -125,6 +132,10 @@ def icono() -> QIcon:
     return QIcon(str(RECURSOS / "nervi.svg"))
 
 
+#: Nombres viejos de las vistas (antes había una vista 2D y una 3D separadas).
+ALIAS_VISTAS = {"2D": "frente", "2d": "frente", "3D": "3d"}
+
+
 class Ventana(QMainWindow):
     def __init__(self, sesion: Sesion | None = None) -> None:
         super().__init__()
@@ -135,50 +146,68 @@ class Ventana(QMainWindow):
         estilo.aplicar(tema=ajustes.tema())
         # Modelo físico del edificio (#73): piso que se ve y elemento elegido.
         self.edificio = EstadoEdificio(self.sesion)
+        # La planta y la vista 2D se crean antes que las barras: la barra contextual
+        # lleva sus herramientas de dibujo.
+        self.planta = PlantaEdificio(self.edificio)
+        self.vista = Vista2D(self.sesion)
+        self.vista.brujula.show()
+        self.vista.brujula.vista_pedida.connect(self._vista_desde_brujula)
+        self.vista.giro_pedido.connect(self._girar_desde_frente)
+        self.vista.giro_arrastre.connect(self._seguir_giro)
+        self.vista.giro_terminado.connect(self._terminar_giro)
         self.modo = "calculo"
         self._acciones()
 
-        raiz = QWidget(objectName="raiz")
-        capa = QVBoxLayout(raiz)
-        capa.setContentsMargins(0, 0, 0, 0)
-        capa.setSpacing(0)
-        capa.addWidget(self._barra_superior())
-        capa.addWidget(self._barra_contextual())
+        # Barras fijas: arriba la superior y la contextual, a la izquierda el riel de
+        # menús. Van en QToolBar para que los paneles se acoplen entre ellas y la vista.
+        barra_superior = self._barra_fija("superior", self._barra_superior(), Qt.TopToolBarArea)
+        self.addToolBarBreak(Qt.TopToolBarArea)
+        self._barra_fija("contextual", self._barra_contextual(), Qt.TopToolBarArea)
+        self.addToolBarBreak(Qt.TopToolBarArea)
+        self.barra_dibujo = self._barra_herramientas_dibujo()
+        self._barra_fija("riel", self._riel(), Qt.LeftToolBarArea)
 
-        self.vista = Vista2D(self.sesion)
         # El visor 3D se crea la primera vez que se lo pide: VTK tarda en arrancar
         # y es una dependencia opcional (nervi[visor3d]).
         self.vista3d: QWidget | None = None
-        self.vistas = QStackedWidget()
+        self.vistas = QStackedWidget(objectName="raiz")
         self.vistas.addWidget(self.vista)
-        self.planta = PlantaEdificio(self.edificio)
         self.vistas.addWidget(self.planta)
-        self.panel_inferior = self._panel_inferior()
-        self.centro = centro = QSplitter(Qt.Vertical)
-        centro.addWidget(self.vistas)
-        centro.addWidget(self.panel_inferior)
-        centro.setStretchFactor(0, 3)
-        centro.setStretchFactor(1, 1)
-        centro.setSizes([560, 250])
+        self.setCentralWidget(self.vistas)
 
+        # Paneles acoplables (nervi.gui.paneles): se mueven, se apilan, se desacoplan
+        # y se cierran; el menú Ver > Paneles los vuelve a abrir.
+        self.setDockOptions(
+            QMainWindow.AnimatedDocks | QMainWindow.AllowNestedDocks | QMainWindow.AllowTabbedDocks
+        )
+        self.setCorner(Qt.BottomLeftCorner, Qt.LeftDockWidgetArea)
+        self.setCorner(Qt.BottomRightCorner, Qt.RightDockWidgetArea)
+        self.panel_inferior = self._panel_inferior()
+        # Sin esto, el ancho de las pestañas y las tablas fija el ancho mínimo de la
+        # ventana; las pestañas que no entran se recorren con flechas.
+        self.panel_inferior.setMinimumWidth(360)
         # Panel del asistente de IA: junto a la barra lateral, se abre con su ícono.
         self.asistente = PanelAsistente(self.sesion, self.canal)
-        self.asistente.hide()
-        horizontal = QSplitter(Qt.Horizontal)
-        horizontal.addWidget(self.asistente)
-        horizontal.addWidget(self._explorador())
-        horizontal.addWidget(centro)
-        horizontal.addWidget(self._propiedades())
-        horizontal.setStretchFactor(2, 1)
-        horizontal.setSizes([360, 240, 900, 290])
-        self.horizontal = horizontal
-        cuerpo = QHBoxLayout()
-        cuerpo.setContentsMargins(0, 0, 0, 0)
-        cuerpo.setSpacing(0)
-        cuerpo.addWidget(self._riel())
-        cuerpo.addWidget(horizontal, 1)
-        capa.addLayout(cuerpo, 1)
-        self.setCentralWidget(raiz)
+        self.paneles = {
+            "asistente": crear_panel(self, "asistente", "Asistente de IA", self.asistente),
+            "estructura": crear_panel(self, "estructura", "Estructura", self._explorador()),
+            "propiedades": crear_panel(self, "propiedades", "Propiedades", self._propiedades()),
+            "inferior": crear_panel(self, "inferior", "Tablas y resultados", self.panel_inferior),
+        }
+        d = self.paneles
+        self.addDockWidget(Qt.LeftDockWidgetArea, d["estructura"])
+        self.addDockWidget(Qt.RightDockWidgetArea, d["propiedades"])
+        self.addDockWidget(Qt.BottomDockWidgetArea, d["inferior"])
+        self.addDockWidget(Qt.LeftDockWidgetArea, d["asistente"])
+        self.splitDockWidget(d["asistente"], d["estructura"], Qt.Horizontal)
+        d["asistente"].hide()
+        self.resizeDocks([d["estructura"], d["propiedades"]], [240, 290], Qt.Horizontal)
+        self.resizeDocks([d["inferior"]], [250], Qt.Vertical)
+        d["asistente"].toggleViewAction().toggled.connect(
+            lambda v: self.botones_riel["ia"].setChecked(v)
+        )
+        #: Distribución de fábrica, para *Restablecer*.
+        self._distribucion_inicial = self.saveState(paneles.VERSION)
         self._barra_estado()
 
         s = self.sesion
@@ -199,8 +228,121 @@ class Ventana(QMainWindow):
         self.vista.diagrama_cambiado.connect(self._marcar_diagrama)
         self.edificio.cambiado.connect(self._actualizar_edificio)
         self.edificio.mensaje.connect(lambda t: self.statusBar().showMessage(f"✕ {t}", 6000))
+        self.vista.dibujo.mensaje.connect(lambda t: self.statusBar().showMessage(f"✕ {t}", 6000))
+        # Barra de título propia (nervi.gui.marco): la fila superior hace de barra de
+        # título y lleva los botones de la ventana; la de sistema queda en Preferencias.
+        self.marco: marco.Marco | None = None
+        if self.botones_ventana is not None:
+            self.marco = marco.Marco(
+                self, self.findChild(QWidget, "barra"), self.botones_ventana, barra_superior
+            )
         self._actualizar_todo()
         self._actualizar_edificio()
+        paneles.recuperar(self)
+
+    def _barra_fija(self, clave: str, widget: QWidget, area) -> QToolBar:
+        """Una barra que no se mueve ni se cierra (la superior, la contextual, el riel)."""
+        barra = QToolBar(objectName=f"barra_{clave}")
+        barra.setMovable(False)
+        barra.setFloatable(False)
+        barra.setContextMenuPolicy(Qt.PreventContextMenu)
+        barra.toggleViewAction().setVisible(False)
+        vertical = area in (Qt.LeftToolBarArea, Qt.RightToolBarArea)
+        widget.setSizePolicy(
+            QSizePolicy.Preferred if vertical else QSizePolicy.Expanding,
+            QSizePolicy.Expanding if vertical else QSizePolicy.Preferred,
+        )
+        barra.addWidget(widget)
+        self.addToolBar(area, barra)
+        return barra
+
+    def _barra_herramientas_dibujo(self) -> QToolBar:
+        """Barra *Dibujo* con las herramientas del modo que se ve. Se puede mover a otro
+        borde (se pone vertical a los costados), desacoplar o cerrar desde *Ver >
+        Paneles*."""
+        barra = QToolBar("Barra de dibujo", objectName="barra_dibujo")
+        barra.setMovable(True)
+        barra.setFloatable(True)
+        self.dibujo_edificio = self._barra_dibujo()
+        self.dibujo_calculo = self._barra_dibujo(
+            self.vista.dibujo, HERRAMIENTAS_CALCULO, ENGANCHES_CALCULO
+        )
+        self._accion_dibujo = {
+            "edificio": barra.addWidget(self.dibujo_edificio),
+            "calculo": barra.addWidget(self.dibujo_calculo),
+        }
+        self._accion_dibujo["edificio"].setVisible(False)
+        barra.orientationChanged.connect(self._orientar_dibujo)
+        self.addToolBar(Qt.TopToolBarArea, barra)
+        return barra
+
+    def _orientar_dibujo(self, orientacion) -> None:
+        direccion = QBoxLayout.TopToBottom if orientacion == Qt.Vertical else QBoxLayout.LeftToRight
+        for w in (self.dibujo_edificio, self.dibujo_calculo):
+            for capa in w.property("capas"):
+                capa.setDirection(direccion)
+
+    # --- Paneles y distribuciones ---------------------------------------------------
+    def _menu_paneles(self) -> QMenu:
+        """*Ver › Paneles*. Se llena al abrirse: el riel se arma antes que los paneles."""
+        self.menu_paneles = QMenu("Paneles", self)
+        self.menu_paneles.aboutToShow.connect(self._llenar_paneles)
+        self.menu_distribuciones = QMenu("Distribuciones guardadas", self)
+        self.menu_distribuciones.aboutToShow.connect(self._llenar_distribuciones)
+        return self.menu_paneles
+
+    def _llenar_paneles(self) -> None:
+        menu = self.menu_paneles
+        menu.clear()
+        for clave in ("estructura", "propiedades", "inferior", "asistente"):
+            menu.addAction(self.paneles[clave].toggleViewAction())
+        menu.addAction(self.barra_dibujo.toggleViewAction())
+        menu.addSeparator()
+        menu.addAction(self.a_guardar_distribucion)
+        menu.addMenu(self.menu_distribuciones)
+        menu.addAction(self.a_restablecer_distribucion)
+
+    def _llenar_distribuciones(self) -> None:
+        m = self.menu_distribuciones
+        m.clear()
+        nombres = paneles.distribuciones()
+        for nombre in nombres:
+            m.addAction(nombre, lambda n=nombre: self.aplicar_distribucion(n))
+        if not nombres:
+            m.addAction("Ninguna todavía").setEnabled(False)
+            return
+        m.addSeparator()
+        borrar = m.addMenu("Borrar")
+        for nombre in nombres:
+            borrar.addAction(nombre, lambda n=nombre: paneles.borrar_distribucion(n))
+
+    def guardar_distribucion(self, nombre: str | None = None) -> str | None:
+        """Guarda la distribución de los paneles con un nombre (lo pide si falta)."""
+        if nombre is None:
+            nombre, ok = QInputDialog.getText(
+                self, "Guardar distribución", "Nombre de la distribución:"
+            )
+            if not ok:
+                return None
+        try:
+            nombre = paneles.guardar_distribucion(self, nombre)
+        except ValueError as e:
+            self.statusBar().showMessage(f"✕ {e}", 6000)
+            return None
+        self.statusBar().showMessage(f"Distribución «{nombre}» guardada", 4000)
+        return nombre
+
+    def aplicar_distribucion(self, nombre: str) -> bool:
+        ok = paneles.aplicar_distribucion(self, nombre)
+        if not ok:
+            self.statusBar().showMessage(f"✕ No se pudo usar la distribución «{nombre}»", 6000)
+        return ok
+
+    def restablecer_distribucion(self) -> None:
+        """Vuelve los paneles a la distribución de fábrica."""
+        for dock in self.paneles.values():
+            dock.setFloating(False)
+        self.restoreState(self._distribucion_inicial, paneles.VERSION)
 
     # --- Acciones y menú ------------------------------------------------------------
     def _accion(self, texto: str, funcion, atajo: str | QKeySequence | None = None) -> QAction:
@@ -257,6 +399,17 @@ class Ventana(QMainWindow):
                 atajo,
             )
             self.a_diagramas[clave].setShortcutContext(Qt.WidgetWithChildrenShortcut)
+        self.a_orto = self._accion(
+            "Orto: dibujar en horizontal y vertical",
+            self.alternar_orto,
+            "F8",
+        )
+        self.a_guardar_distribucion = self._accion(
+            "Guardar distribución…", lambda: self.guardar_distribucion()
+        )
+        self.a_restablecer_distribucion = self._accion(
+            "Restablecer distribución", self.restablecer_distribucion
+        )
         self.a_plantas = self._accion("Plantas", self.gestionar_plantas)
         self.a_subir = self._accion("Subir una planta", lambda: self.subir_planta(1), "PgUp")
         self.a_bajar = self._accion("Bajar una planta", lambda: self.subir_planta(-1), "PgDown")
@@ -270,8 +423,8 @@ class Ventana(QMainWindow):
         # inactivas para que las tablas usen esas teclas).
         self.a_subir.setEnabled(False)
         self.a_bajar.setEnabled(False)
-        self.a_vista2d = self._accion("Vista 2D", lambda: self.mostrar_vista("2D"))
-        self.a_vista3d = self._accion("Vista 3D", lambda: self.mostrar_vista("3D"))
+        self.a_vista2d = self._accion("Vista de frente", lambda: self.mostrar_vista("frente"))
+        self.a_vista3d = self._accion("Vista 3D", lambda: self.mostrar_vista("3d"))
         self.a_temas = {}
         grupo_temas = QActionGroup(self)
         for clave, tema in estilo.TEMAS.items():
@@ -345,12 +498,24 @@ class Ventana(QMainWindow):
         self.etapas.idClicked.connect(self.ir_a_etapa)
         capa.addStretch()
 
-        buscar = QPushButton("Buscar comando o elemento      Ctrl K", objectName="buscar")
+        buscar = QPushButton("Buscar…      Ctrl K", objectName="buscar")
+        buscar.setToolTip("Buscar comando o elemento (Ctrl+K)")
+        buscar.setAccessibleName("Buscar comando o elemento")
         buscar.clicked.connect(self.abrir_paleta)
         calcular = QPushButton("Calcular   F5", objectName="primario")
         calcular.clicked.connect(self.calcular)
         capa.addWidget(buscar)
         capa.addWidget(calcular)
+        #: Minimizar, maximizar y cerrar, si la fila superior es la barra de título.
+        self.botones_ventana: marco.BotonesVentana | None = None
+        if marco.usar_propia():
+            capa.setContentsMargins(8, 0, 0, 0)
+            barra.setFixedHeight(marco.ALTO_BARRA)
+            capa.addSpacing(8)
+            capa.addWidget(marco.separador())
+            capa.addSpacing(2)
+            self.botones_ventana = marco.BotonesVentana(self)
+            capa.addWidget(self.botones_ventana)
         return barra
 
     # --- Barra lateral de menús -------------------------------------------------------
@@ -442,12 +607,17 @@ class Ventana(QMainWindow):
                 self.a_vista3d,
                 None,
                 *self.a_diagramas.values(),
+                None,
+                self._menu_paneles(),
             ),
             "herramientas": menu(self.a_buscar, self.a_consola),
             "ayuda": menu(self.a_codigo, self.a_informar, None, self.a_acerca),
         }
 
     def _iconos_riel(self) -> None:
+        self._iconos_dibujo()
+        for dock in getattr(self, "paneles", {}).values():
+            dock.titleBarWidget().actualizar_iconos()
         # Ícono del gestor de plantas: tres losas apiladas, con el color del tema.
         self.b_plantas.setIcon(
             QIcon(icono_trazo(ICONO_PLANTAS, estilo.TEXTO_2, 20, self.devicePixelRatioF()))
@@ -496,6 +666,56 @@ class Ventana(QMainWindow):
         if not rutas:
             self.menu_recientes.addAction("Todavía no hay proyectos recientes").setEnabled(False)
 
+    def _selector_vista(self) -> QWidget:
+        """Vista: Frente | 3D (y Paralela | Perspectiva en 3D). No depende del modo
+        Edificio | Cálculo: es el primer control del visor."""
+        self.selector_vista = QWidget()
+        capa = QHBoxLayout(self.selector_vista)
+        capa.setContentsMargins(0, 0, 0, 0)
+        capa.setSpacing(10)
+        # Visor único: la vista de frente (plana, con dibujo y enganche) y la 3D son
+        # dos formas de mirar el mismo modelo (docs/diseno-interfaz.md, Visor).
+        capa.addWidget(QLabel("Vista", objectName="tenue"))
+        vistas = QWidget(objectName="grupo")
+        v = QHBoxLayout(vistas)
+        v.setContentsMargins(2, 2, 2, 2)
+        v.setSpacing(2)
+        self.grupo_vistas = QButtonGroup(self)
+        self.botones_vista: dict[str, QToolButton] = {}
+        for nombre, texto, icono, ayuda in (
+            ("frente", "Frente", "vista_alzado", "Vista de frente: se dibuja y se engancha"),
+            ("3d", "3D", "vista_3d", "Vista 3D: arrastrar con el botón derecho gira"),
+        ):
+            b = QToolButton(objectName="segmento", checkable=True)
+            b.setText(texto)
+            b.setProperty("icono", icono)
+            b.setIconSize(QSize(16, 16))
+            b.setToolButtonStyle(Qt.ToolButtonTextBesideIcon)
+            b.setToolTip(ayuda)
+            b.clicked.connect(lambda _=False, n=nombre: self.mostrar_vista(n))
+            self.grupo_vistas.addButton(b)
+            self.botones_vista[nombre] = b
+            v.addWidget(b)
+        self.botones_vista["frente"].setChecked(True)
+        capa.addWidget(vistas)
+        # Paralela o perspectiva: solo en la vista 3D.
+        self.grupo_proyeccion = QWidget(objectName="grupo")
+        g = QHBoxLayout(self.grupo_proyeccion)
+        g.setContentsMargins(2, 2, 2, 2)
+        g.setSpacing(2)
+        proyeccion = QButtonGroup(self)
+        self.botones_proyeccion: dict[str, QPushButton] = {}
+        for clave, texto in (("paralela", "Paralela"), ("perspectiva", "Perspectiva")):
+            b = QPushButton(texto, objectName="segmento", checkable=True)
+            b.clicked.connect(lambda _=False, c=clave: self.elegir_proyeccion(c))
+            proyeccion.addButton(b)
+            self.botones_proyeccion[clave] = b
+            g.addWidget(b)
+        self.botones_proyeccion["paralela"].setChecked(True)
+        self.grupo_proyeccion.hide()
+        capa.addWidget(self.grupo_proyeccion)
+        return self.selector_vista
+
     def _barra_contextual(self) -> QWidget:
         barra = QWidget(objectName="contexto")
         capa = QHBoxLayout(barra)
@@ -522,6 +742,7 @@ class Ventana(QMainWindow):
         capa.addWidget(modos)
         capa.addSpacing(8)
 
+        capa.addWidget(self._selector_vista())
         # Controles del modo Edificio: planta que se ve, ▲▼ y el gestor de plantas.
         self.ctx_edificio = QWidget()
         e = QHBoxLayout(self.ctx_edificio)
@@ -587,22 +808,6 @@ class Ventana(QMainWindow):
         capa = QHBoxLayout(self.ctx_calculo)
         capa.setContentsMargins(0, 0, 0, 0)
         capa.setSpacing(10)
-        vistas = QWidget(objectName="grupo")
-        v = QHBoxLayout(vistas)
-        v.setContentsMargins(2, 2, 2, 2)
-        v.setSpacing(2)
-        self.grupo_vistas = QButtonGroup(self)
-        self.botones_vista: dict[str, QPushButton] = {}
-        for nombre in ("2D", "3D"):
-            b = QPushButton(nombre, objectName="segmento", checkable=True)
-            b.setToolTip(f"Vista {nombre}")
-            b.clicked.connect(lambda _=False, n=nombre: self.mostrar_vista(n))
-            self.grupo_vistas.addButton(b)
-            self.botones_vista[nombre] = b
-            v.addWidget(b)
-        self.botones_vista["2D"].setChecked(True)
-        capa.addWidget(vistas)
-        capa.addSpacing(8)
         capa.addWidget(QLabel("Diagrama", objectName="tenue"))
         grupo = QWidget(objectName="grupo")
         g = QHBoxLayout(grupo)
@@ -633,15 +838,127 @@ class Ventana(QMainWindow):
         capa_calculo.addStretch()
         return barra
 
+    def _barra_dibujo(self, dibujo=None, herramientas=HERRAMIENTAS, enganches=ENGANCHES):
+        """Herramientas de dibujo y enganches de un lienzo (``nervi.gui.dibujo``). Sin
+        ``dibujo``, los de la planta del edificio."""
+        calculo = dibujo is not None
+        dibujo = dibujo or self.planta.dibujo
+        barra = QWidget()
+        # QBoxLayout: si la barra de dibujo se lleva a un costado, se pone vertical.
+        capa = QBoxLayout(QBoxLayout.LeftToRight, barra)
+        capa.setContentsMargins(8, 4, 8, 4)
+        capa.setSpacing(6)
+        capa.addWidget(QLabel("Dibujar", objectName="tenue"))
+        grupo = QWidget(objectName="grupo")
+        g = QBoxLayout(QBoxLayout.LeftToRight, grupo)
+        g.setContentsMargins(2, 2, 2, 2)
+        g.setSpacing(2)
+        botones_h: dict[str, QToolButton] = {}
+        grupo_h = QButtonGroup(self)
+        for clave, (icono_clave, nombre) in herramientas.items():
+            b = QToolButton(objectName="segmento", checkable=True)
+            b.setText("" if clave == "seleccionar" else nombre)
+            b.setToolTip(nombre)
+            b.setAccessibleName(nombre)
+            b.setIconSize(QSize(18, 18))
+            b.setToolButtonStyle(
+                Qt.ToolButtonIconOnly if clave == "seleccionar" else Qt.ToolButtonTextBesideIcon
+            )
+            b.setProperty("icono", icono_clave)
+            b.clicked.connect(
+                lambda _=False, c=clave, d=dibujo: self.elegir_herramienta(
+                    c, d is not self.planta.dibujo
+                )
+            )
+            grupo_h.addButton(b)
+            botones_h[clave] = b
+            g.addWidget(b)
+        capa.addWidget(grupo)
+        capa.addSpacing(6)
+        capa.addWidget(QLabel("Enganche", objectName="tenue"))
+        grupo_e = QWidget(objectName="grupo")
+        ge = QBoxLayout(QBoxLayout.LeftToRight, grupo_e)
+        ge.setContentsMargins(2, 2, 2, 2)
+        ge.setSpacing(2)
+        botones_e: dict[str, QPushButton] = {}
+        for clave, nombre in enganches.items():
+            texto = f"{nombre} {PASO_GRILLA_M:.2f}" if clave == "grilla" else nombre
+            b = QPushButton(texto, objectName="segmento", checkable=True)
+            b.setChecked(dibujo.opciones.enganches[clave])
+            b.toggled.connect(lambda v, c=clave, d=dibujo: d.poner_enganche(c, v))
+            botones_e[clave] = b
+            ge.addWidget(b)
+        capa.addWidget(grupo_e)
+        barra.setProperty("capas", [capa, g, ge])
+        if calculo:
+            self.botones_herramienta_calculo, self.botones_enganche_calculo = botones_h, botones_e
+        else:
+            self.botones_herramienta, self.botones_enganche = botones_h, botones_e
+        dibujo.cambiado.connect(self._actualizar_dibujo)
+        return barra
+
+    def _dibujos(self):
+        """(dibujo, botones de herramientas, botones de enganche) de cada lienzo."""
+        salida = [(self.planta.dibujo, self.botones_herramienta, self.botones_enganche)]
+        if hasattr(self, "botones_herramienta_calculo"):
+            salida.append(
+                (self.vista.dibujo, self.botones_herramienta_calculo, self.botones_enganche_calculo)
+            )
+        return salida
+
+    def elegir_herramienta(self, clave: str, calculo: bool = False) -> None:
+        """Elige una herramienta de dibujo de la planta del edificio o, con ``calculo``,
+        de la vista 2D (pasa al modo y a la vista que corresponde)."""
+        modo = "calculo" if calculo else "edificio"
+        if self.modo != modo:
+            self.elegir_modo(modo)
+        if calculo:
+            self.mostrar_vista("2D")
+            self.vista.dibujo.elegir(clave)
+            self.vista.setFocus()
+        else:
+            self.planta.dibujo.elegir(clave)
+            self.planta.setFocus()
+
+    def alternar_orto(self) -> None:
+        """F8: Orto del lienzo del modo que se ve."""
+        botones = self.botones_enganche_calculo if self.modo == "calculo" else self.botones_enganche
+        botones["orto"].toggle()
+
+    def _actualizar_dibujo(self) -> None:
+        for dibujo, botones_h, botones_e in self._dibujos():
+            botones_h[dibujo.herramienta].setChecked(True)
+            for clave, b in botones_e.items():
+                b.blockSignals(True)
+                b.setChecked(dibujo.opciones.enganches[clave])
+                b.blockSignals(False)
+        if not hasattr(self, "pila_prop"):
+            return
+        if self.modo == "edificio":
+            self.pila_prop.setCurrentWidget(
+                self.panel_herramienta if self.planta.dibujo.activo else self.prop_edificio
+            )
+        else:
+            self.pila_prop.setCurrentWidget(
+                self.panel_calculo if self.vista.dibujo.activo else self.pila_prop.widget(0)
+            )
+
+    def _iconos_dibujo(self) -> None:
+        for b in self.botones_vista.values():
+            b.setIcon(
+                iconos.qicon(b.property("icono"), estilo.actual, 16, self.devicePixelRatioF())
+            )
+        for _dibujo, botones_h, _ in self._dibujos():
+            for b in botones_h.values():
+                b.setIcon(
+                    iconos.qicon(b.property("icono"), estilo.actual, 18, self.devicePixelRatioF())
+                )
+
     def _explorador(self) -> QWidget:
         panel = QWidget(objectName="panel")
         capa = QVBoxLayout(panel)
         capa.setContentsMargins(0, 10, 0, 8)
         capa.setSpacing(6)
-        titulo = QLabel("Estructura", objectName="titulo_arbol")
-        titulo.setContentsMargins(12, 0, 12, 0)
-        capa.addWidget(titulo)
-        self.titulo_arbol = titulo
         self.arbol = ArbolModelo()
         self.arbol.elegido.connect(self._item_explorador)
         self.arbol_edificio = ArbolModelo()
@@ -685,6 +1002,11 @@ class Ventana(QMainWindow):
         self.pila_prop = QStackedWidget()
         self.pila_prop.addWidget(panel)
         self.pila_prop.addWidget(self.prop_edificio)
+        self.panel_herramienta = PanelHerramienta(self.planta.dibujo)
+        self.pila_prop.addWidget(self.panel_herramienta)
+        self.panel_calculo = PanelCalculo(self.vista.dibujo)
+        self.pila_prop.addWidget(self.panel_calculo)
+        self._actualizar_dibujo()
         return self.pila_prop
 
     def _panel_inferior(self) -> QTabWidget:
@@ -966,19 +1288,93 @@ class Ventana(QMainWindow):
         if isinstance(self.vista3d, Vista3D):
             self.vista3d.elegir_diagrama(clave)
 
-    def mostrar_vista(self, nombre: str) -> None:
-        """Muestra la vista ``"2D"`` o ``"3D"`` en el centro de la ventana."""
-        if nombre == "3D":
-            if self.vista3d is None:
-                self.vista3d = vista3d.crear(self.sesion)
-                if isinstance(self.vista3d, Vista3D):
-                    self.vista3d.mostrar_valores = self.vista.mostrar_valores
-                    self.vista3d.elegir_diagrama(self.vista.diagrama)
-                self.vistas.addWidget(self.vista3d)
-            self.vistas.setCurrentWidget(self.vista3d)
+    def _vista3d(self) -> QWidget:
+        """El visor 3D, creado la primera vez (VTK tarda en arrancar)."""
+        if self.vista3d is None:
+            self.vista3d = vista3d.crear(self.sesion)
+            if isinstance(self.vista3d, Vista3D):
+                self.vista3d.mostrar_valores = self.vista.mostrar_valores
+                self.vista3d.elegir_diagrama(self.vista.diagrama)
+                self.vista3d.perspectiva = self.botones_proyeccion["perspectiva"].isChecked()
+                self.vista3d.vista_pedida.connect(self._vista_desde_brujula)
+                self.vista3d.botones_navegacion.actualizar_iconos()
+            self.vistas.addWidget(self.vista3d)
+        return self.vista3d
+
+    def _camara_de_frente(self):
+        """La cámara 3D que muestra exactamente lo que muestra la vista de frente."""
+        v = self.vista.vista_actual()
+        if v is None:
+            return None
+        return camara3d.Camara3D.de_frente(v.escala, v.cx, v.cy)
+
+    def vista_visible(self) -> str:
+        """``"frente"`` o ``"3d"``: la vista del modelo de cálculo que se ve."""
+        return "3d" if self.botones_vista["3d"].isChecked() else "frente"
+
+    def mostrar_vista(self, nombre: str, animar: bool = True) -> None:
+        """Muestra la vista ``"frente"`` o ``"3d"`` en el centro de la ventana.
+
+        Es un solo visor: al pasar de una a otra la cámara se mueve con una transición
+        corta, desde donde se miraba el pórtico de frente o hasta ahí."""
+        nombre = ALIAS_VISTAS.get(nombre, nombre)
+        actual = self.vistas.currentWidget()
+        if nombre == "3d":
+            # Se dibuja en la vista de frente: al pasar a 3D se vuelve a Seleccionar.
+            if self.vista.dibujo.activo:
+                self.vista.dibujo.elegir("seleccionar")
+            w = self._vista3d()
+            if isinstance(w, Vista3D) and actual is not w:
+                frente = self._camara_de_frente()
+                if frente is not None:
+                    w.poner(replace(frente, perspectiva=w.perspectiva))
+                self.vistas.setCurrentWidget(w)
+                if animar and w.escena is not None and w.escena.barras:
+                    w.ir_a("isometrica")
+            else:
+                self.vistas.setCurrentWidget(w)
         else:
-            self.vistas.setCurrentWidget(self.vista)
+            w = self.vista3d
+            frente = self._camara_de_frente()
+            if isinstance(w, Vista3D) and actual is w and animar and frente is not None:
+                w.animar_a(
+                    replace(frente, perspectiva=False),
+                    lambda: self.vistas.setCurrentWidget(self.vista),
+                )
+            else:
+                self.vistas.setCurrentWidget(self.vista)
         self.botones_vista[nombre].setChecked(True)
+        self.grupo_proyeccion.setVisible(nombre == "3d")
+
+    def elegir_proyeccion(self, clave: str) -> None:
+        """``"paralela"`` o ``"perspectiva"`` en la vista 3D."""
+        self.botones_proyeccion[clave].setChecked(True)
+        if isinstance(self.vista3d, Vista3D):
+            self.vista3d.elegir_perspectiva(clave == "perspectiva")
+
+    def _vista_desde_brujula(self, extremo: str) -> None:
+        """Clic en la brújula: de frente (``-Y``) es la vista plana; las demás, la 3D."""
+        if extremo == "-Y":
+            self.mostrar_vista("frente")
+            return
+        self.mostrar_vista("3d", animar=False)
+        if isinstance(self.vista3d, Vista3D):
+            self.vista3d.ir_a(extremo)
+
+    def _girar_desde_frente(self, pos: QPointF, x: float, y: float) -> None:
+        """Arrastre con el botón derecho en la vista de frente: pasa a 3D sin saltos y
+        gira alrededor del punto donde empezó el arrastre."""
+        self.mostrar_vista("3d", animar=False)
+        if isinstance(self.vista3d, Vista3D):
+            self.vista3d.empezar_giro(pos, (x, 0.0, y))
+
+    def _seguir_giro(self, dx: float, dy: float) -> None:
+        if isinstance(self.vista3d, Vista3D):
+            self.vista3d.girar(dx, dy)
+
+    def _terminar_giro(self) -> None:
+        if isinstance(self.vista3d, Vista3D):
+            self.vista3d.terminar_arrastre()
 
     def _item_explorador(self, tipo: str, valor) -> None:
         if tipo == "edificio":
@@ -1016,11 +1412,13 @@ class Ventana(QMainWindow):
         self.botones_modo[modo].setChecked(True)
         self.ctx_edificio.setVisible(edificio)
         self.ctx_calculo.setVisible(not edificio)
-        self.titulo_arbol.setText("Edificio" if edificio else "Estructura")
+        # La planta del edificio todavía no tiene vista de frente ni 3D.
+        self.selector_vista.setVisible(not edificio)
+        self._accion_dibujo["edificio"].setVisible(edificio)
+        self._accion_dibujo["calculo"].setVisible(not edificio)
+        self.paneles["estructura"].setWindowTitle("Edificio" if edificio else "Estructura")
         self.pila_arbol.setCurrentWidget(self.arbol_edificio if edificio else self.arbol)
-        self.pila_prop.setCurrentWidget(
-            self.prop_edificio if edificio else self.pila_prop.widget(0)
-        )
+        self._actualizar_dibujo()
         tabs = self.panel_inferior
         i_modelo, i_edificio = tabs.indexOf(self.tabs_modelo), tabs.indexOf(self.tablas_edificio)
         # La pestaña de tablas del modo nuevo reemplaza a la del otro en el mismo lugar.
@@ -1029,11 +1427,16 @@ class Ventana(QMainWindow):
         if tabs.currentIndex() == vieja:
             tabs.setCurrentIndex(nueva)
         tabs.setTabVisible(vieja, False)
+        # Resultados, Diseño y Dinámica son del modelo de cálculo: en Edificio se ocultan
+        # para no mostrar barras que no son del edificio (todavía no genera su modelo, #74).
+        for panel in (self.tabs_res, self.panel_diseno, self.panel_dinamica):
+            if edificio and tabs.currentWidget() is panel:
+                tabs.setCurrentIndex(nueva)
+            tabs.setTabVisible(tabs.indexOf(panel), not edificio)
         if edificio:
             self.vistas.setCurrentWidget(self.planta)
         else:
-            vista = "3D" if self.botones_vista["3D"].isChecked() else "2D"
-            self.mostrar_vista(vista)
+            self.mostrar_vista(self.vista_visible(), animar=False)
         # Re Pág y Av Pág cambian de planta solo en Edificio; en Cálculo son de las tablas.
         self.a_subir.setEnabled(edificio)
         self.a_bajar.setEnabled(edificio)
@@ -1096,8 +1499,19 @@ class Ventana(QMainWindow):
                 f"{n['losas']} losas · {n['muros']} muros"
             )
 
+    def _pasar_a_calculo(self) -> None:
+        """Análisis, resultados, diseño y dinámica trabajan sobre el modelo de cálculo."""
+        if self.modo == "edificio":
+            self.elegir_modo("calculo")
+            self.statusBar().showMessage(
+                "Resultados y diseño son del modelo de cálculo: el edificio todavía no lo genera",
+                8000,
+            )
+
     def ir_a_etapa(self, n: int) -> None:
         self.botones_etapa[n].setChecked(True)
+        if n >= 2:
+            self._pasar_a_calculo()
         if n == 0:
             self.mostrar_tabla("nudos")
         elif n == 1:
@@ -1109,16 +1523,23 @@ class Ventana(QMainWindow):
         elif n == 4:
             self.panel_inferior.setCurrentWidget(self.panel_diseno)
             # La tabla de diseño necesita más alto que las tablas del modelo.
-            alto = sum(self.centro.sizes())
-            if self.centro.sizes()[1] < 0.42 * alto:
-                self.centro.setSizes([int(0.55 * alto), alto - int(0.55 * alto)])
+            self._agrandar_panel_inferior()
         self._actualizar_diseno()
 
     def mostrar_dinamica(self) -> None:
+        self._pasar_a_calculo()
         self.panel_inferior.setCurrentWidget(self.panel_dinamica)
-        alto = sum(self.centro.sizes())
-        if self.centro.sizes()[1] < 0.42 * alto:
-            self.centro.setSizes([int(0.55 * alto), alto - int(0.55 * alto)])
+        self._agrandar_panel_inferior()
+
+    def _agrandar_panel_inferior(self) -> None:
+        """Lleva el panel de tablas y resultados al 45 % del alto, si está acoplado abajo
+        y es más bajo (Diseño y Dinámica necesitan más alto que las tablas)."""
+        dock = self.paneles["inferior"]
+        if dock.isFloating() or self.dockWidgetArea(dock) != Qt.BottomDockWidgetArea:
+            return
+        alto = self.vistas.height() + dock.height()
+        if dock.height() < 0.42 * alto:
+            self.resizeDocks([dock], [alto - int(0.55 * alto)], Qt.Vertical)
 
     def analizar_dinamica(self) -> bool:
         """Va a la pestaña Dinámica y hace el análisis modal y espectral."""
@@ -1168,11 +1589,18 @@ class Ventana(QMainWindow):
     def nuevo(self) -> None:
         if self._seguir_si_hay_cambios():
             self.sesion.nuevo()
+            self._encuadrar_vistas()
             self.ir_a_etapa(0)
+
+    def _encuadrar_vistas(self) -> None:
+        """Un proyecto nuevo o abierto se ve entero, sin el zoom del anterior."""
+        self.vista.encuadrar()
+        self.planta.encuadrar()
 
     def abrir_ejemplo(self) -> None:
         if self._seguir_si_hay_cambios():
             self.sesion.nuevo(documento_ejemplo())
+            self._encuadrar_vistas()
             self.ir_a_etapa(0)
 
     def abrir_dialogo(self) -> None:
@@ -1214,6 +1642,7 @@ class Ventana(QMainWindow):
             QMessageBox.warning(self, "No se pudo abrir el proyecto", str(e))
             return False
         ajustes.agregar_reciente(self.sesion.ruta)
+        self._encuadrar_vistas()
         doc = self.sesion.doc
         if doc.migrado_desde:
             partes = ", ".join(
@@ -1426,24 +1855,29 @@ class Ventana(QMainWindow):
         estilo.aplicar(tema=ajustes.tema(clave))
         self.a_temas[clave].setChecked(True)
         self._iconos_riel()
+        for lienzo in (self.vista, self.planta):
+            lienzo.botones_navegacion.actualizar_iconos()
+        if isinstance(self.vista3d, Vista3D):
+            self.vista3d.botones_navegacion.actualizar_iconos()
         self._actualizar_explorador()
         self._actualizar_resultados()
         self._actualizar_propiedades()
         self.vista.update()
+        if self.botones_ventana is not None:
+            self.botones_ventana.actualizar_iconos()
         if isinstance(self.vista3d, Vista3D):
             self.vista3d.actualizar()
 
     def mostrar_asistente(self, mostrar: bool = True) -> None:
         """Abre o cierra el panel del asistente de IA junto a la barra lateral."""
-        if mostrar and not self.asistente.isVisible():
-            tamanos = self.horizontal.sizes()
-            ancho = 370
-            tamanos[0] = ancho
-            tamanos[2] = max(tamanos[2] - ancho, 300)  # lo toma de la vista central
-            self.asistente.setVisible(True)
-            self.horizontal.setSizes(tamanos)
-        else:
-            self.asistente.setVisible(mostrar)
+        dock = self.paneles["asistente"]
+        if mostrar and not dock.isVisible():
+            dock.show()
+            if not dock.isFloating():
+                self.resizeDocks([dock], [370], Qt.Horizontal)
+            dock.raise_()
+        elif not mostrar:
+            dock.hide()
         self.botones_riel["ia"].setChecked(mostrar)
 
     def _actualizar_insignia(self, pendientes: int) -> None:
@@ -1473,8 +1907,22 @@ class Ventana(QMainWindow):
         )
         return self.canal.activo
 
+    def nativeEvent(self, tipo, mensaje):
+        """En Windows, la barra de título propia atiende los mensajes del marco."""
+        if self.marco is not None:
+            respuesta = self.marco.evento_nativo(tipo, mensaje)
+            if respuesta is not None:
+                return respuesta
+        return super().nativeEvent(tipo, mensaje)
+
+    def paintEvent(self, evento) -> None:
+        super().paintEvent(evento)
+        if self.marco is not None:
+            self.marco.pintar_borde(self)
+
     def closeEvent(self, evento) -> None:
         if self._seguir_si_hay_cambios():
+            paneles.guardar_al_cerrar(self)
             self.canal.cerrar()
             if isinstance(self.vista3d, Vista3D):
                 self.vista3d.plotter.close()

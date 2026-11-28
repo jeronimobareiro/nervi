@@ -85,7 +85,7 @@ Decidido el 25 y el 26/11/2026 con muestras en los dos temas (entrada [2026-11-2
 
 ![Modo Edificio con la viga V103 del Piso 1 elegida](img/modelo-fisico.png)
 
-- **Edificio | Cálculo:** segmento al principio de la barra contextual (`segmento` en un `grupo`). *Cálculo* es el modelo analítico de siempre; *Edificio* (`gui.edificio`) cambia la vista, el árbol, las propiedades y la pestaña de tablas por las del modelo físico. En *Edificio*, la barra muestra *Planta* con un desplegable de pisos (de arriba hacia abajo, con su nivel), chevrones para subir y bajar en un `grupo` con botones `segmento`, como el selector de modo (`ICONO_SUBIR` e `ICONO_BAJAR`; Re Pág y Av Pág, solo en este modo; se apagan en el piso más alto y en el más bajo) con el botón del gestor de plantas antes de las flechas: ícono del edificio con sus losas y el terreno (`ventana.ICONO_PLANTAS`, 24 × 24 con trazo de 1,7 px como la barra lateral; en el menú Modelo es *Plantas*); se ocultan 2D/3D, Diagrama, Combinación y Valores.
+- **Edificio | Cálculo:** segmento al principio de la barra contextual (`segmento` en un `grupo`). *Cálculo* es el modelo analítico de siempre; *Edificio* (`gui.edificio`) cambia la vista, el árbol, las propiedades y la pestaña de tablas por las del modelo físico. En *Edificio*, la barra muestra *Planta* con un desplegable de pisos (de arriba hacia abajo, con su nivel), chevrones para subir y bajar en un `grupo` con botones `segmento`, como el selector de modo (`ICONO_SUBIR` e `ICONO_BAJAR`; Re Pág y Av Pág, solo en este modo; se apagan en el piso más alto y en el más bajo) con el botón del gestor de plantas antes de las flechas: ícono del edificio con sus losas y el terreno (`ventana.ICONO_PLANTAS`, 24 × 24 con trazo de 1,7 px como la barra lateral; en el menú Modelo es *Plantas*); se ocultan el selector *Vista*, Diagrama, Combinación y Valores.
 - **Planta** (`PlantaEdificio`): fondo de cuadrícula como la vista 2D; ejes en trazo y punto con su burbuja; losas con relleno tenue, nombre y *Maciza · e = 12 cm · área*; vigas como franjas de su ancho, con nombre y sección; muros como franjas de su espesor con relleno a media transparencia; columnas rellenas con el color de texto, rectangulares o circulares y giradas. Lo elegido va en color de acento. Abajo a la izquierda, una etiqueta con el piso, su nivel y cuántos elementos tiene. Un clic elige el elemento; en el vacío, el piso.
 - **Árbol** (mismo `ArbolModelo`, título *Edificio*): Pisos (con su nivel), Ejes, Columnas, Vigas, Losas y Muros del piso que se ve, y Materiales y secciones. Clic en un piso lo muestra; en un elemento, lo elige; en el título de una sección, abre su tabla.
 - **Propiedades** (`PropiedadesEdificio`): campos editables (`QLineEdit` alineado a la derecha para números, desplegable para piso, sección, material y tipo) y datos calculados (largo, área, altura). Un valor inválido no cambia nada y deja el motivo en `aviso`. Sin elección, los datos del piso: nivel, entrepiso y cantidades.
@@ -102,6 +102,69 @@ Muestra del 27/11/2026 en los dos temas (entrada [2026-11-27-02](bitacora/2026-1
 - **Planta con cargas:** las zonas tributarias de cada losa con sus líneas de quiebre a trazos (`TEXTO_3`); en cada losa, su nombre y `PP · D · L` en kN/m² sobre una pastilla del color del panel; en cada viga, su nombre y la fuerza que recibe en el caso elegido (`V106 · 81,2 kN`). La viga o el muro elegido resalta su zona tributaria con el acento a 22 %. Una losa que no se puede repartir lleva el borde a trazos en `NEGATIVO` y *Sin repartir*.
 - **Propiedades:** de la planta, *Permanente* y *Sobrecarga* editables bajo *Cargas de las losas* (en kN/m², además del peso propio). De una losa, sus cargas (vacías toman las del piso, que se ven como texto de ejemplo), el peso propio que resulta y, si no se reparte, el motivo en `aviso`. De una viga o un muro, *Cargas de losas*: el diagrama del caso elegido (`DiagramaCarga`, acento con relleno al 16 % y el máximo arriba), una tabla por caso con la fuerza en kN y el máximo en kN/m (el caso elegido en acento) y el área tributaria.
 - **Tablas:** *Pisos* y *Losas* suman *Permanente* y *Sobrecarga* en kN/m², y *Materiales* el *Peso* en kN/m³. En *Losas*, una carga que se toma del piso se ve en `TEXTO_3` con su explicación al pasar el mouse; al editarla queda vacía.
+
+### Dibujar en la planta
+
+Muestra del 28/11/2026 (entrada [2026-11-28-05](bitacora/2026-11-28-05-dibujar-edificio.md)), según la muestra aprobada del plan de dibujo con el mouse.
+
+![Herramienta Viga con un voladizo desde C1, enganche polar y largo junto al cursor](img/dibujar-edificio.png)
+
+- **Barra *Dibujar*** (en *Edificio*, `gui.dibujo.HERRAMIENTAS`): *Seleccionar*, *Eje*, *Columna*, *Viga*, *Losa* y *Muro* como `QToolButton` `segmento` con su ícono del catálogo, en un `grupo`; uno solo marcado. Esc vuelve a *Seleccionar*.
+- **Barra *Enganche*** (`gui.dibujo.ENGANCHES`): *Grilla* (con su paso, 0,50 m), *Ejes*, *Extremos*, *Medio*, *Cruces* y *Orto F8*, botones `segmento` que se quedan marcados; se recuerdan en las preferencias (`dibujo/<clave>`).
+- **Planta mientras se dibuja:** el tramo en curso en acento con trazo de 2 px; la guía polar o la prolongación a trazos (`TEXTO_3`); la marca del enganche con forma por tipo (cuadrado en extremos y puntos, triángulo en el medio, cruz en cruces, rombo en la grilla) y una pastilla con *Tipo · elemento* y *largo · ángulo°*. El paño que tomaría la losa se rellena con el acento al 18 %.
+- **Entrada numérica** (`EntradaNumerica`): al escribir un número aparece junto al cursor con *Largo* y *Ángulo*; Tab pasa de uno al otro, Enter fija el punto y Esc la cierra. Sin ángulo, sigue la dirección del cursor.
+- **Panel de la herramienta** (`PanelHerramienta`, en lugar de Propiedades): título *Nueva viga* (o columna, losa, muro, eje), *Sección* y *Material* con *Automática* primero (la más usada del modelo o una por defecto), *Espesor* en losas y muros, *Encadenar tramos* y *Partir en cada columna*, y una ayuda breve en `TEXTO_2`.
+- Clic derecho cancela el tramo; Backspace saca el último punto; cada elemento creado es un Ctrl+Z.
+
+### Dibujar en la vista 2D
+
+Muestra del 28/11/2026 (entrada [2026-11-28-06](bitacora/2026-11-28-06-dibujar-calculo.md)), con la misma línea que la planta.
+
+![Herramienta Puntual sobre el pórtico de ejemplo: cargas del caso D y enganche al medio de B2](img/dibujar-calculo.png)
+
+- **Barras *Dibujar* y *Enganche*** en *Cálculo*, después de *Valores* (`gui.dibujo_calculo.HERRAMIENTAS_CALCULO` y `ENGANCHES_CALCULO`): Seleccionar, Nudo, Barra, Apoyo, Puntual y Repartida con los íconos del catálogo; Grilla, Nudos, Medio, Cruces y Orto F8. Los enganches se recuerdan aparte de los de la planta (`dibujo_calculo/<clave>`). Elegir una herramienta pasa a la vista de frente; pasar a 3D vuelve a Seleccionar.
+- **Vista mientras se dibuja:** el mismo trazo, guía, marca y pastillas que la planta (`gui.dibujo.Dibujo`). Con Puntual y Repartida, las cargas del caso elegido en acento: flechas largas de 2 px para las concentradas, una fila de flechas cortas de 1,2 px con su línea para las repartidas y un arco con punta para los momentos, a tamaño fijo en pantalla.
+- **Panel de la herramienta** (`PanelCalculo`, en lugar de Propiedades): título (*Nueva barra*, *Apoyo*, *Carga puntual*…), y solo las filas de la herramienta: E, A e I con sus unidades; Tipo de apoyo; Caso (desplegable editable: un nombre nuevo crea el caso), Fx, Fy y Mz o qx y qy, y Ejes (Globales o Locales de la barra). Ayuda breve en `TEXTO_2`.
+- El modelo vacío se ve a 40 px por metro, para empezar a dibujar; al primer clic la vista se queda donde está (no sigue al encuadre automático) hasta que se pulsa F.
+
+### Paneles acoplables
+
+Muestra del 28/11/2026 (entrada [2026-11-28-07](bitacora/2026-11-28-07-paneles-acoplables.md)), en tema oscuro con el asistente abierto.
+
+![Ventana con los paneles Asistente de IA y Estructura a la izquierda y Tablas y resultados abajo](img/paneles-acoplables.png)
+
+- **Barras fijas** (`QToolBar` que no se mueven): la superior y la contextual arriba y el riel de menús a la izquierda, fuera del área de los paneles, así los paneles se acoplan entre ellas y la vista.
+- **Barra de dibujo** (`barra_dibujo`, segunda fila): las herramientas y enganches del modo que se ve, en una barra que se mueve con su asa a cualquier borde (a los costados se pone vertical: sus `QBoxLayout` cambian de dirección) o se desacopla.
+- **Paneles** (`gui.paneles.crear_panel`): Estructura (izquierda; su título dice *Edificio* en ese modo), Propiedades (derecha), Tablas y resultados (abajo, solo debajo de la vista: las esquinas son de los paneles laterales) y Asistente de IA (izquierda, junto al riel, cerrado al empezar). Barra de título propia (`TituloPanel`, fondo `PANEL`): el nombre con el estilo de `titulo_arbol` y dos botones `boton_panel` de 14 px, *Desacoplar* (`desacoplar`, cambia a *Acoplar* cuando flota) y *Cerrar* (`cerrar`). Se arrastra por el título; doble clic desacopla o acopla. Separadores de 1 px en `BORDE`, en `ACENTO` al pasar el mouse.
+- **Ver > Paneles**: una casilla por panel y por la barra de dibujo, *Guardar distribución…* (pide el nombre), *Distribuciones guardadas* (cada una se aplica con un clic, y *Borrar*) y *Restablecer distribución*.
+- La ventana guarda su tamaño, posición y distribución al cerrar (`ventana/geometria` y `ventana/estado` en las preferencias) y las recupera al abrir; las distribuciones con nombre van en `distribuciones/<nombre>`.
+
+## Visor
+
+Decidido el 28/11/2026 con muestras en los dos temas (entrada [2026-11-28-08](bitacora/2026-11-28-08-visor-unico.md)): un solo visor en lugar de una vista 2D y otra 3D, y un giro que no tumba el modelo. Se eligió dibujar las vistas planas con Qt (como hasta ahora, con dibujo y enganche) y la vista 3D con VTK, que resuelve las caras ocultas en la placa de video y aguanta modelos grandes; se descartó dibujar todo con Qt.
+
+![Vista 3D girando alrededor de un punto de la viga B2, con la brújula de vistas abajo a la derecha](img/visor-3d.png)
+
+- **Selector *Vista*** (`Ventana.selector_vista`), primer control de la barra contextual después del modo y fuera de los controles de cada modo: *Frente* (`vista_alzado`) y *3D* (`vista_3d`) como `QToolButton` `segmento` con ícono y texto en un `grupo`; en 3D, además, *Paralela* | *Perspectiva* (paralela por defecto). *Planta* y *Lateral* se suman cuando el modelo de cálculo de la interfaz sea espacial: el pórtico plano solo se ve de frente o en 3D. En *Edificio* se oculta (la planta todavía no tiene frente ni 3D).
+- **Un mismo visor:** pasar de *Frente* a *3D* parte de la cámara que muestra lo mismo que la vista de frente y la lleva a la isométrica con una transición de 220 ms; volver la lleva al encuadre de la vista de frente y recién ahí cambia de lienzo, sin salto. Arrastrar con el botón derecho en la vista de frente pasa a 3D sin transición y sigue girando.
+- **Navegación igual en todas las vistas:** rueda, acercar o alejar hacia el cursor; botón del medio (o Mayús + izquierdo en 3D), desplazar; `F` o `Inicio`, encuadrar; doble clic con el medio, encuadrar. Girar: botón derecho arrastrado (en 3D también el izquierdo); un clic derecho sin arrastrar sigue terminando el trazo de la herramienta. Clic izquierdo, elegir.
+- **Giro tipo plato** (`gui.camara3d.Camara3D`): acimut alrededor de Z y elevación de −90° a 90°, sin rolido (la Z del modelo siempre vertical en pantalla). Gira alrededor del punto del modelo que está bajo el cursor al empezar (si no hay, del centro del modelo), que queda fijo en la pantalla y se marca con un punto de `ACENTO` mientras se gira. 0,4° por píxel.
+- **Brújula de vistas** (`gui.brujula.Brujula`), abajo a la derecha de la vista de frente y de la 3D, sobre la barra de coordenadas: círculo de 96 px con fondo `PANEL` y borde `BORDE`; los tres ejes como los ve la cámara, X en `NEGATIVO`, Y en `OK`, Z en `ACENTO`; el extremo positivo es un círculo lleno de 8 px con su letra y el negativo uno hueco de 5,5 px. Al pasar el mouse, un anillo de acento y el nombre de la vista. Clic: mirar desde ese lado (−Y vuelve a la vista de frente; +Z es la planta). Reemplaza al triedro de VTK.
+- **Vista 3D:** grilla del terreno en el plano del nudo más bajo, cada 1 m en `BORDE` y marcada cada 5 m en `borde_fuerte` (se agranda de a 5 si salen más de 60 líneas); botones de zoom y encuadre arriba a la derecha como en la vista de frente, con *Cargas* en el mismo grupo; la ayuda de navegación abajo a la derecha en `TEXTO_3`. Las etiquetas de valores van sobre `PANEL`, así se leen en los dos temas.
+
+## Barra de título propia
+
+Muestra aprobada el 28/11/2026 (entrada [2026-11-28-09](bitacora/2026-11-28-09-barra-de-titulo-propia.md)), en tema claro.
+
+![Ventana sin la barra del sistema: la fila superior lleva el logo, el archivo, las etapas, Buscar, Calcular y los botones de la ventana](img/barra-titulo.png)
+
+- La barra de título del sistema no sigue los temas: la dibuja el gestor de ventanas (Windows, KWin, Mutter…). Por defecto Nervi la quita (`nervi.gui.marco`) y la **fila superior hace de barra de título**: logo con el menú Archivo, nombre del archivo, etapas, Buscar, Calcular y, al final, un separador de 1 px (`separador_ventana`, `BORDE`) y *Minimizar*, *Maximizar* / *Restaurar* y *Cerrar*.
+- La fila mide 40 px (`marco.ALTO_BARRA`). Buscar es un botón de 180 px con "Buscar…  Ctrl K" (el nombre completo va en la ayuda y el texto accesible); Calcular queda igual; 8 px entre Calcular y el separador.
+- Botones de la ventana (`boton_ventana`, `boton_cerrar_ventana`): 46 × 40 px, planos y sin esquinas redondeadas, íconos `minimizar`, `maximizar`, `restaurar` y `cerrar` del catálogo a 16 px en `TEXTO_2`. Al pasar el mouse, fondo `HOVER`; *Cerrar* va en `CERRAR_VENTANA` (el rojo de cerrar de los sistemas, igual en los dos temas) con el ícono en `SOBRE_CERRAR_VENTANA`.
+- Arrastran la ventana las partes vacías de la fila y sus etiquetas; doble clic maximiza o restaura. Se redimensiona desde una franja de 5 px en los bordes (`marco.BORDE`).
+- **Windows**: la ventana conserva el estilo de ventana con marco y solo se le quita el área que dibujaba el sistema (`WM_NCCALCSIZE`); `WM_NCHITTEST` le dice qué es barra (`HTCAPTION`), borde o *Maximizar* (`HTMAXBUTTON`, para el menú de distribuciones de Snap en Windows 11). Así siguen Snap, Win + flechas, la sombra, las esquinas redondeadas y las animaciones.
+- **Linux** (X11 y Wayland): ventana sin marco con un margen de 5 px y una línea de 1 px en `BORDE_FUERTE`; el arrastre y el redimensionado los hace el gestor de ventanas (`startSystemMove`, `startSystemResize`).
+- *Preferencias › Apariencia › Barra de título* vuelve a la del sistema operativo (se aplica al volver a abrir Nervi).
 
 ## Cómo agregar algo
 
