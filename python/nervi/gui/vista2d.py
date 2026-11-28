@@ -16,6 +16,7 @@ from PySide6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPainterPath, QP
 from PySide6.QtWidgets import QWidget
 
 from . import estilo
+from .brujula import Brujula
 from .dibujo_calculo import DibujoCalculo
 from .navegacion import METROS, Navegable, Vista, dibujar_coordenadas, dibujar_grilla
 from .sesion import Seleccion, Sesion
@@ -35,6 +36,14 @@ class Vista2D(Navegable, QWidget):
     :attr:`dibujo` (:mod:`nervi.gui.dibujo_calculo`)."""
 
     diagrama_cambiado = Signal(str)
+    #: Arrastre con el botón derecho: pasar a la vista 3D y girar desde este punto
+    #: del lienzo, alrededor de este punto del modelo (``x``, ``y``).
+    giro_pedido = Signal(QPointF, float, float)
+    #: El giro sigue (píxeles arrastrados desde el último aviso) o terminó.
+    giro_arrastre = Signal(float, float)
+    giro_terminado = Signal()
+    #: Píxeles que hay que mover con el botón derecho para que sea un giro y no un clic.
+    UMBRAL_GIRO = 4
 
     def __init__(self, sesion: Sesion, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -50,6 +59,11 @@ class Vista2D(Navegable, QWidget):
         self.iniciar_navegacion()
         self.setAutoFillBackground(False)
         self.dibujo = DibujoCalculo(self, sesion)
+        #: Botón derecho apretado: (punto inicial, último punto, ya es un giro).
+        self._derecho: tuple[QPointF, QPointF, bool] | None = None
+        #: Brújula de vistas: la muestra la ventana, que sabe pasar a la vista 3D.
+        self.brujula = Brujula(self)
+        self.brujula.hide()
         for senal in (
             sesion.modelo_cambiado,
             sesion.resultados_cambiados,
@@ -376,7 +390,27 @@ class Vista2D(Navegable, QWidget):
                 return nid
         return None
 
+    def resizeEvent(self, evento) -> None:
+        super().resizeEvent(evento)
+        self.brujula.acomodar()
+
     def mouseMoveEvent(self, evento: QMouseEvent) -> None:
+        if self._derecho is not None:
+            inicio, ultimo, girando = self._derecho
+            pos = evento.position()
+            if girando:
+                d = pos - ultimo
+                self.giro_arrastre.emit(d.x(), d.y())
+                self._derecho = (inicio, pos, True)
+            elif (pos - inicio).manhattanLength() > self.UMBRAL_GIRO:
+                t = self.transformacion()
+                x, y = t.a_modelo(inicio) if t is not None else (0.0, 0.0)
+                self._derecho = (inicio, inicio, True)
+                self.giro_pedido.emit(inicio, x, y)
+                d = pos - inicio
+                self.giro_arrastre.emit(d.x(), d.y())
+                self._derecho = (inicio, pos, True)
+            return
         if not self.navegacion_mover(evento):
             self.dibujo.mover(evento.position())
         self._cursor = evento.position()
@@ -388,15 +422,24 @@ class Vista2D(Navegable, QWidget):
         super().leaveEvent(evento)
 
     def mouseReleaseEvent(self, evento: QMouseEvent) -> None:
+        if evento.button() == Qt.RightButton and self._derecho is not None:
+            girando = self._derecho[2]
+            self._derecho = None
+            if girando:
+                self.giro_terminado.emit()
+            elif self.dibujo.activo:
+                # Clic derecho sin arrastrar: termina el trazo (como Esc).
+                self.dibujo.cancelar()
+            return
         if not self.navegacion_soltar(evento) and evento.button() == Qt.LeftButton:
             self.dibujo.soltar(evento.position())
 
     def mousePressEvent(self, evento: QMouseEvent) -> None:
         if self.navegacion_presionar(evento):
             return
-        if evento.button() == Qt.RightButton and self.dibujo.activo:
-            # Clic derecho: termina el trazo (como Esc).
-            self.dibujo.cancelar()
+        if evento.button() == Qt.RightButton:
+            # Clic: termina el trazo al soltar. Arrastre: gira en la vista 3D.
+            self._derecho = (evento.position(), evento.position(), False)
             return
         if evento.button() != Qt.LeftButton:
             return

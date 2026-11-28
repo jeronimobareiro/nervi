@@ -167,7 +167,7 @@ Desde noviembre de 2026 la interfaz es una **vía paralela**: `nervi.gui` (PySid
 
 | Estado | Issue | Tarea | Tamaño | Área |
 |:-:|---|---|---|---|
-| 🚧  [#30](https://github.com/jeronimobareiro/nervi/issues/30) | Prototipo de visor 3D (en curso: falta mostrar `Modelo3D`) | PA | interfaz |
+| 🚧  [#30](https://github.com/jeronimobareiro/nervi/issues/30) | Prototipo de visor 3D (en curso: visor único de frente y 3D con giro tipo plato y brújula desde el 28/11/2026; falta mostrar `Modelo3D`) | PA | interfaz |
 | ⬜  [#31](https://github.com/jeronimobareiro/nervi/issues/31) | Edición gráfica de modelos | T | interfaz |
 
 ### Fase 6 · Láminas

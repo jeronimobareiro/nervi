@@ -53,6 +53,8 @@ def test_los_iconos_en_uso_son_los_de_la_aplicacion():
         *(icono for icono, _ in dibujo_calculo.HERRAMIENTAS_CALCULO.values()),
         "cerrar",
         "desacoplar",
+        "vista_alzado",
+        "vista_3d",
     } == (en_uso)
 
 

@@ -200,6 +200,11 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | ventana / vista / tabla | window / view / table | janela / vista / tabela | окно / вид / таблица |
 | visor 3D (`vista3d`) / escena (`escena3d`) | 3D viewer / scene | visualizador 3D / cena | 3D-просмотрщик / сцена |
 | flecha / relleno / etiqueta | arrow / fill / label | seta / preenchimento / rótulo | стрелка / заливка / подпись |
+| visor único / vista de frente | single viewer / front view | visualizador único / vista de frente | единый просмотр / вид спереди |
+| cámara (`camara3d`) / acimut / elevación | camera / azimuth / elevation | câmera / azimute / elevação | камера / азимут / угол возвышения |
+| girar (giro tipo plato) / centro de giro | orbit (turntable) / orbit pivot | girar (giro tipo prato) / centro de giro | вращать (поворотный стол) / центр вращения |
+| brújula de vistas (`brujula`) | view compass | bússola de vistas | компас видов |
+| proyección paralela / perspectiva | parallel / perspective projection | projeção paralela / perspectiva | параллельная / перспективная проекция |
 | encuadrar / capturar | fit the view / render to an image | enquadrar / capturar | вписать вид / сохранить снимок |
 | prueba | test | teste | тест |
 

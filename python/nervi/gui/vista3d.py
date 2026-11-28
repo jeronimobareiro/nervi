@@ -13,19 +13,21 @@ imagen sin pantalla (pruebas del CI y capturas para la documentación).
 from __future__ import annotations
 
 import os
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QEvent, QPointF, Qt, Signal
 from PySide6.QtWidgets import (
-    QHBoxLayout,
     QLabel,
     QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
-from . import escena3d, estilo
+from . import camara3d, escena3d, estilo
+from .brujula import Brujula
+from .navegacion import FACTOR_RUEDA, METROS, BotonesNavegacion
 from .sesion import Seleccion, Sesion
 
 UNIDAD = {"M": "{f}·{l}", "V": "{f}", "N": "{f}"}
@@ -125,6 +127,40 @@ def _apoyos(apoyos: list[escena3d.Apoyo], tamano: float):
     return malla
 
 
+#: Líneas de grilla del terreno como mucho, por dirección.
+LINEAS_GRILLA = 60
+
+
+def _grilla_terreno(escena: escena3d.Escena, paso: float) -> list:
+    """Grilla en el plano del nudo más bajo, alrededor del modelo: fina cada ``paso``
+    (agrandado de a 5 si salen demasiadas líneas) y marcada cada 5 pasos."""
+
+    puntos = np.array(list(escena.nudos.values()))
+    z = float(puntos[:, 2].min())
+    margen = 0.25 * escena.tamano
+    lo = puntos[:, :2].min(axis=0) - margen
+    hi = puntos[:, :2].max(axis=0) + margen
+    while ((hi - lo) / paso).max() > LINEAS_GRILLA:
+        paso *= 5
+    lo = np.floor(lo / paso) * paso
+    hi = np.ceil(hi / paso) * paso
+    finas, marcadas = [], []
+    for eje in (0, 1):
+        n = round((hi[eje] - lo[eje]) / paso)
+        for k in range(n + 1):
+            v = lo[eje] + k * paso
+            a, b = [0.0, 0.0, z], [0.0, 0.0, z]
+            a[eje] = b[eje] = v
+            a[1 - eje], b[1 - eje] = lo[1 - eje], hi[1 - eje]
+            marcada = abs(round(v / paso) % 5) == 0
+            (marcadas if marcada else finas).append(np.array([a, b]))
+    salida = []
+    for lineas, color in ((finas, estilo.BORDE), (marcadas, estilo.actual.borde_fuerte)):
+        if lineas:
+            salida.append((_lineas(lineas), color))
+    return salida
+
+
 def leyenda(escena: escena3d.Escena, clave: str, nombre: str, unidades: dict) -> str:
     u = {"f": unidades.get("fuerza", ""), "l": unidades.get("longitud", "")}
     if not nombre:
@@ -143,8 +179,12 @@ def dibujar(
     escena: escena3d.Escena,
     seleccion: Seleccion | None = None,
     texto: str = "",
+    paso_grilla: float | None = None,
+    ejes: bool = True,
 ) -> dict:
     """Dibuja ``escena`` en un ``pyvista.Plotter`` (o ``QtInteractor``) vacío.
+    Con ``paso_grilla`` (en unidades del modelo) dibuja la grilla del terreno debajo;
+    sin ``ejes`` no dibuja el triedro (el visor tiene su brújula de vistas).
     Devuelve los actores con nombre, para elegir barras con el mouse."""
     import pyvista as pv
 
@@ -161,6 +201,10 @@ def dibujar(
         return actores
 
     t = escena.tamano
+    if paso_grilla:
+        grilla = _grilla_terreno(escena, paso_grilla)
+        for lineas, color in grilla:
+            plotter.add_mesh(lineas, color=color, line_width=1, lighting=False, pickable=False)
     if escena.rellenos:
         for signo, color in ((1, estilo.POSITIVO), (-1, estilo.NEGATIVO)):
             partes = [r for r in escena.rellenos if r.signo == signo]
@@ -179,7 +223,7 @@ def dibujar(
             [_fmt(e.valor) for e in escena.etiquetas],
             font_size=12,
             text_color=estilo.TEXTO,
-            shape_color="white",
+            shape_color=estilo.PANEL,
             shape_opacity=0.85,
             show_points=False,
             always_visible=True,
@@ -235,22 +279,49 @@ def dibujar(
         plotter.add_mesh(_apoyos(escena.apoyos, t), color=estilo.TEXTO_2, smooth_shading=True)
     if texto:
         plotter.add_text(texto, position="lower_left", font_size=9, color=estilo.TEXTO)
-    plotter.add_axes(color=estilo.TEXTO_2, line_width=2, labels_off=False)
+    if ejes:
+        plotter.add_axes(color=estilo.TEXTO_2, line_width=2, labels_off=False)
     return actores
+
+
+def poner_camara(plotter, camara: camara3d.Camara3D, alto: float) -> None:
+    """Pasa la cámara de Nervi a la de VTK (``alto``: alto del lienzo en píxeles)."""
+    p = camara.a_vtk(alto)
+    cam = plotter.renderer.GetActiveCamera()
+    cam.SetFocalPoint(*p["focal_point"])
+    cam.SetPosition(*p["position"])
+    cam.SetViewUp(*p["up"])
+    cam.SetParallelScale(p["parallel_scale"])
+    cam.SetViewAngle(p["view_angle"])
+    cam.SetParallelProjection(p["parallel_projection"])
+    plotter.renderer.ResetCameraClippingRange()
+    # Sin esto, PyVista vuelve a encuadrar a su manera en el primer dibujo.
+    plotter.camera_set = True
+
+
+def camara_de_encuadre(
+    escena: escena3d.Escena, ancho: float, alto: float, vista="isometrica", perspectiva=False
+) -> camara3d.Camara3D:
+    """Cámara que muestra todo el modelo desde ``vista`` (ver ``camara3d.encuadre``)."""
+    return camara3d.encuadre(puntos_visibles(escena), ancho, alto, vista, perspectiva=perspectiva)
+
+
+def puntos_visibles(escena: escena3d.Escena) -> np.ndarray:
+    """Nudos, bordes de los diagramas, deformada y colas de las flechas de carga: lo que
+    tiene que entrar en el encuadre."""
+    partes = [np.array(list(escena.nudos.values()))] if escena.nudos else []
+    partes += [r.borde for r in escena.rellenos]
+    partes += list(escena.deformada)
+    largo = escena3d.LARGO_CARGA * escena.tamano
+    partes += [np.array([f.punta - f.direccion * largo]) for f in escena.cargas]
+    return np.vstack(partes) if partes else np.zeros((0, 3))
 
 
 def encuadrar(plotter, escena: escena3d.Escena, vista: str = "frente") -> None:
     """Cámara de frente al pórtico (mirando hacia +Y, con X a la derecha, como
-    la vista 2D) o isométrica desde el mismo lado, con Z hacia arriba."""
-    direccion = np.array([0.0, -1.0, 0.0]) if vista == "frente" else np.array([0.9, -1.5, 0.8])
-    centro = escena.centro
-    plotter.camera_position = [
-        tuple(centro + direccion * 3 * escena.tamano),
-        tuple(centro),
-        (0.0, 0.0, 1.0),
-    ]
-    plotter.reset_camera()
-    plotter.camera.zoom(0.95)
+    la vista de frente) o isométrica, con Z hacia arriba."""
+    ancho, alto = plotter.window_size
+    poner_camara(plotter, camara_de_encuadre(escena, ancho, alto, vista), alto)
 
 
 def capturar(
@@ -310,48 +381,62 @@ def a_pantalla(plotter, punto) -> tuple[int, int]:
 
 # --- Widget ----------------------------------------------------------------------------
 class Vista3D(QWidget):
-    """Visor 3D dentro de la ventana. Girar: arrastrar; desplazar: Mayús + arrastrar;
-    zoom: rueda. Clic en una barra la selecciona, igual que en la vista 2D."""
+    """Vista 3D del visor único. Nervi maneja el mouse y el teclado; VTK solo dibuja.
+
+    - Arrastrar con el botón derecho (o el izquierdo): girar alrededor del punto que
+      está bajo el cursor, con Z siempre arriba (:mod:`nervi.gui.camara3d`).
+    - Botón del medio, o Mayús + botón izquierdo, arrastrado: desplazar.
+    - Rueda: acercar o alejar hacia el cursor. ``F`` o ``Inicio``: encuadrar.
+    - Clic en una barra: la elige, igual que en la vista de frente.
+    - Brújula de vistas abajo a la derecha: mirar desde un eje.
+    """
 
     diagrama_cambiado = Signal(str)
+    #: La brújula pidió una vista: ``"+Z"``, ``"-Y"``… (la ventana decide si pasa a frente).
+    vista_pedida = Signal(str)
+
+    #: Duración de la transición de la cámara, en milisegundos (0: sin animación).
+    DURACION_MS = 220
+    #: Píxeles que hay que mover el mouse para que un clic pase a ser un arrastre.
+    UMBRAL_ARRASTRE = 4
+    AYUDA = "Arrastrar: girar · Medio: desplazar · Rueda: zoom · F: encuadrar"
 
     def __init__(self, sesion: Sesion, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         from pyvistaqt import QtInteractor
+        from vtkmodules.vtkInteractionStyle import vtkInteractorStyleUser
 
         self.sesion = sesion
         self.diagrama = "M"
         self.mostrar_valores = True
         self.mostrar_cargas = True
+        self.perspectiva = False
         self.escena: escena3d.Escena | None = None
+        self.camara: camara3d.Camara3D | None = None
         self._actores: dict = {}
-        self._encuadrada = False
-        self._presion: tuple[int, int] | None = None
+        self._animacion = None
+        #: Arrastre en curso: ("girar" | "desplazar" | "clic", último punto, punto inicial)
+        self._arrastre: tuple[str, QPointF, QPointF] | None = None
+        self._pivote: np.ndarray | None = None
 
         capa = QVBoxLayout(self)
         capa.setContentsMargins(0, 0, 0, 0)
         capa.setSpacing(0)
         self.plotter = QtInteractor(self, auto_update=False)
-        capa.addWidget(self.plotter.interactor, 1)
-        botones = QWidget(objectName="contexto")
-        fila = QHBoxLayout(botones)
-        fila.setContentsMargins(8, 4, 8, 4)
-        for texto, vista in (("De frente", "frente"), ("Isométrica", "isometrica")):
-            b = QPushButton(texto)
-            b.clicked.connect(lambda _=False, v=vista: self.encuadrar(v))
-            fila.addWidget(b)
-        self.b_cargas = QPushButton("Cargas", checkable=True, checked=True)
-        self.b_cargas.toggled.connect(self._cargas)
-        fila.addWidget(self.b_cargas)
-        fila.addWidget(
-            QLabel("Arrastrar: girar · Mayús: desplazar · Rueda: zoom", objectName="tenue")
-        )
-        fila.addStretch()
-        capa.addWidget(botones)
+        self.lienzo = self.plotter.interactor
+        capa.addWidget(self.lienzo, 1)
+        # Sin estilo de interacción de VTK: los eventos los maneja eventFilter.
+        self.plotter.iren.interactor.SetInteractorStyle(vtkInteractorStyleUser())
+        self.lienzo.installEventFilter(self)
 
-        iren = self.plotter.iren
-        iren.add_observer("LeftButtonPressEvent", self._al_presionar)
-        iren.add_observer("LeftButtonReleaseEvent", self._al_soltar)
+        self.botones_navegacion = BotonesNavegacion(self)
+        self.b_cargas = QPushButton("Cargas", objectName="segmento", checkable=True, checked=True)
+        self.b_cargas.setToolTip("Mostrar las cargas de la combinación")
+        self.b_cargas.toggled.connect(self._cargas)
+        self.botones_navegacion.findChild(QWidget, "grupo").layout().addWidget(self.b_cargas)
+        self.brujula = Brujula(self)
+        self.brujula.vista_pedida.connect(self.vista_pedida)
+
         for senal in (
             sesion.modelo_cambiado,
             sesion.resultados_cambiados,
@@ -361,6 +446,7 @@ class Vista3D(QWidget):
         sesion.archivo_cambiado.connect(self._nuevo_archivo)
         self.actualizar()
 
+    # --- Lo que se muestra ------------------------------------------------------------
     def elegir_diagrama(self, clave: str) -> None:
         if clave in escena3d.DIAGRAMAS and clave != self.diagrama:
             self.diagrama = clave
@@ -372,7 +458,11 @@ class Vista3D(QWidget):
         self.actualizar()
 
     def _nuevo_archivo(self) -> None:
-        self._encuadrada = False
+        self.camara = None
+
+    def _paso_grilla(self) -> float:
+        """Un metro en las unidades del modelo."""
+        return 1.0 / METROS.get(self.sesion.modelo["unidades"]["longitud"], 1.0)
 
     def actualizar(self) -> None:
         s = self.sesion
@@ -392,41 +482,258 @@ class Vista3D(QWidget):
                 texto = f"Cargas · {nombre} · {texto[0].lower()}{texto[1:]}"
         else:
             texto = leyenda(self.escena, self.diagrama, nombre, s.modelo["unidades"])
-        camara = self.plotter.camera_position if self._encuadrada else None
-        self._actores = dibujar(self.plotter, self.escena, s.seleccion, texto)
-        if camara is None:
-            if self.escena.barras:
-                encuadrar(self.plotter, self.escena, "isometrica")
-                self._encuadrada = True
-        else:
-            self.plotter.camera_position = camara
+        self._actores = dibujar(
+            self.plotter,
+            self.escena,
+            s.seleccion,
+            texto,
+            paso_grilla=self._paso_grilla(),
+            ejes=False,
+        )
+        if self.escena.barras:
+            self.plotter.add_text(
+                self.AYUDA, position="lower_right", font_size=8, color=estilo.TEXTO_3
+            )
+        if self.camara is None and self.escena.barras:
+            self.camara = self.encuadre("isometrica")
+        self._poner_camara()
+
+    # --- Cámara -----------------------------------------------------------------------
+    def _tamano(self) -> tuple[float, float]:
+        return float(max(self.lienzo.width(), 1)), float(max(self.lienzo.height(), 1))
+
+    def encuadre(self, vista="isometrica") -> camara3d.Camara3D:
+        """Cámara que muestra todo el modelo desde ``vista``."""
+        w, h = self._tamano()
+        return camara_de_encuadre(self.escena, w, h, vista, self.perspectiva)
+
+    def _poner_camara(self) -> None:
+        if self.camara is not None:
+            poner_camara(self.plotter, self.camara, self._tamano()[1])
+            self.brujula.mostrar(self.camara)
         self.plotter.render()
 
-    def encuadrar(self, vista: str) -> None:
-        if self.escena is not None:
-            encuadrar(self.plotter, self.escena, vista)
-            self.plotter.render()
+    def poner(self, camara: camara3d.Camara3D) -> None:
+        """Cambia la cámara sin transición."""
+        self.detener_animacion()
+        self.camara = camara
+        self._poner_camara()
+
+    def animar_a(self, destino: camara3d.Camara3D, al_terminar=None) -> None:
+        """Lleva la cámara a ``destino`` con una transición corta."""
+        self.detener_animacion()
+        origen = self.camara
+        if origen is None or self.DURACION_MS <= 0 or not self.isVisible():
+            self.poner(destino)
+            if al_terminar is not None:
+                al_terminar()
+            return
+        from PySide6.QtCore import QVariantAnimation
+
+        anim = QVariantAnimation(self)
+        anim.setStartValue(0.0)
+        anim.setEndValue(1.0)
+        anim.setDuration(self.DURACION_MS)
+
+        def paso(t) -> None:
+            self.camara = camara3d.interpolar(origen, destino, float(t))
+            self._poner_camara()
+
+        def fin() -> None:
+            self._animacion = None
+            self.camara = destino
+            self._poner_camara()
+            if al_terminar is not None:
+                al_terminar()
+
+        anim.valueChanged.connect(paso)
+        anim.finished.connect(fin)
+        self._animacion = anim
+        anim.start()
+
+    def detener_animacion(self) -> None:
+        if self._animacion is not None:
+            anim, self._animacion = self._animacion, None
+            anim.finished.disconnect()
+            anim.stop()
+
+    def ir_a(self, vista) -> None:
+        """Encuadra el modelo desde ``vista``: un nombre de ``camara3d.VISTAS``, un
+        extremo de la brújula (``"+Z"``…) o ``(acimut, elevación)``."""
+        if self.escena is None or not self.escena.nudos:
+            return
+        if isinstance(vista, str) and vista in camara3d.EXTREMOS:
+            vista = camara3d.EXTREMOS[vista]
+        self.animar_a(self.encuadre(vista))
+
+    def encuadrar(self, vista=None) -> None:
+        """Muestra todo el modelo; sin ``vista``, desde la orientación actual."""
+        if self.camara is not None and vista is None:
+            vista = (self.camara.acimut, self.camara.elevacion)
+        self.ir_a(vista or "isometrica")
+
+    def elegir_perspectiva(self, activa: bool) -> None:
+        self.perspectiva = activa
+        if self.camara is not None:
+            self.poner(replace(self.camara, perspectiva=activa))
+
+    def zoom(self, factor: float, cursor: QPointF | None = None) -> None:
+        if self.camara is None:
+            return
+        w, h = self._tamano()
+        x, y = (w / 2, h / 2) if cursor is None else (cursor.x(), cursor.y())
+        self.poner(self.camara.acercar(factor, x, y, w, h))
+
+    # --- Giro y desplazamiento --------------------------------------------------------
+    def punto_en(self, x: float, y: float) -> np.ndarray | None:
+        """Punto del modelo dibujado bajo el píxel ``(x, y)`` del lienzo, o ``None``."""
+        from vtkmodules.vtkRenderingCore import vtkCellPicker
+
+        r = self.lienzo.devicePixelRatioF()
+        picker = vtkCellPicker()
+        picker.SetTolerance(0.005)
+        if not picker.Pick(x * r, (self._tamano()[1] - y) * r, 0, self.plotter.renderer):
+            return None
+        return np.array(picker.GetPickPosition())
+
+    def empezar_giro(self, pos: QPointF, pivote=None) -> None:
+        """Empieza a girar desde ``pos``, alrededor de ``pivote`` (o del punto del modelo
+        bajo el cursor; si no hay, del centro del modelo)."""
+        self.detener_animacion()
+        if pivote is None:
+            pivote = self.punto_en(pos.x(), pos.y())
+        if pivote is None and self.escena is not None and self.escena.nudos:
+            pivote = self.escena.centro
+        self._pivote = None if pivote is None else np.asarray(pivote, float)
+        self._arrastre = ("girar", pos, pos)
+        self._marcar_pivote()
+
+    def girar(self, dx: float, dy: float) -> None:
+        if self.camara is not None:
+            self.poner(self.camara.girar(dx, dy, self._pivote))
+
+    def terminar_arrastre(self) -> None:
+        self._arrastre = None
+        self._pivote = None
+        self._marcar_pivote()
+        self.lienzo.unsetCursor()
+
+    def _marcar_pivote(self) -> None:
+        """Marca el centro de giro mientras se gira."""
+        self.plotter.remove_actor("centro_giro", render=False)
+        if self._pivote is not None and self._arrastre is not None:
+            import pyvista as pv
+
+            self.plotter.add_mesh(
+                pv.PolyData(self._pivote.reshape(1, 3)),
+                color=estilo.ACENTO,
+                point_size=14,
+                render_points_as_spheres=True,
+                pickable=False,
+                name="centro_giro",
+            )
+        self.plotter.render()
+
+    # --- Eventos del lienzo de VTK ----------------------------------------------------
+    def eventFilter(self, objeto, evento) -> bool:
+        if objeto is not self.lienzo:
+            return False
+        tipo = evento.type()
+        if tipo == QEvent.MouseButtonPress:
+            self._presionar(evento)
+        elif tipo == QEvent.MouseMove:
+            self._mover(evento)
+        elif tipo == QEvent.MouseButtonRelease:
+            self._soltar(evento)
+        elif tipo == QEvent.MouseButtonDblClick:
+            if evento.button() == Qt.MiddleButton:
+                self.encuadrar()
+        elif tipo == QEvent.Wheel:
+            pasos = evento.angleDelta().y() / 120
+            if pasos:
+                self.zoom(FACTOR_RUEDA**pasos, evento.position())
+        elif tipo == QEvent.KeyPress:
+            return self._tecla(evento)
+        elif tipo in (QEvent.KeyRelease, QEvent.ContextMenu):
+            pass
+        else:
+            return False
+        return True
+
+    def _presionar(self, evento) -> None:
+        self.lienzo.setFocus()
+        pos, boton = evento.position(), evento.button()
+        if boton == Qt.MiddleButton or (
+            boton == Qt.LeftButton and evento.modifiers() & Qt.ShiftModifier
+        ):
+            self.detener_animacion()
+            self._arrastre = ("desplazar", pos, pos)
+            self.lienzo.setCursor(Qt.ClosedHandCursor)
+        elif boton == Qt.RightButton:
+            self.empezar_giro(pos)
+        elif boton == Qt.LeftButton:
+            # Clic o giro: se sabe al mover más que el umbral.
+            self._arrastre = ("clic", pos, pos)
+
+    def _mover(self, evento) -> None:
+        if self._arrastre is None:
+            # El giro empezó en la vista de frente y sigue acá con el botón apretado.
+            return
+        modo, ultimo, inicio = self._arrastre
+        pos = evento.position()
+        if modo == "clic":
+            d = pos - inicio
+            if abs(d.x()) + abs(d.y()) <= self.UMBRAL_ARRASTRE:
+                return
+            self.empezar_giro(inicio)
+            modo, ultimo = "girar", inicio
+        d = pos - ultimo
+        if modo == "girar":
+            self.girar(d.x(), d.y())
+        else:
+            self.poner(self.camara.desplazar(d.x(), d.y()))
+        self._arrastre = (modo, pos, inicio)
+
+    def _soltar(self, evento) -> None:
+        if self._arrastre is None:
+            return
+        modo, _ultimo, inicio = self._arrastre
+        self.terminar_arrastre()
+        if modo == "clic" and evento.button() == Qt.LeftButton:
+            barra = self.barra_en_lienzo(inicio.x(), inicio.y())
+            self.sesion.seleccionar(Seleccion("barra", barra) if barra is not None else None)
+
+    def _tecla(self, evento) -> bool:
+        tecla = evento.key()
+        if tecla in (Qt.Key_F, Qt.Key_Home) and not evento.modifiers():
+            self.encuadrar()
+        elif tecla in (Qt.Key_Plus, Qt.Key_Equal):
+            self.zoom(FACTOR_RUEDA)
+        elif tecla == Qt.Key_Minus:
+            self.zoom(1 / FACTOR_RUEDA)
+        # Las demás teclas no llegan a VTK (sus atajos, como "q", cierran o cambian el
+        # dibujo); los atajos de la ventana se resuelven antes.
+        return True
+
+    def resizeEvent(self, evento) -> None:
+        super().resizeEvent(evento)
+        self.botones_navegacion.acomodar()
+        self.brujula.acomodar()
+        self.botones_navegacion.raise_()
+        self.brujula.raise_()
 
     # --- Selección con el mouse ---------------------------------------------------------
     def barra_en(self, x: int, y: int) -> int | None:
         """``id`` de la barra bajo el punto ``(x, y)`` de VTK (origen abajo a la izquierda)."""
         return barra_en(self.plotter, self._actores, x, y)
 
-    def _al_presionar(self, iren, _evento) -> None:
-        self._presion = iren.GetEventPosition()
-
-    def _al_soltar(self, iren, _evento) -> None:
-        if self._presion is None:
-            return
-        x, y = iren.GetEventPosition()
-        x0, y0 = self._presion
-        self._presion = None
-        if abs(x - x0) + abs(y - y0) > 3:  # fue un giro, no un clic
-            return
-        barra = self.barra_en(x, y)
-        self.sesion.seleccionar(Seleccion("barra", barra) if barra is not None else None)
+    def barra_en_lienzo(self, x: float, y: float) -> int | None:
+        """``id`` de la barra bajo el píxel ``(x, y)`` del lienzo (origen arriba)."""
+        r = self.lienzo.devicePixelRatioF()
+        return self.barra_en(round(x * r), round((self._tamano()[1] - y) * r))
 
     def closeEvent(self, evento) -> None:
+        self.detener_animacion()
         self.plotter.close()
         super().closeEvent(evento)
 

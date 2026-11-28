@@ -258,3 +258,172 @@ def test_comprobacion_del_ejecutable(pv, tmp_path):
     ruta = tmp_path / "visor.png"
     assert main(["nervi-gui", "--comprobar-visor3d", str(ruta)]) == 0
     assert ruta.stat().st_size > 0
+
+
+# --- Visor único: navegación propia, brújula y paso entre Frente y 3D -----------------
+def test_la_camara_de_nervi_llega_a_vtk(pv, sesion):
+    from nervi.gui import camara3d, vista3d
+
+    e = escena3d.armar(sesion.modelo, sesion.resultado(), sesion.indices, "M")
+    p = pv.Plotter(off_screen=True, window_size=[800, 500])
+    try:
+        vista3d.dibujar(p, e, paso_grilla=1.0, ejes=False)
+        c = camara3d.Camara3D(-30.0, 25.0, (3.0, 0.0, 1.5), 50.0)
+        vista3d.poner_camara(p, c, 500)
+        p.render()
+        for punto in ((0.0, 0.0, 0.0), (6.0, 0.0, 3.0)):
+            x, y = vista3d.a_pantalla(p, punto)
+            esperado = c.a_pantalla(punto, 800, 500)
+            assert (x, 500 - y) == pytest.approx(esperado, abs=1.0)
+    finally:
+        p.close()
+
+
+def test_encuadre_incluye_diagramas_y_cargas(sesion):
+    from nervi.gui import vista3d
+
+    e = escena3d.armar(sesion.modelo, sesion.resultado(), sesion.indices, "M", "1.4D")
+    puntos = vista3d.puntos_visibles(e)
+    assert len(puntos) > len(e.nudos)
+    assert puntos[:, 2].max() > max(n[2] for n in e.nudos.values())  # colas de las flechas
+
+
+@pytest.fixture
+def ventana_3d(pv, qtbot, monkeypatch):
+    from nervi.gui import ajustes
+    from nervi.gui.ventana import Ventana
+    from nervi.gui.vista3d import Vista3D
+
+    monkeypatch.setattr(ajustes, "ARCHIVO", os.devnull)
+    monkeypatch.setattr(Vista3D, "DURACION_MS", 0)
+    v = Ventana(Sesion(documento_ejemplo()))
+    qtbot.addWidget(v)
+    v.resize(1400, 900)
+    v.show()
+    v.calcular()
+    yield v
+    v.sesion.modificado = False
+    v.close()
+
+
+def test_frente_y_3d_son_un_mismo_visor(ventana_3d):
+    from nervi.gui.vista3d import Vista3D
+
+    v = ventana_3d
+    assert v.vista_visible() == "frente" and v.vista.brujula.isVisible()
+    assert not v.grupo_proyeccion.isVisible()
+    v.mostrar_vista("3d")
+    w = v.vista3d
+    assert isinstance(w, Vista3D) and v.vistas.currentWidget() is w
+    assert v.vista_visible() == "3d" and v.grupo_proyeccion.isVisible()
+    assert w.camara.acimut == pytest.approx(-32.0)  # isométrica
+    v.mostrar_vista("frente")
+    assert v.vistas.currentWidget() is v.vista
+    # La cámara 3D terminó exactamente donde mira la vista de frente.
+    vf = v.vista.vista_actual()
+    assert w.camara.es_frente()
+    assert w.camara.escala == pytest.approx(vf.escala)
+    assert w.camara.centro == pytest.approx((vf.cx, 0.0, vf.cy))
+    # Los nombres de antes siguen andando.
+    v.mostrar_vista("3D")
+    assert v.vista_visible() == "3d"
+    v.mostrar_vista("2D")
+    assert v.vista_visible() == "frente"
+
+
+def test_arrastre_derecho_en_frente_pasa_a_3d_y_gira(ventana_3d, qtbot):
+    from PySide6.QtCore import QPointF
+
+    v = ventana_3d
+    t = v.vista.transformacion()
+    inicio = t.a_pantalla(3.0, 3.0)
+    v.vista.giro_pedido.emit(inicio, 3.0, 3.0)
+    w = v.vista3d
+    assert v.vistas.currentWidget() is w
+    assert w.camara.es_frente()
+    antes = w.camara.a_pantalla((3.0, 0.0, 3.0), *w._tamano())
+    v.vista.giro_arrastre.emit(30.0, 10.0)
+    assert w.camara.acimut == pytest.approx(-12.0)
+    assert w.camara.elevacion == pytest.approx(4.0)
+    # El punto donde empezó el arrastre (sobre la viga) es el centro de giro.
+    assert w.camara.a_pantalla((3.0, 0.0, 3.0), *w._tamano()) == pytest.approx(antes)
+    assert w._pivote is not None
+    v.vista.giro_terminado.emit()
+    assert w._pivote is None and w._arrastre is None
+    assert isinstance(inicio, QPointF)
+
+
+def test_vista2d_arrastre_derecho_emite_giro_y_clic_cancela(qtbot):
+    from PySide6.QtCore import QPoint, Qt
+
+    from nervi.gui.vista2d import Vista2D
+
+    s = Sesion(documento_ejemplo())
+    w = Vista2D(s)
+    qtbot.addWidget(w)
+    w.resize(800, 500)
+    w.show()
+    pedidos, arrastres, fines = [], [], []
+    w.giro_pedido.connect(lambda p, x, y: pedidos.append((x, y)))
+    w.giro_arrastre.connect(lambda dx, dy: arrastres.append((dx, dy)))
+    w.giro_terminado.connect(lambda: fines.append(True))
+    q = w.transformacion().a_pantalla(3.0, 3.0).toPoint()
+    # Clic derecho sin mover: no gira y termina el trazo de la herramienta.
+    w.dibujo.elegir("barra")
+    a = w.transformacion().a_pantalla(0.0, 0.0)
+    w.dibujo.mover(a)
+    w.dibujo.presionar(a)
+    w.dibujo.soltar(a)
+    assert w.dibujo.puntos
+    qtbot.mouseClick(w, Qt.RightButton, pos=q)
+    assert not pedidos and not fines
+    assert not w.dibujo.puntos
+    # Arrastre: pide el giro una vez, con el punto del modelo donde empezó.
+    qtbot.mousePress(w, Qt.RightButton, pos=q)
+    qtbot.mouseMove(w, q + QPoint(20, 5))
+    qtbot.mouseMove(w, q + QPoint(30, 5))
+    qtbot.mouseRelease(w, Qt.RightButton, pos=q + QPoint(30, 5))
+    assert len(pedidos) == 1 and pedidos[0] == pytest.approx((3.0, 3.0), abs=0.05)
+    assert sum(d[0] for d in arrastres) == pytest.approx(30.0)
+    assert fines == [True]
+
+
+def test_brujula_pide_la_vista_del_eje(ventana_3d):
+    from PySide6.QtCore import QPointF
+
+    from nervi.gui import brujula
+
+    v = ventana_3d
+    b = v.vista.brujula
+    centro = QPointF(brujula.LADO / 2, brujula.LADO / 2)
+    puntos = {clave: q for _p, clave, q in brujula.extremos(b.camara, centro)}
+    # De frente, +Z queda arriba del centro y +X a la derecha.
+    assert puntos["+Z"].y() < centro.y() and puntos["+X"].x() > centro.x()
+    assert b.extremo_en(puntos["+Z"]) == "+Z"
+    assert b.extremo_en(centro + QPointF(0, brujula.LADO)) is None
+    b.vista_pedida.emit("+Z")  # en planta: pasa a la vista 3D desde arriba
+    w = v.vista3d
+    assert v.vista_visible() == "3d"
+    assert w.camara.elevacion == pytest.approx(90.0)
+    w.brujula.vista_pedida.emit("-Y")  # de frente: vuelve a la vista plana
+    assert v.vista_visible() == "frente" and v.vistas.currentWidget() is v.vista
+
+
+def test_rueda_acerca_hacia_el_cursor_y_f_encuadra(ventana_3d, qtbot):
+    from PySide6.QtCore import QPointF
+
+    v = ventana_3d
+    v.mostrar_vista("3d")
+    w = v.vista3d
+    tam = w._tamano()
+    cursor = QPointF(tam[0] * 0.7, tam[1] * 0.3)
+    p = w.camara.en_plano(cursor.x(), cursor.y(), *tam)
+    escala = w.camara.escala
+    w.zoom(1.2, cursor)
+    assert w.camara.escala == pytest.approx(escala * 1.2)
+    assert w.camara.a_pantalla(p, *tam) == pytest.approx((cursor.x(), cursor.y()))
+    w.encuadrar()
+    assert w.camara.escala == pytest.approx(escala)
+    v.elegir_proyeccion("perspectiva")
+    assert w.camara.perspectiva and w.perspectiva
+    assert not w.plotter.renderer.GetActiveCamera().GetParallelProjection()
