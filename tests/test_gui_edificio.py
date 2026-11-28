@@ -71,6 +71,24 @@ def test_modo_edificio_y_calculo(ventana):
     assert "nudos" in v.lbl_tamano.text()
 
 
+def test_edificio_no_muestra_resultados_ni_diseno_del_calculo(ventana):
+    """En Edificio no se ven las barras del pórtico de cálculo en Resultados ni Diseño."""
+    v = ventana
+    tabs = v.panel_inferior
+    for panel in (v.tabs_res, v.panel_diseno, v.panel_dinamica):
+        assert not tabs.isTabVisible(tabs.indexOf(panel))
+    # Ir a la etapa Diseño pasa al modelo de cálculo, donde están esas barras.
+    v.ir_a_etapa(4)
+    assert v.modo == "calculo"
+    assert tabs.currentWidget() is v.panel_diseno
+    assert tabs.isTabVisible(tabs.indexOf(v.panel_diseno))
+    # Volver a Edificio con Diseño a la vista muestra las tablas del edificio.
+    v.elegir_modo("edificio")
+    assert tabs.currentWidget() is v.tablas_edificio
+    v.mostrar_dinamica()
+    assert v.modo == "calculo" and tabs.currentWidget() is v.panel_dinamica
+
+
 def test_empieza_en_la_planta_mas_baja_con_elementos(ventana):
     assert ventana.edificio.piso == _piso(ventana, "Piso 1")
     assert ventana.combo_planta.count() == 4

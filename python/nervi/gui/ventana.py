@@ -1029,6 +1029,12 @@ class Ventana(QMainWindow):
         if tabs.currentIndex() == vieja:
             tabs.setCurrentIndex(nueva)
         tabs.setTabVisible(vieja, False)
+        # Resultados, Diseño y Dinámica son del modelo de cálculo: en Edificio se ocultan
+        # para no mostrar barras que no son del edificio (todavía no genera su modelo, #74).
+        for panel in (self.tabs_res, self.panel_diseno, self.panel_dinamica):
+            if edificio and tabs.currentWidget() is panel:
+                tabs.setCurrentIndex(nueva)
+            tabs.setTabVisible(tabs.indexOf(panel), not edificio)
         if edificio:
             self.vistas.setCurrentWidget(self.planta)
         else:
@@ -1096,8 +1102,19 @@ class Ventana(QMainWindow):
                 f"{n['losas']} losas · {n['muros']} muros"
             )
 
+    def _pasar_a_calculo(self) -> None:
+        """Análisis, resultados, diseño y dinámica trabajan sobre el modelo de cálculo."""
+        if self.modo == "edificio":
+            self.elegir_modo("calculo")
+            self.statusBar().showMessage(
+                "Resultados y diseño son del modelo de cálculo: el edificio todavía no lo genera",
+                8000,
+            )
+
     def ir_a_etapa(self, n: int) -> None:
         self.botones_etapa[n].setChecked(True)
+        if n >= 2:
+            self._pasar_a_calculo()
         if n == 0:
             self.mostrar_tabla("nudos")
         elif n == 1:
@@ -1115,6 +1132,7 @@ class Ventana(QMainWindow):
         self._actualizar_diseno()
 
     def mostrar_dinamica(self) -> None:
+        self._pasar_a_calculo()
         self.panel_inferior.setCurrentWidget(self.panel_dinamica)
         alto = sum(self.centro.sizes())
         if self.centro.sizes()[1] < 0.42 * alto:
