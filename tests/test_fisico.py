@@ -49,7 +49,7 @@ def test_criterio_de_salida_edificio_de_3_pisos(edificio, tmp_path):
     abierto = formato.abrir(ruta)
     assert abierto.avisos == []
     assert abierto.manifiesto["modulos"]["fisico"] == {
-        "version": 1,
+        "version": 2,
         "miembros": ["fisico.json"],
         "requerido": False,
     }

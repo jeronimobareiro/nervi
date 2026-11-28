@@ -604,7 +604,8 @@ _LISTA = (
         "Cargas de la planta",
         "Cargas",
         '<path d="M3 5h18v14H3z"/><path d="M3 5l6 7-6 7M21 5l-6 7 6 7M9 12h6"/>',
-        "Modo Edificio: cargas de superficie de losas y su reparto (#78)",
+        "Modo Edificio: botón Cargas",
+        True,
     ),
     _I(
         "carga_lineal_losa",

@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Módulo ``fisico`` del formato ``.nrv`` (``fisico.json``, versión 1).
+"""Módulo ``fisico`` del formato ``.nrv`` (``fisico.json``, versión 2).
 
 El modelo físico describe el edificio como lo dibuja quien proyecta: pisos con su
 nivel, ejes, y vigas, columnas, losas y muros con su sección, material y
-contorno (issue #73, Fase 7). Es independiente de ``modelo.json``, el modelo
-analítico de barras: el modelo de cálculo se generará desde el físico (#74).
-Reglas en ``docs/formato-nrv.md`` §4f.
+contorno (issue #73, Fase 7). La versión 2 suma las cargas de superficie de pisos
+y losas y el peso específico de los materiales (issue #78). Es independiente de
+``modelo.json``, el modelo analítico de barras: el modelo de cálculo se generará
+desde el físico (#74). Reglas en ``docs/formato-nrv.md`` §4f.
 
 >>> d = nuevo()
 >>> d["unidades"]
@@ -36,13 +37,16 @@ LISTAS = ("pisos", "ejes", "materiales", "secciones", "columnas", "vigas", "losa
 
 # lista -> (claves obligatorias, claves opcionales)
 _CLAVES: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
-    "pisos": (("id", "nombre", "nivel"), ()),
+    "pisos": (("id", "nombre", "nivel"), ("permanente", "sobrecarga")),
     "ejes": (("id", "nombre", "p1", "p2"), ()),
-    "materiales": (("id", "nombre", "tipo"), ("fc", "fy", "fu", "E")),
+    "materiales": (("id", "nombre", "tipo"), ("fc", "fy", "fu", "E", "peso")),
     "secciones": (("id", "nombre", "forma"), ("b", "h", "d")),
     "columnas": (("id", "punto", "desde", "hasta", "seccion", "material"), ("nombre", "angulo")),
     "vigas": (("id", "piso", "p1", "p2", "seccion", "material"), ("nombre",)),
-    "losas": (("id", "piso", "contorno", "espesor", "material"), ("nombre", "tipo")),
+    "losas": (
+        ("id", "piso", "contorno", "espesor", "material"),
+        ("nombre", "tipo", "permanente", "sobrecarga"),
+    ),
     "muros": (("id", "p1", "p2", "desde", "hasta", "espesor", "material"), ("nombre",)),
 }
 # Listas cuyos nombres no se pueden repetir (los usan las demás para referirse a ellos
@@ -78,6 +82,19 @@ def _numero(el: dict, clave: str, ruta: str, positivo: bool = False) -> float:
     if positivo and v <= 0:
         raise _err("tiene que ser mayor que 0", f"{ruta}.{clave}")
     return float(v)
+
+
+#: Cargas de superficie de pisos y losas (kN/m², versión 2): ``permanente`` es la
+#: permanente que se suma al peso propio de la losa (pisos, contrapiso, cielorraso,
+#: tabiques repartidos) y ``sobrecarga`` la de uso. La de la losa reemplaza a la del piso.
+CARGAS_SUPERFICIE = ("permanente", "sobrecarga")
+
+
+def _cargas(el: dict, ruta: str) -> None:
+    for clave in CARGAS_SUPERFICIE:
+        if clave in el:
+            if _numero(el, clave, ruta) < 0:
+                raise _err("no puede ser negativa", f"{ruta}.{clave}")
 
 
 def _punto(v, ruta: str) -> tuple[float, float]:
@@ -173,6 +190,8 @@ def _validar_material(el: dict, ruta: str) -> None:
     if tipo not in TIPOS_MATERIAL:
         raise _err(f"tiene que ser uno de {TIPOS_MATERIAL}", f"{ruta}.tipo")
     propias = {"hormigon": ("fc", "E"), "acero": ("fy", "fu", "E")}[tipo]
+    if "peso" in el:
+        _numero(el, "peso", ruta, positivo=True)
     for clave in ("fc", "fy", "fu", "E"):
         if clave in el and clave not in propias:
             raise _err(f"no corresponde a un material de tipo {tipo!r}", f"{ruta}.{clave}")
@@ -237,6 +256,7 @@ def validar_elemento(lista: str, el, ctx: _Contexto, ruta: str) -> None:
         nivel = _numero(el, "nivel", ruta)
         if any(p["nivel"] == nivel for p in ctx.ids["pisos"].values()):
             raise _err("ya hay un piso en este nivel", f"{ruta}.nivel")
+        _cargas(el, ruta)
     elif lista == "ejes":
         if _punto(el["p1"], f"{ruta}.p1") == _punto(el["p2"], f"{ruta}.p2"):
             raise _err("tiene que ser distinto de p1", f"{ruta}.p2")
@@ -264,6 +284,7 @@ def validar_elemento(lista: str, el, ctx: _Contexto, ruta: str) -> None:
         _hormigon(el, ctx, ruta)
         if "tipo" in el and el["tipo"] not in TIPOS_LOSA:
             raise _err(f"tiene que ser uno de {TIPOS_LOSA}", f"{ruta}.tipo")
+        _cargas(el, ruta)
     elif lista == "muros":
         if _punto(el["p1"], f"{ruta}.p1") == _punto(el["p2"], f"{ruta}.p2"):
             raise _err("tiene que ser distinto de p1", f"{ruta}.p2")

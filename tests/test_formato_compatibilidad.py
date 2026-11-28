@@ -186,6 +186,32 @@ def test_referencia_del_modulo_fisico():
     assert len(mf.lista("muros")) == 1
 
 
+def test_referencia_del_modulo_fisico_v2():
+    # fisico-v2.nrv (cargas por planta, issue #78) se lee igual y reparte lo mismo.
+    from nervi.fisico import ModeloFisico
+
+    esperado = _esperado(DATOS / "fisico-v2.nrv")
+    doc = formato.abrir(DATOS / "fisico-v2.nrv")
+    assert doc.fisico == esperado["fisico"]
+    r = ModeloFisico.desde_json(doc.fisico).repartir_cargas()
+    for caso, total in esperado["reparto"]["totales"].items():
+        assert r.total(caso) == pytest.approx(total, rel=1e-12)
+    for fila in esperado["reparto"]["resultantes"]:
+        apoyo = (fila["lista"], fila["id"])
+        for caso in r.casos:
+            assert r.resultante(apoyo, caso) == pytest.approx(fila[caso], rel=1e-12, abs=1e-12)
+
+
+def test_fisico_v1_se_migra_y_reparte_solo_el_peso_propio():
+    from nervi.fisico import ModeloFisico
+
+    doc = formato.abrir(DATOS / "fisico-v1.nrv")
+    assert doc.migrado_desde == {"fisico": 1}
+    r = ModeloFisico.desde_json(doc.fisico).repartir_cargas()
+    assert r.total("peso_propio") == pytest.approx(6 * 30.0 * 0.12 * 25.0, rel=1e-12)
+    assert r.total("permanente") == 0.0 == r.total("sobrecarga")
+
+
 def test_modulo_desconocido_requerido_no_abre(tmp_path):
     ruta = _con_manifiesto(
         tmp_path, _modulo("portico_3d", 1, ["portico_3d.json"], True), [("portico_3d.json", "{}")]

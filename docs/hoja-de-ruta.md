@@ -176,7 +176,7 @@ Desde noviembre de 2026 la interfaz es una **vía paralela**: `nervi.gui` (PySid
 |:-:|---|---|---|---|
 | ⬜  [#32](https://github.com/jeronimobareiro/nervi/issues/32) | Elemento de lámina para losas y muros | T | motor |
 | ⬜  [#77](https://github.com/jeronimobareiro/nervi/issues/77) | Mallado de losas y muros y unión con el pórtico espacial | T | motor |
-| ⬜  [#78](https://github.com/jeronimobareiro/nervi/issues/78) | Cargas de superficie en losas y su reparto | PA | motor |
+| 🚧  [#78](https://github.com/jeronimobareiro/nervi/issues/78) | Cargas de superficie en losas y su reparto (cargas por planta y reparto a vigas y muros por áreas tributarias hechos, en Rust y en la interfaz; faltan cargas en zonas y lineales sobre la losa y el camino con losas malladas) | PA | motor |
 
 ### Fase 7 · Del plano de arquitectura al modelo
 

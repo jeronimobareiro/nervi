@@ -20,6 +20,7 @@ use pyo3::prelude::*;
 use pyo3::types::{PyDict, PyList};
 
 mod diseno;
+mod losas;
 
 /// Versión del contrato de datos del pórtico plano que entiende este módulo.
 const VERSION_CONTRATO: u32 = 2;
@@ -993,5 +994,7 @@ fn _core(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(diseno::viga_resistencia, m)?)?;
     m.add_function(wrap_pyfunction!(diseno::viga_armadura_simple, m)?)?;
     m.add_function(wrap_pyfunction!(diseno::viga_elegir_barras, m)?)?;
+    m.add("VERSION_CONTRATO_LOSAS", losas::VERSION_CONTRATO_LOSAS)?;
+    m.add_function(wrap_pyfunction!(losas::repartir_losas, m)?)?;
     Ok(())
 }

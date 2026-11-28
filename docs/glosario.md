@@ -87,6 +87,14 @@ Si falta un término o una traducción se puede mejorar, abrí un PR: es un buen
 | combinación (`combinar`, `Combinacion`) | load combination | combinação de ações | сочетание нагрузок |
 | factor de mayoración (`factores`) | load factor | coeficiente de ponderação | коэффициент надёжности по нагрузке |
 | cargas equivalentes | equivalent (fixed-end) loads | cargas nodais equivalentes | эквивалентные узловые нагрузки |
+| peso propio (`peso_propio`) | self-weight | peso próprio | собственный вес |
+| carga permanente (`permanente`) | superimposed dead load | carga permanente | постоянная нагрузка |
+| sobrecarga de uso (`sobrecarga`) | live load | sobrecarga de utilização | полезная (временная) нагрузка |
+| peso específico (`peso`) | unit weight | peso específico | удельный вес |
+| cargas por planta | floor loads | cargas por pavimento | нагрузки на этаж |
+| área tributaria, zona tributaria (`area_tributaria`, `ZonaTributaria`) | tributary area | área de influência | грузовая площадь |
+| reparto de cargas (`repartir_cargas`, `nervi.reparto`) | load distribution, load takedown | distribuição de cargas | распределение нагрузок |
+| borde apoyado, borde libre | supported edge, free edge | borda apoiada, borda livre | опёртый край, свободный край |
 
 ## Análisis y resultados · Analysis and results
 

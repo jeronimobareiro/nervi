@@ -55,6 +55,7 @@ from .consola import Consola
 from .dinamica import PanelDinamica, fase
 from .diseno import PanelDiseno, color_estado
 from .edificio import (
+    CASOS_VISTA,
     EstadoEdificio,
     GestorPlantas,
     PlantaEdificio,
@@ -76,6 +77,7 @@ RECURSOS = Path(__file__).resolve().parent / "recursos"
 ICONO_PLANTAS = iconos.CATALOGO["plantas"].cuerpo
 ICONO_SUBIR = iconos.CATALOGO["subir"].cuerpo
 ICONO_BAJAR = iconos.CATALOGO["bajar"].cuerpo
+ICONO_CARGAS = iconos.CATALOGO["cargas_planta"].cuerpo  # botón Cargas (#78)
 
 
 def icono_trazo(cuerpo: str, color: str, lado: int, escala: float) -> QPixmap:
@@ -450,6 +452,13 @@ class Ventana(QMainWindow):
         self.b_plantas.setIcon(
             QIcon(icono_trazo(ICONO_PLANTAS, estilo.TEXTO_2, 20, self.devicePixelRatioF()))
         )
+        cargas = QIcon(icono_trazo(ICONO_CARGAS, estilo.TEXTO_2, 18, self.devicePixelRatioF()))
+        cargas.addPixmap(
+            icono_trazo(ICONO_CARGAS, estilo.ACENTO, 18, self.devicePixelRatioF()),
+            QIcon.Normal,
+            QIcon.On,
+        )
+        self.b_cargas.setIcon(cargas)
         for boton, cuerpo in ((self.b_subir, ICONO_SUBIR), (self.b_bajar, ICONO_BAJAR)):
             icono = QIcon(icono_trazo(cuerpo, estilo.TEXTO_2, 18, self.devicePixelRatioF()))
             icono.addPixmap(
@@ -548,6 +557,28 @@ class Ventana(QMainWindow):
             b.setIconSize(QSize(18, 18))
             f.addWidget(b)
         e.addWidget(flechas)
+        e.addSpacing(8)
+        # Cargas por planta (#78): las cargas de las losas y su reparto a las vigas.
+        cargas = QWidget(objectName="grupo")
+        c = QHBoxLayout(cargas)
+        c.setContentsMargins(2, 2, 2, 2)
+        c.setSpacing(2)
+        self.b_cargas = QToolButton(objectName="segmento", checkable=True)
+        self.b_cargas.setToolTip("Cargas: ver las cargas de las losas y su reparto a vigas y muros")
+        self.b_cargas.setAccessibleName("Cargas")
+        self.b_cargas.setIconSize(QSize(18, 18))
+        self.b_cargas.toggled.connect(lambda v: self.edificio.mostrar_cargas(v))
+        c.addWidget(self.b_cargas)
+        e.addWidget(cargas)
+        self.combo_caso = QComboBox()
+        for clave, nombre in CASOS_VISTA.items():
+            self.combo_caso.addItem(nombre, clave)
+        self.combo_caso.activated.connect(
+            lambda i: self.edificio.mostrar_cargas(True, self.combo_caso.itemData(i))
+        )
+        self.combo_caso.setVisible(False)
+        self.b_cargas.toggled.connect(self.combo_caso.setVisible)
+        e.addWidget(self.combo_caso)
         self.ctx_edificio.hide()
         capa.addWidget(self.ctx_edificio)
 

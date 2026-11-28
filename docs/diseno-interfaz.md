@@ -92,6 +92,17 @@ Decidido el 25 y el 26/11/2026 con muestras en los dos temas (entrada [2026-11-2
 - **Tablas** (`TablasEdificio`, pestaña *Edificio* del panel inferior en lugar de *Modelo*): una por lista, con *Agregar* y *Eliminar* y, a la derecha, el piso y la cantidad. Columnas, vigas, losas y muros muestran solo los del piso que se ve. Cada cambio pasa por la validación completa del modelo físico y se deshace con Ctrl+Z.
 - **Gestor de plantas** (`GestorPlantas`): diálogo con la cabecera y el pie de Preferencias. A la izquierda, la tabla de plantas de arriba hacia abajo (nivel, entrepiso, elementos) con *Agregar arriba*, *Agregar abajo* y *Quitar planta* (`peligro`, pide confirmación si hay elementos). A la derecha, dos cajas (`caja_ajustes`): *Planta elegida* (nombre, nivel, altura de entrepiso y *Mover las plantas de arriba*) y *Copiar elementos* (origen, qué listas y a qué plantas). Trabaja sobre una copia: *Aceptar* lo aplica todo como un solo paso de deshacer y *Cancelar* lo descarta.
 
+### Cargas por planta
+
+Muestra del 27/11/2026 en los dos temas (entrada [2026-11-27-02](bitacora/2026-11-27-02-cargas-por-planta.md)).
+
+![Modo Edificio con Cargas y la viga V106 del Piso 1 elegida](img/cargas-planta.png)
+
+- **Barra contextual:** en *Edificio*, después de las flechas, el botón *Cargas* con ícono (`iconos.CATALOGO["cargas_planta"]`, en `ventana.ICONO_CARGAS`: la losa con sus líneas de quiebre, para no confundirlo con las flechas de las cargas de barra que vendrán, de la familia de `icono_trazo`, 18 px; `TEXTO_2` en reposo y `ACENTO` activo; `QToolButton` `segmento` en un `grupo`, se queda marcado; con ícono en lugar de texto por pedido de Jerónimo Bareiro del 27/11/2026) y, mientras está marcado, el desplegable del caso: *Total de servicio*, *Peso propio*, *Permanente* y *Sobrecarga* (`edificio.CASOS_VISTA`).
+- **Planta con cargas:** las zonas tributarias de cada losa con sus líneas de quiebre a trazos (`TEXTO_3`); en cada losa, su nombre y `PP · D · L` en kN/m² sobre una pastilla del color del panel; en cada viga, su nombre y la fuerza que recibe en el caso elegido (`V106 · 81,2 kN`). La viga o el muro elegido resalta su zona tributaria con el acento a 22 %. Una losa que no se puede repartir lleva el borde a trazos en `NEGATIVO` y *Sin repartir*.
+- **Propiedades:** de la planta, *Permanente* y *Sobrecarga* editables bajo *Cargas de las losas* (en kN/m², además del peso propio). De una losa, sus cargas (vacías toman las del piso, que se ven como texto de ejemplo), el peso propio que resulta y, si no se reparte, el motivo en `aviso`. De una viga o un muro, *Cargas de losas*: el diagrama del caso elegido (`DiagramaCarga`, acento con relleno al 16 % y el máximo arriba), una tabla por caso con la fuerza en kN y el máximo en kN/m (el caso elegido en acento) y el área tributaria.
+- **Tablas:** *Pisos* y *Losas* suman *Permanente* y *Sobrecarga* en kN/m², y *Materiales* el *Peso* en kN/m³. En *Losas*, una carga que se toma del piso se ve en `TEXTO_3` con su explicación al pasar el mouse; al editarla queda vacía.
+
 ## Cómo agregar algo
 
 1. Usá los nombres de objeto existentes (`primario`, `fantasma`, `peligro`, `segmento`, `seccion`, `tenue`, `aviso`…) antes de crear uno nuevo.

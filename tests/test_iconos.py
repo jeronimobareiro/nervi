@@ -42,9 +42,12 @@ def test_solo_trazos_propios_sin_relleno_ni_color():
 
 def test_los_iconos_en_uso_son_los_de_la_aplicacion():
     en_uso = {c for c, ic in iconos.CATALOGO.items() if ic.en_uso}
-    assert set(estilo.ICONOS_MENU) | set(arbol.ICONOS_ARBOL) | {"plantas", "subir", "bajar"} == (
-        en_uso
-    )
+    assert set(estilo.ICONOS_MENU) | set(arbol.ICONOS_ARBOL) | {
+        "plantas",
+        "subir",
+        "bajar",
+        "cargas_planta",
+    } == (en_uso)
 
 
 @pytest.mark.parametrize("lado, px", [(16, 1.4), (18, 1.275), (20, 1.4167), (24, 1.7)])

@@ -97,7 +97,7 @@ Nombres de módulo: minúsculas, dígitos y `_`, con `.` para separar un prefijo
 | `dinamica` | versión 1 | no | Casos de los que sale la masa, cantidad de modos y espectros de respuesta del pórtico plano (§4c). Solo está si el proyecto tiene datos de dinámica. |
 | `proyecto` | versión 1 | no | Datos que identifican el proyecto y salen en la carátula de la memoria (§4d). Solo está si se cargó alguno. |
 | `historial` | versión 1 | no | Cambios que propuso un agente de IA, un importador o un complemento y la persona aplicó, deshizo o rehízo (§4e). Solo está si hubo alguno. |
-| `fisico` | versión 1 | no | Modelo físico del edificio: pisos, ejes, materiales, secciones, columnas, vigas, losas y muros (§4f). Solo está si el proyecto tiene modelo físico. |
+| `fisico` | versión 2 | no | Modelo físico del edificio: pisos, ejes, materiales, secciones, columnas, vigas, losas y muros, con las cargas por planta (§4f). Solo está si el proyecto tiene modelo físico. |
 | `resultados` | previsto (§5) | no | Caché de resultados. |
 | `vista` | previsto | no | Cámara, capas, selección. |
 | `adjuntos` | previsto | no | Imágenes, memorias, planos. |
@@ -278,7 +278,7 @@ Lo escribe `nervi.proyecto` cuando la persona aplica una **propuesta** de cambio
 - Se guardan los últimos 2000 cambios; al agregar uno más se descarta el más viejo. `extensiones` (opcional) es un objeto libre.
 - Se valida con `nervi.formato.historial.validar`; un error dice `historial.json`, la ruta y el motivo.
 
-## 4f. Módulo `fisico` (`fisico.json`), versión 1
+## 4f. Módulo `fisico` (`fisico.json`), versión 2
 
 El **modelo físico** describe el edificio como lo dibuja quien proyecta: pisos con su nivel, ejes y los elementos (columnas, vigas, losas y muros) con su sección o espesor, material y ubicación (issue #73, Fase 7). Es independiente de `modelo.json`: el modelo analítico de barras se generará desde el físico (#74), y hasta entonces los dos conviven sin referirse uno al otro. Lo escribe `nervi.fisico.ModeloFisico` (API de Python); la edición en la interfaz viene después (#31). Un proyecto sin modelo físico no tiene este módulo.
 
@@ -287,11 +287,11 @@ El **modelo físico** describe el edificio como lo dibuja quien proyecta: pisos 
   "unidades": {"longitud": "m"},
   "pisos": [
     {"id": 1, "nombre": "Planta baja", "nivel": 0.0},
-    {"id": 2, "nombre": "Piso 1", "nivel": 3.0}
+    {"id": 2, "nombre": "Piso 1", "nivel": 3.0, "permanente": 1.5, "sobrecarga": 2.0}
   ],
   "ejes": [{"id": 1, "nombre": "A", "p1": [0.0, -1.0], "p2": [0.0, 6.0]}],
   "materiales": [
-    {"id": 1, "nombre": "H-25", "tipo": "hormigon", "fc": 25.0},
+    {"id": 1, "nombre": "H-25", "tipo": "hormigon", "fc": 25.0, "peso": 25.0},
     {"id": 2, "nombre": "F-24", "tipo": "acero", "fy": 240.0, "fu": 370.0}
   ],
   "secciones": [
@@ -300,24 +300,25 @@ El **modelo físico** describe el edificio como lo dibuja quien proyecta: pisos 
   ],
   "columnas": [{"id": 1, "nombre": "CA1", "punto": [0.0, 0.0], "desde": 1, "hasta": 2, "seccion": 1, "material": 1}],
   "vigas": [{"id": 1, "nombre": "V1", "piso": 2, "p1": [0.0, 0.0], "p2": [6.0, 0.0], "seccion": 1, "material": 1}],
-  "losas": [{"id": 1, "nombre": "L101", "piso": 2, "contorno": [[0.0, 0.0], [6.0, 0.0], [6.0, 5.0], [0.0, 5.0]], "espesor": 120.0, "material": 1}],
+  "losas": [{"id": 1, "nombre": "L101", "piso": 2, "contorno": [[0.0, 0.0], [6.0, 0.0], [6.0, 5.0], [0.0, 5.0]], "espesor": 120.0, "material": 1, "sobrecarga": 3.0}],
   "muros": [{"id": 1, "nombre": "M1", "p1": [0.0, 0.0], "p2": [0.0, 5.0], "desde": 1, "hasta": 2, "espesor": 200.0, "material": 1}]
 }
 ```
 
 - **Unidades.** Coordenadas en planta (`p1`, `p2`, `punto`, `contorno`) y niveles en `unidades.longitud` ∈ {`mm`, `cm`, `m`}; dimensiones de secciones (`b`, `h`, `d`) y espesores en **mm**; `fc`, `fy`, `fu` y `E` en **MPa**. No dependen de las unidades de `modelo.json`.
 - **Identificadores.** Cada elemento de cada lista lleva un `id` entero ≥ 1, único dentro de su lista y no necesariamente consecutivo; las referencias (`piso`, `desde`, `hasta`, `seccion`, `material`) usan ese `id`. Los puntos son pares `[x, y]` en planta, con números finitos. Las listas ausentes valen `[]`.
-- `pisos`: `nombre` (único) y `nivel`, la cota de la cara superior de la losa del piso. No puede haber dos pisos en el mismo nivel.
+- `pisos`: `nombre` (único) y `nivel`, la cota de la cara superior de la losa del piso. No puede haber dos pisos en el mismo nivel. Opcionales (versión 2): `permanente` y `sobrecarga`, las cargas de superficie de las losas del piso en **kN/m²** (≥ 0; ausentes valen 0). `permanente` es la que se suma al peso propio de la losa (pisos, contrapiso, cielorraso, tabiques repartidos); `sobrecarga`, la de uso.
 - `ejes`: `nombre` (único) y dos puntos distintos `p1`, `p2`. Son referencias de dibujo: ningún elemento depende de ellos.
-- `materiales`: `nombre` (único) y `tipo` ∈ {`hormigon`, `acero`}. El hormigón lleva `fc` (obligatoria) y `E` (opcional); el acero, `fy` (obligatoria), `fu ≥ fy` y `E` (opcionales). Todos > 0. Sin `E`, lo dará la norma que se use.
+- `materiales`: `nombre` (único) y `tipo` ∈ {`hormigon`, `acero`}. El hormigón lleva `fc` (obligatoria) y `E` (opcional); el acero, `fy` (obligatoria), `fu ≥ fy` y `E` (opcionales). Todos > 0. Sin `E`, lo dará la norma que se use. Opcional (versión 2): `peso`, el peso específico en **kN/m³** (> 0); sin él, el peso propio de las losas de hormigón usa 25 kN/m³.
 - `secciones`: `nombre` (único) y `forma` ∈ {`rectangular` (con `b` y `h`), `circular` (con `d`)}. Los perfiles de acero entran con el catálogo (#83) subiendo la versión.
 - `columnas`: `punto` en planta, `desde` y `hasta` (pisos, con el nivel de `hasta` mayor que el de `desde`), `seccion`, `material`, y opcionales `nombre` y `angulo` (giro de la sección en planta, en grados, antihorario desde X; ausente vale 0).
 - `vigas`: `piso` (la cara superior de la viga está en su nivel), `p1` y `p2` distintos, `seccion`, `material` y `nombre` opcional.
-- `losas`: `piso`, `contorno` (polígono simple de al menos 3 puntos, sin repetir el primero al final, que no se corta a sí mismo y encierra área, en cualquier sentido), `espesor`, `material` de hormigón, `nombre` opcional y `tipo` ∈ {`maciza`} (ausente vale `maciza`). Las nervadas, las mixtas con steel deck y las pretensadas (#101, #92, #102) entran subiendo la versión.
+- `losas`: `piso`, `contorno` (polígono simple de al menos 3 puntos, sin repetir el primero al final, que no se corta a sí mismo y encierra área, en cualquier sentido), `espesor`, `material` de hormigón, `nombre` opcional y `tipo` ∈ {`maciza`} (ausente vale `maciza`). Las nervadas, las mixtas con steel deck y las pretensadas (#101, #92, #102) entran subiendo la versión. Opcionales (versión 2): `permanente` y `sobrecarga` en kN/m² (≥ 0), que reemplazan a las de su piso.
 - `muros`: eje del muro `p1`–`p2` (distintos), `desde` y `hasta` como las columnas, `espesor`, `material` de hormigón y `nombre` opcional.
 - Los `nombre` de pisos, ejes, materiales y secciones no se repiten; los de los elementos sí pueden repetirse (la columna `C1` de cada piso). Un `nombre` es un texto no vacío de hasta 100 caracteres.
 - `extensiones` (opcional) es un objeto libre.
 - La versión 1 no valida superposiciones entre elementos (dos vigas en el mismo lugar, una losa que se sale de sus vigas): eso es tarea de la revisión del modelo, no del formato.
+- **Cargas por planta (versión 2, #78).** Se guardan solo las cargas de superficie; su reparto a vigas y muros por áreas tributarias se calcula al pedirlo (`ModeloFisico.repartir_cargas`, `nervi.reparto`) y no se guarda. La migración 1 → 2 no cambia nada: un `fisico.json` 1 ya es válido como 2 (sin cargas, solo el peso propio).
 - Se valida con `nervi.formato.fisico.validar`; un error dice `fisico.json`, la ruta y el motivo (por ejemplo `fisico.json: vigas[0].piso: no existe el piso 77`).
 
 ## 5. Resultados (`resultados/`, reservado)
@@ -419,3 +420,4 @@ Implementado en `python/nervi/formato/`:
 | `proyecto` 1 | 2026-11-24 (borrador) | Módulo opcional con los datos de la carátula de la memoria (§4d). Archivo de referencia `tests/datos/nrv/proyecto-v1.nrv`. |
 | `historial` 1 | 2026-11-24 (borrador) | Módulo opcional de auditoría (§4e): cambios propuestos por un agente de IA, un importador o un complemento, con su origen, resumen y huellas. Archivo de referencia `tests/datos/nrv/historial-v1.nrv`. |
 | `fisico` 1 | 2026-11-25 (borrador) | Módulo opcional con el modelo físico del edificio (§4f): pisos, ejes, materiales, secciones, columnas, vigas, losas macizas y muros. Archivo de referencia `tests/datos/nrv/fisico-v1.nrv`. |
+| `fisico` 2 | 2026-11-27 (borrador) | Cargas por planta (#78): `permanente` y `sobrecarga` opcionales en pisos y losas, y `peso` opcional en materiales. Migración 1 → 2 sin cambios (`fisico_1_a_2`). Archivo de referencia `tests/datos/nrv/fisico-v2.nrv`. |

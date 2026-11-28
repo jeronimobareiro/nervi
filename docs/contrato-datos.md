@@ -197,3 +197,40 @@ Argumentos comunes (mm, mm² y MPa; momentos en kN·m): `b`, `d`, `fc`, `fy`. La
 |---|---|
 | 1 | Versión inicial: flexocompresión biaxial de columnas (antes en NumPy, mismos resultados). |
 | 2 | Flexión de vigas: `viga_resistencia`, `viga_armadura_simple` y `viga_elegir_barras` (antes en Python, mismos resultados). Las funciones de columnas no cambian. |
+
+# Reparto de losas (`repartir_losas`)
+
+Reparte las losas del modelo físico a sus vigas y muros por áreas tributarias (issue #78, `nervi_core::losas`). Contrato propio, `VERSION_CONTRATO_LOSAS = 1`, que se versiona aparte de los demás. Lo usa `nervi.reparto`; no es API pública. Método, fuentes y lo que todavía no se reparte en la documentación del módulo de Rust.
+
+## Entrada
+
+| Argumento | Forma y tipo | Contenido |
+|---|---|---|
+| `version` | entero | `VERSION_CONTRATO_LOSAS` |
+| `vertices` | `(V, 2)` float64 | Contornos de todas las losas, uno detrás del otro, en planta |
+| `inicio` | `(L + 1,)` int64 | Dónde empieza cada contorno en `vertices` (el último es `V`) |
+| `grupos_losas` | `(L,)` int64 | Grupo (piso) de cada losa: solo la apoyan los apoyos del mismo grupo |
+| `apoyos` | `(M, 4)` float64 | Eje de cada viga o muro, `x1 y1 x2 y2` |
+| `grupos_apoyos` | `(M,)` int64 | Grupo de cada apoyo (un muro que alcanza varios pisos va una vez por piso) |
+| `cargas` | `(L, C)` float64 | Carga de superficie de cada losa en cada caso, ya multiplicada por el factor que deja la carga lineal en las unidades buscadas |
+| `tol` | float | Tolerancia geométrica (unidades de longitud): un apoyo está sobre un borde si sus extremos están a menos de `tol` de su recta; no cambia la exactitud del reparto |
+
+## Salida
+
+Un diccionario con:
+
+- `piezas (K, 6)`: `losa, apoyo, a, b, ancho_a, ancho_b`. El ancho tributario varía linealmente de `ancho_a` en `a` a `ancho_b` en `b` (`a < b`, abscisas desde `p1` del apoyo).
+- `cargas (K, C, 2)`: carga lineal en `a` y en `b` de cada caso (`cargas[losa, caso] · ancho`).
+- `regiones`: lista de `(losa, [apoyos], vértices (R, 2))`, la zona tributaria de cada borde apoyado, en sentido antihorario.
+- `avisos`: lista de `(losa, lado o None, motivo)`, con `motivo` ∈ {`no_convexa`, `sin_apoyos`, `borde_parcial`, `fuera_del_borde`}. `lado` cuenta desde el lado que va del punto 0 al 1 del contorno dado.
+- `repartida (L,)` bool: si la losa se repartió entera. Una losa no convexa, sin bordes apoyados o con una zona que se sale de su borde no recibe ninguna pieza.
+
+Garantía: para cada losa repartida, la suma de `0,5 · (ancho_a + ancho_b) · (b − a)` de sus piezas es el área de la losa, salvo el redondeo de la aritmética de doble precisión (equilibrio global exacto).
+
+Errores: `ValueError` si la versión no coincide, las formas no son las esperadas, `tol` no es positiva, una losa tiene menos de 3 puntos, coordenadas no finitas o área nula, o un apoyo no es un segmento.
+
+### Historial de versiones (losas)
+
+| Versión | Cambio |
+|---|---|
+| 1 | Versión inicial: reparto por áreas tributarias en losas convexas. |
