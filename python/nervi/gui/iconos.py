@@ -262,14 +262,16 @@ _LISTA = (
         "Acercar",
         "Vista y navegación",
         _LUPA + '<path d="M10.5 8v5M8 10.5h5"/>',
-        "Visor 3D y planta (#30)",
+        "Planta del edificio y vista 2D (zoom); visor 3D (#30)",
+        en_uso=True,
     ),
     _I(
         "alejar",
         "Alejar",
         "Vista y navegación",
         _LUPA + '<path d="M8 10.5h5"/>',
-        "Visor 3D y planta (#30)",
+        "Planta del edificio y vista 2D (zoom); visor 3D (#30)",
+        en_uso=True,
     ),
     _I(
         "encuadrar",
@@ -277,7 +279,8 @@ _LISTA = (
         "Vista y navegación",
         '<path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/>'
         '<rect x="8.5" y="8.5" width="7" height="7" rx="0.6"/>',
-        "Visor 3D y planta (#30)",
+        "Planta del edificio y vista 2D (zoom); visor 3D (#30)",
+        en_uso=True,
     ),
     _I(
         "vista_3d",

@@ -16,6 +16,7 @@ from PySide6.QtGui import QColor, QFont, QMouseEvent, QPainter, QPainterPath, QP
 from PySide6.QtWidgets import QWidget
 
 from . import estilo
+from .navegacion import Navegable, Vista, dibujar_coordenadas, dibujar_grilla
 from .sesion import Seleccion, Sesion
 
 DIAGRAMAS = {"M": "Momento", "V": "Cortante", "N": "Axil", "D": "Deformada"}
@@ -26,9 +27,10 @@ def _fmt(v: float) -> str:
     return f"{v:.2f}".replace("-", "−")
 
 
-class Vista2D(QWidget):
+class Vista2D(Navegable, QWidget):
     """Lienzo del pórtico. Clic selecciona; al pasar el cursor sobre una barra
-    muestra los esfuerzos en ese punto."""
+    muestra los esfuerzos en ese punto. Se navega con la rueda, el botón del medio y
+    ``F`` (ver :mod:`nervi.gui.navegacion`)."""
 
     diagrama_cambiado = Signal(str)
 
@@ -42,8 +44,8 @@ class Vista2D(QWidget):
         #: Color de cada barra (id -> color), por ejemplo el estado de su diseño.
         self.colores_barra: dict[int, str] = {}
         self._cursor: QPointF | None = None
-        self.setMouseTracking(True)
         self.setMinimumSize(320, 240)
+        self.iniciar_navegacion()
         self.setAutoFillBackground(False)
         for senal in (
             sesion.modelo_cambiado,
@@ -62,19 +64,34 @@ class Vista2D(QWidget):
     def _nudos(self) -> dict[int, tuple[float, float]]:
         return {n["id"]: (n["x"], n["y"]) for n in self.sesion.modelo["nudos"]}
 
-    def _transformacion(self):
+    def _caja(self):
         nudos = self._nudos()
         if not nudos:
             return None
         xs = [p[0] for p in nudos.values()]
         ys = [p[1] for p in nudos.values()]
-        x0, x1, y0, y1 = min(xs), max(xs), min(ys), max(ys)
+        return min(xs), max(xs), min(ys), max(ys)
+
+    def ajuste(self) -> Vista | None:
+        """Encuadre automático del pórtico."""
+        caja = self._caja()
+        if caja is None:
+            return None
+        x0, x1, y0, y1 = caja
         ancho, alto = max(x1 - x0, 1e-9), max(y1 - y0, 1e-9)
         tam = max(ancho, alto)
         margen = 90
         w, h = max(self.width() - 2 * margen, 50), max(self.height() - 2 * margen, 50)
         escala = min(w / max(ancho, tam * 0.3), h / max(alto, tam * 0.3))
-        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        return Vista(escala, (x0 + x1) / 2, (y0 + y1) / 2)
+
+    def _transformacion(self):
+        v = self.vista_actual()
+        if v is None:
+            return None
+        x0, x1, y0, y1 = self._caja()
+        tam = max(x1 - x0, y1 - y0, 1e-9)
+        escala, cx, cy = v.escala, v.cx, v.cy
         ox, oy = self.width() / 2, self.height() / 2
 
         def a_pantalla(x: float, y: float) -> QPointF:
@@ -115,14 +132,15 @@ class Vista2D(QWidget):
         if res is not None:
             self._lectura(p, res)
         self._leyenda(p, res)
+        v = self.vista_actual()
+        dibujar_coordenadas(
+            p, self, v, self.centro_lienzo(), self.cursor_lienzo, self._unidades()["l"]
+        )
 
     def _grilla(self, p: QPainter) -> None:
-        p.setPen(QPen(QColor(estilo.HOVER), 1))
-        paso = 28
-        for x in range(0, self.width(), paso):
-            p.drawLine(x, 0, x, self.height())
-        for y in range(0, self.height(), paso):
-            p.drawLine(0, y, self.width(), y)
+        v = self.vista_actual()
+        if v is not None:
+            dibujar_grilla(p, QRectF(self.rect()), v, self.centro_lienzo())
 
     def _estructura(self, p: QPainter, t) -> None:
         a_pantalla, _, _ = t
@@ -349,14 +367,20 @@ class Vista2D(QWidget):
         return None
 
     def mouseMoveEvent(self, evento: QMouseEvent) -> None:
+        self.navegacion_mover(evento)
         self._cursor = evento.position()
         self.update()
 
-    def leaveEvent(self, _evento) -> None:
+    def leaveEvent(self, evento) -> None:
         self._cursor = None
-        self.update()
+        super().leaveEvent(evento)
+
+    def mouseReleaseEvent(self, evento: QMouseEvent) -> None:
+        self.navegacion_soltar(evento)
 
     def mousePressEvent(self, evento: QMouseEvent) -> None:
+        if self.navegacion_presionar(evento) or evento.button() != Qt.LeftButton:
+            return
         q = evento.position()
         nudo = self._nudo_cercano(q)
         if nudo is not None:

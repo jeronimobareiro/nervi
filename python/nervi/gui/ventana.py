@@ -1186,11 +1186,18 @@ class Ventana(QMainWindow):
     def nuevo(self) -> None:
         if self._seguir_si_hay_cambios():
             self.sesion.nuevo()
+            self._encuadrar_vistas()
             self.ir_a_etapa(0)
+
+    def _encuadrar_vistas(self) -> None:
+        """Un proyecto nuevo o abierto se ve entero, sin el zoom del anterior."""
+        self.vista.encuadrar()
+        self.planta.encuadrar()
 
     def abrir_ejemplo(self) -> None:
         if self._seguir_si_hay_cambios():
             self.sesion.nuevo(documento_ejemplo())
+            self._encuadrar_vistas()
             self.ir_a_etapa(0)
 
     def abrir_dialogo(self) -> None:
@@ -1232,6 +1239,7 @@ class Ventana(QMainWindow):
             QMessageBox.warning(self, "No se pudo abrir el proyecto", str(e))
             return False
         ajustes.agregar_reciente(self.sesion.ruta)
+        self._encuadrar_vistas()
         doc = self.sesion.doc
         if doc.migrado_desde:
             partes = ", ".join(
@@ -1444,6 +1452,8 @@ class Ventana(QMainWindow):
         estilo.aplicar(tema=ajustes.tema(clave))
         self.a_temas[clave].setChecked(True)
         self._iconos_riel()
+        for lienzo in (self.vista, self.planta):
+            lienzo.botones_navegacion.actualizar_iconos()
         self._actualizar_explorador()
         self._actualizar_resultados()
         self._actualizar_propiedades()

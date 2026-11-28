@@ -54,6 +54,7 @@ from ..formato import fisico as formato_fisico
 from ..formato.errores import FormatoError
 from ..reparto import CASOS, RepartoCargas
 from . import arbol, estilo
+from .navegacion import Navegable, Vista, dibujar_coordenadas, dibujar_grilla
 from .sesion import Sesion
 
 #: Casos de carga que se pueden ver en la planta, con su nombre.
@@ -340,13 +341,18 @@ def _dentro(p, poligono) -> bool:
     return dentro
 
 
-class PlantaEdificio(QWidget):
-    """Planta del piso elegido. Los colores salen de :mod:`estilo` al dibujar."""
+class PlantaEdificio(Navegable, QWidget):
+    """Planta del piso elegido. Los colores salen de :mod:`estilo` al dibujar.
+
+    Se navega con la rueda (zoom hacia el cursor), el botón del medio (paneo) y
+    ``F`` (encuadrar); ver :mod:`nervi.gui.navegacion`.
+    """
 
     def __init__(self, estado: EstadoEdificio) -> None:
         super().__init__()
         self.estado = estado
         self.setMinimumSize(320, 240)
+        self.iniciar_navegacion()
         estado.cambiado.connect(self.update)
 
     def _puntos(self, mf: ModeloFisico) -> list[tuple[float, float]]:
@@ -362,7 +368,11 @@ class PlantaEdificio(QWidget):
             pts += [tuple(p) for p in losa["contorno"]]
         return pts
 
-    def transformacion(self) -> _Transformacion | None:
+    def centro_lienzo(self) -> QPointF:
+        return QPointF(self.width() / 2, (self.height() - 30) / 2)
+
+    def ajuste(self) -> Vista | None:
+        """Encuadre automático de todo el edificio (todas las plantas a la misma escala)."""
         pts = self._puntos(self.estado.modelo())
         if not pts:
             return None
@@ -373,21 +383,24 @@ class PlantaEdificio(QWidget):
         escala = min(w / ancho if ancho else math.inf, h / alto if alto else math.inf)
         if not math.isfinite(escala):
             escala = 40.0
-        ox = self.width() / 2 - (min(xs) + max(xs)) / 2 * escala
-        oy = (self.height() - 30) / 2 + (min(ys) + max(ys)) / 2 * escala
-        return _Transformacion(escala, ox, oy)
+        return Vista(escala, (min(xs) + max(xs)) / 2, (min(ys) + max(ys)) / 2)
+
+    def transformacion(self) -> _Transformacion | None:
+        v = self.vista_actual()
+        if v is None:
+            return None
+        c = self.centro_lienzo()
+        return _Transformacion(v.escala, c.x() - v.cx * v.escala, c.y() + v.cy * v.escala)
 
     # -- dibujo ---------------------------------------------------------------------
     def paintEvent(self, _evento) -> None:
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         p.fillRect(self.rect(), QColor(estilo.PANEL))
-        p.setPen(QPen(QColor(estilo.HOVER), 1))
-        for x in range(0, self.width(), 28):
-            p.drawLine(x, 0, x, self.height())
-        for y in range(0, self.height(), 28):
-            p.drawLine(0, y, self.width(), y)
         mf = self.estado.modelo()
+        v = self.vista_actual()
+        if v is not None:
+            dibujar_grilla(p, QRectF(self.rect()), v, self.centro_lienzo())
         t = self.transformacion()
         piso = self.estado.piso
         if t is None or piso is None:
@@ -411,6 +424,7 @@ class PlantaEdificio(QWidget):
         self._muros(p, t, mf, en["muros"], elegido)
         self._columnas(p, t, mf, en["columnas"], elegido)
         self._leyenda(p, mf, piso, en)
+        dibujar_coordenadas(p, self, v, self.centro_lienzo(), self.cursor_lienzo, mf.longitud)
 
     def _ejes(self, p: QPainter, t: _Transformacion, mf: ModeloFisico) -> None:
         for e in mf.lista("ejes"):
@@ -616,8 +630,19 @@ class PlantaEdificio(QWidget):
         return None
 
     def mousePressEvent(self, evento) -> None:
+        if self.navegacion_presionar(evento):
+            return
+        if evento.button() != Qt.LeftButton:
+            return
         elegido = self.elemento_en(evento.position())
         self.estado.elegir(*(elegido or (None, None)))
+
+    def mouseMoveEvent(self, evento) -> None:
+        self.navegacion_mover(evento)
+        self.update()
+
+    def mouseReleaseEvent(self, evento) -> None:
+        self.navegacion_soltar(evento)
 
 
 # --- Tablas ------------------------------------------------------------------------------
