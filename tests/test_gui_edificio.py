@@ -55,38 +55,99 @@ def _piso(v, nombre):
     return next(p["id"] for p in v.edificio.modelo().lista("pisos") if p["nombre"] == nombre)
 
 
-def test_modo_edificio_y_calculo(ventana):
+def test_el_proyecto_dice_si_es_edificio_o_portico(ventana, qtbot):
+    """Sin selector Edificio | Cálculo: un proyecto con modelo físico se abre como
+    edificio, y uno sin modelo físico como pórtico plano (#74)."""
     v = ventana
+    assert v.modo == "edificio"
+    assert not hasattr(v, "botones_modo")
     assert v.vistas.currentWidget() is v.planta
     assert v.pila_arbol.currentWidget() is v.arbol_edificio
     assert v.pila_prop.currentWidget() is v.prop_edificio
     assert v.panel_inferior.currentWidget() is v.tablas_edificio
     assert not v.ctx_calculo.isVisible() and v.ctx_edificio.isVisible()
-    assert "4 pisos" in v.lbl_tamano.text()
-    v.elegir_modo("calculo")
-    assert v.vistas.currentWidget() is v.vista
-    assert v.pila_arbol.currentWidget() is v.arbol
-    assert v.panel_inferior.currentWidget() is v.tabs_modelo
-    assert v.ctx_calculo.isVisible() and not v.ctx_edificio.isVisible()
-    assert "nudos" in v.lbl_tamano.text()
+    assert v.botones_vista["planta"].isVisible() and not v.botones_vista["frente"].isVisible()
+    assert "4 pisos" in v.lbl_tamano.text() and "barras" in v.lbl_tamano.text()
+    p = Ventana(Sesion(documento_ejemplo()))
+    qtbot.addWidget(p)
+    assert p.modo == "calculo"
+    assert p.vistas.currentWidget() is p.vista
+    assert p.pila_arbol.currentWidget() is p.arbol
+    assert p.panel_inferior.currentWidget() is p.tabs_modelo
+    assert not p.botones_vista["planta"].isVisibleTo(p)
+    assert "nudos" in p.lbl_tamano.text()
 
 
-def test_edificio_no_muestra_resultados_ni_diseno_del_calculo(ventana):
-    """En Edificio no se ven las barras del pórtico de cálculo en Resultados ni Diseño."""
+def test_nuevo_edificio_y_nuevo_portico(ventana):
+    v = ventana
+    v.sesion.modificado = False
+    v.nuevo(edificio=False)
+    assert v.modo == "calculo" and not v.sesion.es_edificio
+    v.nuevo()
+    assert v.modo == "edificio" and v.sesion.es_edificio
+    assert len(v.edificio.modelo()) == 0
+    assert v.a_nuevo.text() == "Nuevo edificio"
+
+
+def test_las_etapas_mandan_sobre_el_panel_inferior(ventana):
+    """El panel inferior no tiene pestañas de primer nivel: muestra lo de la etapa."""
     v = ventana
     tabs = v.panel_inferior
-    for panel in (v.tabs_res, v.panel_diseno, v.panel_dinamica):
-        assert not tabs.isTabVisible(tabs.indexOf(panel))
-    # Ir a la etapa Diseño pasa al modelo de cálculo, donde están esas barras.
-    v.ir_a_etapa(4)
-    assert v.modo == "calculo"
-    assert tabs.currentWidget() is v.panel_diseno
-    assert tabs.isTabVisible(tabs.indexOf(v.panel_diseno))
-    # Volver a Edificio con Diseño a la vista muestra las tablas del edificio.
-    v.elegir_modo("edificio")
+    assert tabs.tabBar().isHidden()
+    v.ir_a_etapa(1)
     assert tabs.currentWidget() is v.tablas_edificio
+    assert v.tablas_edificio.currentWidget() is v.tablas_edificio.editores["losas"]
+    v.ir_a_etapa(2)
+    a = v.tabs_analisis
+    assert tabs.currentWidget() is a and a.currentWidget() is v.revision
+    assert a.isTabVisible(a.indexOf(v.panel_modelo_calculo))
+    assert not a.isTabVisible(a.indexOf(v.panel_dinamica))
+    assert v.panel_modelo_calculo.modelo.rowCount() == v.sesion.modelo_calculo().n_barras
+    v.ir_a_etapa(3)
+    assert tabs.currentWidget() is v.res_edificio
+    v.ir_a_etapa(4)
+    assert tabs.currentWidget() is v.diseno_edificio
+    # La dinámica es del pórtico plano: en el edificio avisa y no cambia de etapa.
     v.mostrar_dinamica()
-    assert v.modo == "calculo" and tabs.currentWidget() is v.panel_dinamica
+    assert tabs.currentWidget() is v.diseno_edificio
+    # La consola es un panel propio.
+    v.mostrar_consola()
+    assert v.paneles["consola"].isVisible()
+
+
+def test_calcular_el_edificio_devuelve_resultados_a_cada_elemento(ventana):
+    v = ventana
+    assert v.calcular()
+    s = v.sesion
+    assert s.edificio_al_dia and v.etapas.checkedId() == 3
+    assert v.panel_inferior.currentWidget() is v.res_edificio
+    assert "al día" in v.lbl_estado.text()
+    assert [v.combo.itemText(k) for k in range(v.combo.count())] == ["1.4D", "1.2D+1.6L", "D", "L"]
+    v.combo.setCurrentText("1.2D+1.6L")
+    t = v.res_edificio.por_elemento
+    mf = v.edificio.modelo()
+    assert t.rowCount() == len(mf.lista("vigas"))
+    # La fila de V101 tiene los momentos leídos sobre la viga del edificio.
+    fila = next(k for k in range(t.rowCount()) if t.textos[k][0] == "V101")
+    mc = s.modelo_calculo()
+    d = mc.diagrama(s.resultado_edificio(), "vigas", mf.lista("vigas")[0]["id"])
+    assert t.valores[fila, 0] == pytest.approx(d["Mz"][0])
+    assert t.valores[fila, 1] == pytest.approx(d["Mz"].max())
+    # Elegir una fila elige el elemento del edificio.
+    v.res_edificio.tabla_elementos.clicked.emit(t.index(fila, 0))
+    assert v.edificio.eleccion == ("vigas", mf.lista("vigas")[0]["id"])
+    v.res_edificio.elegir_lista("columnas")
+    assert t.rowCount() == len(mf.lista("columnas"))
+    assert v.res_edificio.reacciones.rowCount() == len(mc.apoyos)
+    assert v.res_edificio.derivas.rowCount() == 3
+    # Cambiar el edificio deja los resultados desactualizados.
+    datos = mf.a_json()
+    datos["vigas"][0]["p2"] = [6.0, 0.0]
+    s.editar_fisico(datos)
+    assert not s.edificio_al_dia and s.resultado_edificio() is None
+    assert "desactualizados" in v.lbl_estado.text()
+    assert v.res_edificio.por_elemento.rowCount() == 0
+    assert "calculá" in v.res_edificio.nota.text()
 
 
 def test_empieza_en_la_planta_mas_baja_con_elementos(ventana):
@@ -108,7 +169,7 @@ def test_flechas_y_atajos_cambian_de_planta(ventana, qtbot):
     v.combo_planta.activated.emit(v.combo_planta.findData(_piso(v, "Planta baja")))
     assert v.edificio.piso == _piso(v, "Planta baja")
     assert not v.b_bajar.isEnabled()
-    # En Cálculo, Re Pág y Av Pág son de las tablas.
+    # En un pórtico plano, Re Pág y Av Pág son de las tablas.
     v.elegir_modo("calculo")
     assert not v.a_subir.isEnabled()
 

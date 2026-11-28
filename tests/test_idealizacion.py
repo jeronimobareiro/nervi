@@ -297,3 +297,35 @@ def test_ejemplo_de_referencia():
     assert len(mc.maestros) == N
     r = mc.modelo.resolver()
     assert np.isfinite(r["D"].desplazamientos).all()
+
+
+def test_resumen_por_elemento_es_el_de_sus_barras():
+    """``ModeloCalculo.resumen`` (en bloque) da, elemento por elemento, lo mismo que
+    leer el diagrama de cada uno con ``ModeloCalculo.diagrama``."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "examples"))
+    from edificio_fisico import armar
+
+    from nervi.idealizacion import COMBINACIONES
+
+    mc = generar(armar())
+    res = mc.modelo.resolver()
+    c = res.combinar("1.2D+1.6L", COMBINACIONES["1.2D+1.6L"])
+    for lista in ("vigas", "columnas", "muros"):
+        r = mc.resumen(c, lista)
+        assert len(r["id"]) > 0
+        for k, id in enumerate(r["id"].tolist()):
+            d = mc.diagrama(c, lista, id)
+            orden = np.argsort(d["s"], kind="stable")
+            assert r["barras"][k] == len(mc.barras_de(lista, id))
+            for e in ("N", "Vy", "Mz", "My", "T"):
+                v = d[e][orden]
+                assert r[e + "_i"][k] == v[0] and r[e + "_j"][k] == v[-1]
+                assert r[e + "_max"][k] == v.max() and r[e + "_min"][k] == v.min()
+            assert r["V_max"][k] == np.hypot(d["Vy"], d["Vz"]).max()
+    # Vigas con momento negativo sobre los apoyos y positivo en el tramo.
+    r = mc.resumen(c, "vigas")
+    assert (r["Mz_i"] < 0).all() and (r["Mz_max"] > 0).all()
+    assert len(mc.resumen(c, "losas")["id"]) == 0

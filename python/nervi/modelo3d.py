@@ -505,6 +505,13 @@ class ResultadoCaso3D:
         self.fuerzas_extremo = fuerzas_extremo
         self._diagramas = diagramas
 
+    @property
+    def diagramas(self) -> dict[str, np.ndarray]:
+        """Las estaciones de todas las barras juntas: ``barra``, ``x`` y los mismos
+        arreglos que :meth:`diagrama`, ordenados por barra. Para recorrerlas en
+        bloque con ``numpy`` sin filtrar barra por barra."""
+        return self._diagramas
+
     def diagrama(self, barra: int) -> dict[str, np.ndarray]:
         """Arreglos ``x, N, Vy, Vz, T, My, Mz, u, v, w, rx`` de la barra
         (desplazamientos en ejes locales)."""

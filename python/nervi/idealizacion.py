@@ -44,6 +44,12 @@ PESO_ACERO = 78.5
 #: 318-19 R19.2.3) y acero 0.3 (AISC 360-22, Sección B4).
 POISSON = {"hormigon": 0.2, "acero": 0.3}
 TIPOS = ("columnas", "muros", "vigas")
+#: Combinaciones de resistencia con que se calcula el edificio mientras el modelo
+#: físico no guarde las suyas: ACI 318-19 §5.3.1, Tabla 5.3.1, ecuaciones (5.3.1a)
+#: ``1.4D`` y (5.3.1b) ``1.2D + 1.6L`` (sin cargas de techo, viento ni sismo).
+COMBINACIONES = {"1.4D": {"D": 1.4}, "1.2D+1.6L": {"D": 1.2, "L": 1.6}}
+#: Esfuerzos que resume :meth:`ModeloCalculo.resumen` por elemento físico.
+ESFUERZOS = ("N", "Vy", "Vz", "T", "My", "Mz")
 
 _MOTIVOS = {
     "viga_sobre_muro": "apoya en todo su largo sobre el muro {otro}: su carga pasa al muro",
@@ -140,6 +146,52 @@ class ModeloCalculo:
             return {}
         claves = [c for c in partes[0] if c != "x"]
         return {c: np.concatenate([p[c] for p in partes]) for c in claves}
+
+    def resumen(self, resultado: ResultadoCaso3D, lista: str) -> dict[str, np.ndarray]:
+        """Esfuerzos de cada elemento físico de ``lista`` leídos sobre todas sus barras.
+
+        Devuelve arreglos alineados por elemento, ordenados por ``id``: ``id``,
+        ``barras`` (cuántas), y por cada esfuerzo ``E`` de :data:`ESFUERZOS` su valor
+        al principio (``E_i``, en ``p1`` o en la base), al final (``E_j``), el máximo
+        (``E_max``) y el mínimo (``E_min``) sobre el eje. ``V_max`` es el cortante
+        resultante ``hypot(Vy, Vz)`` más grande. En vigas, ``Mz`` es el momento de
+        flexión vertical (negativo sobre los apoyos). Sin bucles por barra: agrupa
+        las estaciones de todas las barras con ``numpy``."""
+        d = resultado.diagramas
+        barra = np.asarray(d["barra"], dtype=np.int64)
+        de_lista = np.array([o.lista == lista for o in self.origenes], dtype=bool)
+        ids_barra = np.array([o.id for o in self.origenes], dtype=np.int64)
+        inicio = np.array([o.s0 + o.brazo_i for o in self.origenes], dtype=float)
+        vacio = {"id": np.zeros(0, dtype=np.int64), "barras": np.zeros(0, dtype=np.int64)}
+        for e in ESFUERZOS:
+            for sufijo in ("_i", "_j", "_max", "_min"):
+                vacio[e + sufijo] = np.zeros(0)
+        vacio["V_max"] = np.zeros(0)
+        if not de_lista.any() or barra.size == 0:
+            return vacio
+        sel = de_lista[barra]
+        if not sel.any():
+            return vacio
+        b = barra[sel]
+        elemento = ids_barra[b]
+        s = np.asarray(d["x"], dtype=float)[sel] + inicio[b]
+        orden = np.lexsort((s, elemento))
+        elemento = elemento[orden]
+        ids, primero, cuantas = np.unique(elemento, return_index=True, return_counts=True)
+        ultimo = primero + cuantas - 1
+        salida = {"id": ids}
+        salida["barras"] = np.bincount(
+            np.searchsorted(ids, ids_barra[de_lista]), minlength=len(ids)
+        ).astype(np.int64)
+        for e in ESFUERZOS:
+            v = np.asarray(d[e], dtype=float)[sel][orden]
+            salida[e + "_i"] = v[primero]
+            salida[e + "_j"] = v[ultimo]
+            salida[e + "_max"] = np.maximum.reduceat(v, primero)
+            salida[e + "_min"] = np.minimum.reduceat(v, primero)
+        v = np.hypot(np.asarray(d["Vy"])[sel], np.asarray(d["Vz"])[sel])[orden]
+        salida["V_max"] = np.maximum.reduceat(v, primero)
+        return salida
 
 
 def _tolerancia(mf) -> float:

@@ -183,7 +183,7 @@ Desde noviembre de 2026 la interfaz es una **vía paralela**: `nervi.gui` (PySid
 | Estado | Issue | Tarea | Tamaño | Área |
 |:-:|---|---|---|---|
 | 🚧  [#73](https://github.com/jeronimobareiro/nervi/issues/73) | Modelo físico: pisos, ejes, vigas, columnas, losas y muros (datos, `.nrv`, API Python y edición con tablas, gestor de plantas y dibujo con el mouse hechos) | T | interfaz |
-| 🚧  [#74](https://github.com/jeronimobareiro/nervi/issues/74) | Generar el modelo de cálculo desde el modelo físico (motor y API de Python hechos, con columnas, vigas, brazos, diafragmas y cargas; faltan la interfaz, los ajustes de apoyos y liberaciones y las losas y muros como láminas) | T | motor |
+| 🚧  [#74](https://github.com/jeronimobareiro/nervi/issues/74) | Generar el modelo de cálculo desde el modelo físico (motor, API de Python e interfaz hechos: un solo modelo, cálculo del edificio en 3D y resultados por elemento; faltan los ajustes de apoyos y liberaciones, las combinaciones propias del edificio y las losas y muros como láminas) | T | motor |
 | ⬜  [#75](https://github.com/jeronimobareiro/nervi/issues/75) | Reconocer ejes, columnas, muros y losas en un DXF de arquitectura | T | planos |
 | ⬜  [#76](https://github.com/jeronimobareiro/nervi/issues/76) | Comparar revisiones del plano de arquitectura y actualizar el modelo | PA | planos |
 

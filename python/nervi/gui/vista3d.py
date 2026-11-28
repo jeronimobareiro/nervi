@@ -19,6 +19,8 @@ from pathlib import Path
 import numpy as np
 from PySide6.QtCore import QEvent, QPointF, Qt, Signal
 from PySide6.QtWidgets import (
+    QButtonGroup,
+    QHBoxLayout,
     QLabel,
     QPushButton,
     QVBoxLayout,
@@ -51,30 +53,66 @@ def _fmt(v: float) -> str:
 
 # --- Dibujo con PyVista --------------------------------------------------------------
 def _lineas(polilineas: list[np.ndarray]):
-    """``PolyData`` con una polilínea por arreglo ``(n, 3)``."""
+    """``PolyData`` con una polilínea por arreglo ``(n, 3)``. Arma las celdas en
+    bloque: el edificio tiene miles de barras."""
     import pyvista as pv
 
     puntos = np.vstack(polilineas)
-    celdas, base = [], 0
-    for p in polilineas:
-        celdas += [len(p), *range(base, base + len(p))]
-        base += len(p)
-    return pv.PolyData(puntos, lines=np.array(celdas))
+    largos = np.array([len(p) for p in polilineas], dtype=np.int64)
+    inicio = np.concatenate([[0], np.cumsum(largos)[:-1]])
+    # Cada celda: [n, base, base + 1, …, base + n - 1].
+    celdas = np.empty(len(puntos) + len(largos), dtype=np.int64)
+    pos = inicio + np.arange(len(largos))
+    celdas[pos] = largos
+    resto = np.ones(len(celdas), dtype=bool)
+    resto[pos] = False
+    celdas[resto] = np.arange(len(puntos))
+    return pv.PolyData(puntos, lines=celdas)
 
 
 def _franjas(rellenos: list[escena3d.Relleno]):
     """Superficie de cuadriláteros entre el eje y el borde de cada relleno."""
     import pyvista as pv
 
-    puntos, caras, base = [], [], 0
-    for r in rellenos:
-        n = len(r.eje)
-        puntos += [r.eje, r.borde]
-        for k in range(n - 1):
-            a, b = base + k, base + k + 1
-            caras += [4, a, b, base + n + k + 1, base + n + k]
-        base += 2 * n
-    return pv.PolyData(np.vstack(puntos), faces=np.array(caras))
+    largos = np.array([len(r.eje) for r in rellenos], dtype=np.int64)
+    base = np.concatenate([[0], np.cumsum(2 * largos)[:-1]])
+    puntos = np.vstack([p for r in rellenos for p in (r.eje, r.borde)])
+    # Un cuadrilátero por tramo k de cada relleno: eje k, eje k+1, borde k+1, borde k.
+    n = np.repeat(largos, largos - 1)
+    b = np.repeat(base, largos - 1)
+    k = np.arange(int((largos - 1).sum())) - np.repeat(
+        np.cumsum(largos - 1) - (largos - 1), largos - 1
+    )
+    a = b + k
+    caras = np.column_stack([np.full(len(a), 4), a, a + 1, a + n + 1, a + n]).ravel()
+    return pv.PolyData(puntos, faces=caras)
+
+
+#: Caras de un prisma de :func:`escena3d.cajas` (índices de sus 8 esquinas).
+CARAS_CAJA = np.array(
+    [[0, 1, 2, 3], [4, 5, 6, 7], [0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]]
+)
+
+
+def _cajas(cajas: np.ndarray):
+    """``PolyData`` con los seis lados de cada prisma ``(n, 8, 3)``."""
+    import pyvista as pv
+
+    n = len(cajas)
+    idx = (np.arange(n)[:, None, None] * 8 + CARAS_CAJA[None]).reshape(-1, 4)
+    caras = np.column_stack([np.full(len(idx), 4), idx]).ravel()
+    return pv.PolyData(cajas.reshape(-1, 3), faces=caras)
+
+
+def _poligonos(poligonos: list[np.ndarray]):
+    import pyvista as pv
+
+    puntos = np.vstack(poligonos)
+    caras, base = [], 0
+    for p in poligonos:
+        caras += [len(p), *range(base, base + len(p))]
+        base += len(p)
+    return pv.PolyData(puntos, faces=np.array(caras))
 
 
 def _flechas(flechas: list[escena3d.Flecha], tamano: float):
@@ -181,6 +219,7 @@ def dibujar(
     texto: str = "",
     paso_grilla: float | None = None,
     ejes: bool = True,
+    vacio: str = "Agregá nudos y barras en la tabla de Geometría",
 ) -> dict:
     """Dibuja ``escena`` en un ``pyvista.Plotter`` (o ``QtInteractor``) vacío.
     Con ``paso_grilla`` (en unidades del modelo) dibuja la grilla del terreno debajo;
@@ -193,7 +232,7 @@ def dibujar(
     actores: dict = {}
     if not escena.barras:
         plotter.add_text(
-            "Agregá nudos y barras en la tabla de Geometría",
+            vacio,
             position="upper_left",
             font_size=10,
             color=estilo.TEXTO_3,
@@ -238,6 +277,32 @@ def dibujar(
         )
     if escena.cargas:
         plotter.add_mesh(_flechas(escena.cargas, t), color=COLOR_CARGA, smooth_shading=True)
+    # Piezas del edificio (#74): volúmenes tenues detrás del modelo de cálculo.
+    if len(escena.cajas):
+        plotter.add_mesh(
+            _cajas(escena.cajas),
+            color=estilo.TEXTO_3,
+            opacity=0.22,
+            pickable=False,
+            show_edges=True,
+            edge_color=estilo.TEXTO_3,
+        )
+    if escena.losas:
+        plotter.add_mesh(
+            _poligonos(escena.losas), color=estilo.TEXTO_3, opacity=0.10, pickable=False
+        )
+    if escena.brazos:
+        plotter.add_mesh(_lineas(escena.brazos), color=estilo.ACENTO, line_width=7, pickable=False)
+    if escena.diafragmas:
+        plotter.add_mesh(
+            _lineas(escena.diafragmas),
+            color=estilo.ACENTO,
+            line_width=1,
+            opacity=0.5,
+            pickable=False,
+        )
+        centros = np.array([c for _, c in escena.maestros])
+        plotter.add_points(pv.PolyData(centros), color=estilo.ACENTO, point_size=12, pickable=False)
 
     barras = _lineas([np.vstack([b.p_i, b.p_j]) for b in escena.barras])
     barras.cell_data["barra"] = np.array([b.id for b in escena.barras])
@@ -248,33 +313,40 @@ def dibujar(
         render_lines_as_tubes=True,
         pickable=True,
     )
+    marcadas = set(escena.resaltadas)
     if seleccion is not None and seleccion.tipo == "barra":
-        elegida = [np.vstack([b.p_i, b.p_j]) for b in escena.barras if b.id == seleccion.id]
+        marcadas.add(seleccion.id)
+    if marcadas:
+        elegida = [np.vstack([b.p_i, b.p_j]) for b in escena.barras if b.id in marcadas]
         if elegida:
             plotter.add_mesh(
                 _lineas(elegida), color=estilo.ACENTO, line_width=8, render_lines_as_tubes=True
             )
-    ids = list(escena.nudos)
-    puntos = np.array([escena.nudos[i] for i in ids])
-    colores = [
-        estilo.ACENTO if seleccion == Seleccion("nudo", i) else estilo.ESTRUCTURA for i in ids
-    ]
-    plotter.add_points(
-        pv.PolyData(puntos),
-        scalars=np.array([[int(c[k : k + 2], 16) for k in (1, 3, 5)] for c in colores], np.uint8),
-        rgb=True,
-        point_size=11,
-        render_points_as_spheres=True,
-    )
-    plotter.add_point_labels(
-        puntos + np.array([0.02, 0.0, 0.03]) * t,
-        [f"N{i}" for i in ids],
-        font_size=10,
-        text_color=estilo.TEXTO_3,
-        shape_opacity=0.0,
-        show_points=False,
-        always_visible=True,
-    )
+    ids = list(escena.nudos) if escena.ver_nudos else []
+    if ids:
+        puntos = np.array([escena.nudos[i] for i in ids])
+        colores = [
+            estilo.ACENTO if seleccion == Seleccion("nudo", i) else estilo.ESTRUCTURA for i in ids
+        ]
+        plotter.add_points(
+            pv.PolyData(puntos),
+            scalars=np.array(
+                [[int(c[k : k + 2], 16) for k in (1, 3, 5)] for c in colores], np.uint8
+            ),
+            rgb=True,
+            point_size=11 if escena.rotulos_nudos else 7,
+            render_points_as_spheres=True,
+        )
+    if ids and escena.rotulos_nudos:
+        plotter.add_point_labels(
+            puntos + np.array([0.02, 0.0, 0.03]) * t,
+            [f"N{i}" for i in ids],
+            font_size=10,
+            text_color=estilo.TEXTO_3,
+            shape_opacity=0.0,
+            show_points=False,
+            always_visible=True,
+        )
     if escena.apoyos:
         plotter.add_mesh(_apoyos(escena.apoyos, t), color=estilo.TEXTO_2, smooth_shading=True)
     if texto:
@@ -389,11 +461,18 @@ class Vista3D(QWidget):
     - Rueda: acercar o alejar hacia el cursor. ``F`` o ``Inicio``: encuadrar.
     - Clic en una barra: la elige, igual que en la vista de frente.
     - Brújula de vistas abajo a la derecha: mirar desde un eje.
+
+    Con :attr:`edificio` muestra el edificio (#74): el modelo de cálculo generado,
+    sus piezas o los dos (*Mostrar*, arriba a la izquierda) y los resultados del
+    último cálculo del edificio. Un clic en una barra avisa con :attr:`barra_pulsada`
+    (la ventana elige el elemento del edificio del que sale).
     """
 
     diagrama_cambiado = Signal(str)
     #: La brújula pidió una vista: ``"+Z"``, ``"-Y"``… (la ventana decide si pasa a frente).
     vista_pedida = Signal(str)
+    #: Clic en el edificio: la barra del modelo de cálculo (``None``: en el vacío).
+    barra_pulsada = Signal(object)
 
     #: Duración de la transición de la cámara, en milisegundos (0: sin animación).
     DURACION_MS = 220
@@ -411,6 +490,12 @@ class Vista3D(QWidget):
         self.mostrar_valores = True
         self.mostrar_cargas = True
         self.perspectiva = False
+        #: Muestra el edificio (modelo de cálculo generado) en vez del pórtico plano.
+        self.edificio = False
+        #: Qué se ve del edificio: ``"edificio"``, ``"calculo"`` o ``"ambos"``.
+        self.mostrar = "ambos"
+        #: Barras resaltadas en el edificio (las del elemento elegido).
+        self.resaltadas: set[int] = set()
         self.escena: escena3d.Escena | None = None
         self.camara: camara3d.Camara3D | None = None
         self._actores: dict = {}
@@ -436,11 +521,34 @@ class Vista3D(QWidget):
         self.botones_navegacion.findChild(QWidget, "grupo").layout().addWidget(self.b_cargas)
         self.brujula = Brujula(self)
         self.brujula.vista_pedida.connect(self.vista_pedida)
+        # Mostrar: Edificio · Cálculo · Ambos, solo con el edificio.
+        self.grupo_mostrar = QWidget(self)
+        m = QHBoxLayout(self.grupo_mostrar)
+        m.setContentsMargins(0, 0, 0, 0)
+        m.setSpacing(8)
+        m.addWidget(QLabel("Mostrar", objectName="tenue"))
+        segmentos = QWidget(objectName="grupo")
+        g = QHBoxLayout(segmentos)
+        g.setContentsMargins(2, 2, 2, 2)
+        g.setSpacing(2)
+        grupo = QButtonGroup(self)
+        self.botones_mostrar: dict[str, QPushButton] = {}
+        for clave, texto in escena3d.MOSTRAR.items():
+            b = QPushButton(texto, objectName="segmento", checkable=True)
+            b.clicked.connect(lambda _=False, c=clave: self.elegir_mostrar(c))
+            grupo.addButton(b)
+            self.botones_mostrar[clave] = b
+            g.addWidget(b)
+        self.botones_mostrar[self.mostrar].setChecked(True)
+        m.addWidget(segmentos)
+        self.grupo_mostrar.adjustSize()
+        self.grupo_mostrar.hide()
 
         for senal in (
             sesion.modelo_cambiado,
             sesion.resultados_cambiados,
             sesion.seleccion_cambiada,
+            sesion.fisico_cambiado,
         ):
             senal.connect(self.actualizar)
         sesion.archivo_cambiado.connect(self._nuevo_archivo)
@@ -457,6 +565,30 @@ class Vista3D(QWidget):
         self.mostrar_cargas = activo
         self.actualizar()
 
+    def mostrar_edificio(self, activo: bool) -> None:
+        """Pasa a mostrar el edificio (``True``) o el pórtico plano."""
+        if activo != self.edificio:
+            self.edificio = activo
+            self.camara = None
+        self.grupo_mostrar.setVisible(activo)
+        # Las cargas del pórtico no van en el edificio: se ven en la planta.
+        self.b_cargas.setVisible(not activo)
+        self.actualizar()
+
+    def elegir_mostrar(self, clave: str) -> None:
+        """*Mostrar* del edificio: ``"edificio"``, ``"calculo"`` o ``"ambos"``."""
+        self.mostrar = clave
+        self.botones_mostrar[clave].setChecked(True)
+        self.actualizar()
+
+    def resaltar(self, barras) -> None:
+        """Resalta las barras del elemento elegido del edificio."""
+        barras = set(barras)
+        if barras != self.resaltadas:
+            self.resaltadas = barras
+            if self.edificio:
+                self.actualizar()
+
     def _nuevo_archivo(self) -> None:
         self.camara = None
 
@@ -464,7 +596,56 @@ class Vista3D(QWidget):
         """Un metro en las unidades del modelo."""
         return 1.0 / METROS.get(self.sesion.modelo["unidades"]["longitud"], 1.0)
 
+    def _actualizar_edificio(self) -> None:
+        s = self.sesion
+        texto = ""
+        try:
+            mc = s.modelo_calculo() if s.es_edificio else None
+        except (ValueError, KeyError) as e:
+            mc, texto = None, f"No se pudo generar el modelo de cálculo: {e}"
+        if mc is None or mc.n_barras == 0:
+            self.escena = escena3d.Escena({}, [], [], 1.0)
+            vacio = texto or "Dibujá columnas, vigas y muros en la planta del edificio"
+            self._actores = dibujar(self.plotter, self.escena, None, "", ejes=False, vacio=vacio)
+            self._poner_camara()
+            return
+        from ..fisico import ModeloFisico
+
+        res = s.resultado_edificio()
+        self.escena = escena3d.armar_edificio(
+            mc,
+            ModeloFisico.desde_json(s.fisico),
+            s.resultados_edificio if s.edificio_al_dia else None,
+            res,
+            self.diagrama,
+            self.mostrar,
+            self.mostrar_valores,
+        )
+        self.escena.resaltadas = set(self.resaltadas)
+        nombre = s.combinacion
+        if res is None:
+            texto = "Sin resultados: calculá con F5"
+        else:
+            texto = leyenda(
+                self.escena, self.diagrama, nombre, {"fuerza": "kN", "longitud": mc.longitud}
+            )
+        self._actores = dibujar(
+            self.plotter,
+            self.escena,
+            None,
+            texto,
+            paso_grilla=1.0 / METROS.get(mc.longitud, 1.0),
+            ejes=False,
+        )
+        self.plotter.add_text(self.AYUDA, position="lower_right", font_size=8, color=estilo.TEXTO_3)
+        if self.camara is None:
+            self.camara = self.encuadre("isometrica")
+        self._poner_camara()
+
     def actualizar(self) -> None:
+        if self.edificio:
+            self._actualizar_edificio()
+            return
         s = self.sesion
         res = s.resultado()
         nombre = s.combinacion or (s.nombres_resultado() or [""])[0]
@@ -701,6 +882,9 @@ class Vista3D(QWidget):
         self.terminar_arrastre()
         if modo == "clic" and evento.button() == Qt.LeftButton:
             barra = self.barra_en_lienzo(inicio.x(), inicio.y())
+            if self.edificio:
+                self.barra_pulsada.emit(barra)
+                return
             self.sesion.seleccionar(Seleccion("barra", barra) if barra is not None else None)
 
     def _tecla(self, evento) -> bool:
@@ -719,6 +903,8 @@ class Vista3D(QWidget):
         super().resizeEvent(evento)
         self.botones_navegacion.acomodar()
         self.brujula.acomodar()
+        self.grupo_mostrar.move(12, 12)
+        self.grupo_mostrar.raise_()
         self.botones_navegacion.raise_()
         self.brujula.raise_()
 

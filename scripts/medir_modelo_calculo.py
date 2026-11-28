@@ -83,6 +83,21 @@ def main() -> None:
         d = rep.total_losas("peso_propio") + rep.total_losas("permanente") + peso
         assert math.isclose(r["D"].reacciones[:, 2].sum(), d, rel_tol=1e-10)
         print("Equilibrio vertical exacto en D.")
+        # Lo que la interfaz arma después de calcular (#74): esfuerzos por elemento
+        # y la escena 3D con el diagrama de momentos.
+        c = r.combinar("1.2D+1.6L", idealizacion.COMBINACIONES["1.2D+1.6L"])
+        t0 = time.perf_counter()
+        for lista in ("vigas", "columnas", "muros"):
+            mc.resumen(c, lista)
+        t1 = time.perf_counter()
+        try:
+            from nervi.gui import escena3d
+        except ImportError:
+            escena3d = None
+        if escena3d is not None:
+            escena3d.armar_edificio(mc, mf, r, c, "M", "ambos")
+        t2 = time.perf_counter()
+        print(f"resumen por elemento: {t1 - t0:.3f} s; escena 3D: {t2 - t1:.3f} s")
 
 
 if __name__ == "__main__":

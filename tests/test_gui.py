@@ -104,7 +104,9 @@ def test_mecanismo_avisa_sin_romper(ventana):
     modelo["apoyos"] = []
     ventana.sesion.editar(modelo)
     assert not ventana.calcular()
-    assert ventana.panel_inferior.currentWidget() is ventana.revision
+    # Análisis > Revisión: la etapa manda sobre el panel inferior.
+    assert ventana.panel_inferior.currentWidget() is ventana.tabs_analisis
+    assert ventana.tabs_analisis.currentWidget() is ventana.revision
     # Sin apoyos todos los nudos se mueven; el motor señala uno y la vista lo marca.
     ines = ventana.sesion.inestabilidad
     assert ines is not None and ines.nudo in {n["id"] for n in modelo["nudos"]}
@@ -395,7 +397,8 @@ def test_memoria_con_capitulo_de_diseno(ventana, tmp_path):
 def test_dinamica_sin_masa_avisa(ventana):
     panel = ventana.panel_dinamica
     assert not ventana.analizar_dinamica()
-    assert ventana.panel_inferior.currentWidget() is panel
+    assert ventana.etapas.checkedId() == 2
+    assert ventana.tabs_analisis.currentWidget() is panel
     assert "masa" in panel.lbl_estado.text()
     assert ventana.sesion.doc.dinamica is None
 
@@ -615,8 +618,9 @@ def test_barra_lateral_abre_cada_menu(ventana, qtbot):
         "preferencias",
     }
     for clave, menu in ventana.menus_riel.items():
-        # Solo acciones que existen: ninguna gris ni sin texto.
-        acciones = [a for a in menu.actions() if not a.isSeparator()]
+        # Solo acciones que existen: ninguna gris ni sin texto. Las ocultas (Planta en
+        # un pórtico, Frente en un edificio) no se ven en el menú.
+        acciones = [a for a in menu.actions() if not a.isSeparator() and a.isVisible()]
         # Deshacer y Rehacer quedan inactivos mientras no hay nada que deshacer.
         activas = acciones if clave != "editar" else []
         assert acciones and all(a.text() for a in acciones), clave

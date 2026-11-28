@@ -427,3 +427,141 @@ def test_rueda_acerca_hacia_el_cursor_y_f_encuadra(ventana_3d, qtbot):
     v.elegir_proyeccion("perspectiva")
     assert w.camara.perspectiva and w.perspectiva
     assert not w.plotter.renderer.GetActiveCamera().GetParallelProjection()
+
+
+# --- Edificio: modelo de cálculo generado (#74) ----------------------------------------
+def _edificio():
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "examples"))
+    from edificio_fisico import armar
+
+    return armar()
+
+
+@pytest.fixture(scope="module")
+def edificio():
+    mf = _edificio()
+    mc = mf.modelo_calculo()
+    res = mc.modelo.resolver()
+    return mf, mc, res, res.combinar("1.2D+1.6L", {"D": 1.2, "L": 1.6})
+
+
+def test_escena_del_edificio_segun_mostrar(edificio):
+    mf, mc, res, c = edificio
+    ambos = escena3d.armar_edificio(mc, mf, res, c, "M", "ambos")
+    assert len(ambos.barras) == mc.n_barras and len(ambos.nudos) == len(mc.nudos)
+    n_piezas = sum(len(mf.lista(k)) for k in ("columnas", "vigas", "muros"))
+    assert ambos.cajas.shape == (n_piezas, 8, 3) and len(ambos.losas) == len(mf.lista("losas"))
+    assert len(ambos.maestros) == 3 and ambos.diafragmas and ambos.brazos
+    assert len(ambos.apoyos) == len(mc.apoyos) and not ambos.rotulos_nudos
+    calculo = escena3d.armar_edificio(mc, mf, res, c, "M", "calculo")
+    assert len(calculo.cajas) == 0 and calculo.ver_nudos
+    piezas = escena3d.armar_edificio(mc, mf, res, c, "M", "edificio")
+    assert len(piezas.cajas) == n_piezas and not piezas.ver_nudos and not piezas.diafragmas
+    # Las barras se dibujan siempre: con ellas se elige con el mouse.
+    assert len(piezas.barras) == mc.n_barras
+
+
+def test_columna_de_pie_y_viga_colgada_de_su_nivel(edificio):
+    mf, *_ = edificio
+    cajas, _losas = escena3d.piezas_edificio(mf)
+    c = mf.lista("columnas")[0]
+    caja = cajas[0]
+    nivel = {p["id"]: p["nivel"] for p in mf.lista("pisos")}
+    assert caja[:4, 2] == pytest.approx([nivel[c["desde"]]] * 4)
+    assert caja[4:, 2] == pytest.approx([nivel[c["hasta"]]] * 4)
+    # 40 x 40 cm alrededor del punto.
+    assert np.ptp(caja[:, 0]) == pytest.approx(0.4) and np.ptp(caja[:, 1]) == pytest.approx(0.4)
+    v = mf.lista("vigas")[0]
+    caja = cajas[len(mf.lista("columnas"))]
+    assert caja[:, 2].max() == pytest.approx(nivel[v["piso"]])
+    assert caja[:, 2].min() == pytest.approx(nivel[v["piso"]] - 0.5)
+
+
+def test_diagrama_del_edificio_es_el_de_cada_barra(edificio):
+    """Las estaciones del diagrama en bloque caen donde las pone el motor: sobre la
+    parte flexible, corridas el brazo rígido, del lado del valor."""
+    mf, mc, res, c = edificio
+    e = escena3d.armar_edificio(mc, mf, res, c, "M", "calculo")
+    viga = mc.barras_de("vigas", mf.lista("vigas")[0]["id"])[0]
+    o = mc.origenes[viga]
+    d = c.diagrama(viga)
+    b = e.barras[viga]
+    positivos = [r for r in e.rellenos if r.barra == viga and r.signo == 1]
+    assert len(positivos) == 1
+    r = positivos[0]
+    np.testing.assert_allclose(r.eje[0], b.p_i + (o.brazo_i + d["x"][0]) * b.ejes[0])
+    k = int(np.argmax(d["Mz"]))
+    altura = (r.borde[k] - r.eje[k]) @ b.ejes[1]
+    assert altura == pytest.approx(escena3d.LADO["M"] * d["Mz"][k] * e.escala_diagrama)
+    # Rótulos solo en las vigas para el momento.
+    assert e.etiquetas
+    deformada = escena3d.armar_edificio(mc, mf, res, c, "D", "calculo")
+    assert len(deformada.deformada) == mc.n_barras and deformada.amplificacion > 0
+
+
+def test_dibujar_el_edificio(pv, edificio):
+    mf, mc, res, c = edificio
+    from nervi.gui import vista3d
+
+    p = pv.Plotter(off_screen=True, window_size=(400, 300))
+    e = escena3d.armar_edificio(mc, mf, res, c, "M", "ambos")
+    e.resaltadas = {0}
+    actores = vista3d.dibujar(p, e, None, "Momento", paso_grilla=1.0, ejes=False)
+    assert "barras" in actores
+    p.close()
+
+
+@pytest.fixture
+def ventana_edificio(pv, qtbot, monkeypatch):
+    from nervi.gui import ajustes
+    from nervi.gui.ventana import Ventana
+    from nervi.gui.vista3d import Vista3D
+
+    monkeypatch.setattr(ajustes, "ARCHIVO", os.devnull)
+    monkeypatch.setattr(Vista3D, "DURACION_MS", 0)
+    s = Sesion(formato.Documento.nuevo())
+    s.editar_fisico(_edificio().a_json())
+    # Sin cambios sin guardar: qtbot cierra la ventana antes que el fixture.
+    s.modificado = False
+    v = Ventana(s)
+    qtbot.addWidget(v)
+    v.resize(1400, 900)
+    v.show()
+    yield v
+    v.sesion.modificado = False
+    v.close()
+
+
+def test_edificio_en_3d_con_mostrar_y_resultados(ventana_edificio):
+    from nervi.gui.vista3d import Vista3D
+
+    v = ventana_edificio
+    assert v.modo == "edificio" and v.vista_visible() == "planta"
+    assert not v.ctx_calculo.isVisible()
+    v.mostrar_vista("3d")
+    w = v.vista3d
+    assert isinstance(w, Vista3D) and w.edificio and v.vistas.currentWidget() is w
+    assert w.grupo_mostrar.isVisible() and not w.b_cargas.isVisible()
+    assert v.ctx_calculo.isVisible()  # Diagrama y Combinación en 3D
+    assert len(w.escena.cajas) and not w.escena.rellenos  # sin calcular todavía
+    assert v.calcular()
+    assert w.escena.rellenos and w.escena.escala_diagrama > 0
+    w.elegir_mostrar("calculo")
+    assert len(w.escena.cajas) == 0 and w.escena.ver_nudos
+    w.elegir_mostrar("edificio")
+    assert len(w.escena.cajas) and not w.escena.ver_nudos
+    # Un clic en una barra elige el elemento del edificio del que sale.
+    mc = v.sesion.modelo_calculo()
+    k = mc.barras_de("vigas", v.edificio.modelo().lista("vigas")[0]["id"])[0]
+    w.barra_pulsada.emit(k)
+    assert v.edificio.eleccion == ("vigas", mc.origenes[k].id)
+    assert w.escena.resaltadas == {k}
+    w.barra_pulsada.emit(None)
+    assert v.edificio.eleccion is None
+    # La brújula, en un edificio, siempre mira en 3D.
+    v._vista_desde_brujula("-Y")
+    assert v.vista_visible() == "3d"
+    v.mostrar_vista("planta")
+    assert v.vistas.currentWidget() is v.planta and not v.ctx_calculo.isVisible()
