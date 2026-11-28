@@ -47,7 +47,7 @@ Que *Edificio* y *Cálculo* dejen de parecer dos sesiones de dos estructuras dis
 - *Frente* y *Lateral* de un pórtico del edificio; diagramas del segundo plano local (`My`, `Vz`) en 3D.
 - Las propiedades del elemento elegido todavía no muestran sus resultados (están en *Por elemento*).
 - Las columnas circulares se dibujan en 3D como un prisma de lado `d`.
-- Firma DCO: los commits de este PR van sin `Signed-off-by`. La autorización escrita de Jerónimo ("firmalo por mi") fue para el PR del motor (#111); para este hace falta que la confirme o que firme él con `git rebase --signoff origin/main` (AGENTS.md §3.5).
+- Firma DCO: los commits van con `Signed-off-by` de Jerónimo, que lo autorizó por escrito para este PR ("firmalo", 28/11/2026; AGENTS.md §3.5).
 
 ## Para quien siga
 
